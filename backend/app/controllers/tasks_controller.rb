@@ -23,9 +23,9 @@ class TasksController < ApplicationController
   
     def update
       if @task.update(task_params)
-        render json: @task
+        render json: @task, status: :ok
       else
-        render json: @task.errors, status: :unprocessable_entity
+        render json: { errors: @task.errors.full_messages }, status: :unprocessable_entity
       end
     end
   
@@ -35,13 +35,14 @@ class TasksController < ApplicationController
     end
   
     private
-  
+
     def set_task
-      @task = Task.find(params[:id])
+      @task = Task.find(params[:id]) # IDでタスクを検索
+    rescue ActiveRecord::RecordNotFound # 該当するタスクが存在しない場合は例外をキャッチ
+        render json: { errors: ["Task not found"]}, status: :not_found # JSON形式でエラーレスポンスを返し、HTTPステーステータスを404にする
     end
-  
+
     def task_params
-      params.require(:task).permit(:title, :description, :status, :deadline, :user_id)
+      params.require(:task).permit(:title, :status, :user_id)
     end
-  end
-  
+end
