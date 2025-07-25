@@ -1,0 +1,6 @@
+<h1>タスク一覧テスト</h1>
+<p>これはテストです。</p>
+
+<% @tasks.each do |task| %>
+  <p><%= task.title %> - <%= task.status %></p>
+<% end %>
