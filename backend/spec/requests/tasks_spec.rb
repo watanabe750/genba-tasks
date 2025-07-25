@@ -22,7 +22,8 @@ RSpec.describe "Task API", type: :request do
         end
     end
 
-    describe "POST /tasks" do
+    # タスク生成テスト
+    describe "POST /tasks()" do
         it "タスクを作成できる" do
           user = User.create!(email: "test2@example.com", password: "password")
           sign_in user  # ← ログイン状態を再現
@@ -36,8 +37,36 @@ RSpec.describe "Task API", type: :request do
           expect(json["title"]).to eq("新しいタスク")
           expect(json["user_id"]).to eq(user.id)
         end
-      end
+    end
       
+      # バリデーションテスト (異常系:タイトルが空の場合)
+      describe "POST /tasks (異常系)" do
+        it "タイトルが空なら422を返す" do
+            # テスト用ユーザーを作成
+            user = User.create!(email: "test@example.com", password: "password")
+
+            # APIにタスク作成リクエストを送信 (タイトルが空)
+            post "/tasks", params: {
+                task: {
+                    title: "", # バリデーションに引っ掛かる値
+                    status: :not_started, # enumのステータス
+                    user_id: user.id # 関連付けるユーザー
+                }
+            }
+
+            # HTTPステータスコードの確認
+            # コントローラ側で422を返すように実装している前提
+            expect(response).to have_http_status(:unprocessable_entity)
+
+            # レスポンスのJSONをパース
+            json = JSON.parse(response.body)
+
+            # エラーメッセージがレスポンスに含まれているか確認
+            expect(json["errors"]).to include("Title can't be blank")
+        end
+    end
+
+
 
     describe "PATCH /tasks/:id" do
         it "タスクを更新できる" do
