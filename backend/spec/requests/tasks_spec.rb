@@ -22,6 +22,40 @@ RSpec.describe "Task API", type: :request do
         end
     end
 
+    # GET /tasks (関連データ：ユーザーごと)
+    describe "GET /tasks (ユーザーごとのスコープ)" do
+        it "指定したユーザーのタスクだけ取得できる" do
+            user1 = User.create!(email: "user1@example.com", password: "password")
+            user2 = User.create!(email: "user2@example.com", password: "password")
+
+            Task.create!(title: "user1のタスク1", status: :not_started, user: user1)
+            Task.create!(title: "user1のタスク2", status: :completed, user: user1)
+            Task.create!(title: "user2のタスク", status: :in_progress, user: user2)
+
+            # user1のタスクだけ取得するようにAPIリクエストを送る
+            get "/tasks", params: { user_id: user1.id }
+
+            # HTTPステータスが200(OK)であることを確認
+            expect(response).to have_http_status(:ok)
+
+            # JSONレスポンスをパースして配列化
+            json = JSON.parse(response.body)
+
+            # 取得したタスク数が２件だけであることを確認
+            expect(json.size).to eq(2)
+
+            # タスクのタイトル一覧を配列に抽出
+            titles = json.map { |task| task["title"]}
+
+            # user1のタスクが含まれていることを確認
+            expect(titles).to include("user1のタスク1", "user1のタスク2")
+
+            # user2のタスクが含まれていないことを確認
+            expect(titles).not_to include("user2のタスク")
+        end
+    end
+
+
     # タスク生成テスト
     describe "POST /tasks()" do
         it "タスクを作成できる" do
