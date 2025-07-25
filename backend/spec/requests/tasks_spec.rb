@@ -67,7 +67,6 @@ RSpec.describe "Task API", type: :request do
     end
 
 
-
     describe "PATCH /tasks/:id" do
         it "タスクを更新できる" do
             user = User.create!(email: "test3@example.com", password: "password")
@@ -81,6 +80,20 @@ RSpec.describe "Task API", type: :request do
         end
     end
 
+    # PATCH /tasks/:id (異常系)
+    describe "PATCH /tasks/:id(異常系)" do
+        it "存在しないIDなら404を返す" do
+            patch "/tasks/999999", params: {
+                task: { title: "更新後タスク" }
+            }
+
+            expect(response).to have_http_status(:not_found)
+            json = JSON.parse(response.body)
+            expect(json["errors"]).to include("Task not found")
+        end
+    end
+
+
     describe "DELETE /tasks/:id" do
         it "タスクを削除できる" do
             user = User.create!(email: "test4@example.com", password: "password")
@@ -92,6 +105,15 @@ RSpec.describe "Task API", type: :request do
             expect(Task.find_by(id: task.id)).to be_nil
         end
     end
+
+    # DELETE /tasks/:id (異常系)
+    describe "DELETE /tasks/:id (異常系)" do
+        it "存在しないIDなら404を返す" do
+            delete "/tasks/999999"
+
+            expect(response).to have_http_status(:not_found)
+            json = JSON.parse(response.body)
+            expect(json["errors"]).to include("Task not found")
+        end
+    end
 end
-
-
