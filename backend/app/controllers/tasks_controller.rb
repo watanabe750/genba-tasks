@@ -2,10 +2,14 @@ class TasksController < ApplicationController
     before_action :set_task, only: [:show, :update, :destroy]
   
     def index
-      @tasks = Task.all
+      if params[:user_id]
+        @tasks = Task.where(user_id: params[:user_id])
+      else
+        @tasks = Task.all
+      end
       render json: @tasks
     end
-  
+
     def show
       render json: @task
     end
@@ -25,24 +29,24 @@ class TasksController < ApplicationController
       if @task.update(task_params)
         render json: @task, status: :ok
       else
-        render json: { errors: @task.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: @task.errors.full_messages } ,status: :unprocessable_entity
       end
     end
-  
+
     def destroy
       @task.destroy
       head :no_content
     end
-  
+
     private
 
     def set_task
-      @task = Task.find(params[:id]) # IDでタスクを検索
-    rescue ActiveRecord::RecordNotFound # 該当するタスクが存在しない場合は例外をキャッチ
-        render json: { errors: ["Task not found"]}, status: :not_found # JSON形式でエラーレスポンスを返し、HTTPステーステータスを404にする
+      @task = Task.find(params[:id])
+    rescue ActiveRecord::RecordNotFound
+        render json: {errors: ["Task not found"] }, status: :not_found
     end
 
     def task_params
       params.require(:task).permit(:title, :status, :user_id)
     end
-end
+  end
