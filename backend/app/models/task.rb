@@ -15,23 +15,9 @@ class Task < ApplicationRecord
   validates :status, presence: true
   validate :depth_limit
 
-  # 新規作成時のみ、保村前に自動でdepthを計算
+  # 新規作成時のみ、保存前に自動でdepthを計算
   before_validation :set_depth, on: :create
-  after_save :update_parent_progress
-
-  private
-
-  # 子タスク作成時にdepthを自動設定
-  def set_depth
-    self.depth = parent.present? ? parent.depth + 1 : 1
-  end
-
-  # 4階層までに制限
-  def depth_limit
-    if depth.present? && depth > 4
-      errors.add(:depth, "は4回送までしか作成できません")
-    end
-  end
+  after_update :update_parent_progress
 
   def update_parent_progress
     return unless parent # 親タスクが存在しない(最上位タスクの場合は何もしない)
@@ -55,4 +41,20 @@ class Task < ApplicationRecord
     # 親タスクがさらに上位タスクの場合、再帰的に更新
     parent.update_parent_progress if parent.parent.present?
   end
+
+  private
+
+  # 子タスク作成時にdepthを自動設定
+  def set_depth
+    self.depth = parent.present? ? parent.depth + 1 : 1
+  end
+
+  # 4階層までに制限
+  def depth_limit
+    if depth.present? && depth > 4
+      errors.add(:depth, "は4回送までしか作成できません")
+    end
+  end
+
+  
 end
