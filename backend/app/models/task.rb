@@ -19,6 +19,17 @@ class Task < ApplicationRecord
   before_validation :set_depth, on: :create
   after_update :update_parent_progress
 
+  def as_tree
+    {
+      id: id,
+      title: title,
+      status: status,
+      progress: progress,
+      depth: depth,
+      children: children.map(&:as_tree)
+    }
+  end
+
   def update_parent_progress
     return unless parent # 親タスクが存在しない(最上位タスクの場合は何もしない)
 
@@ -40,6 +51,17 @@ class Task < ApplicationRecord
 
     # 親タスクがさらに上位タスクの場合、再帰的に更新
     parent.update_parent_progress if parent.parent.present?
+  end
+
+  def as_json_recursive
+    {
+      id: id,
+      title: title,
+      status: status,
+      progress: progress,
+      depth: depth,
+      children: children.map(&:as_json_recursive)
+    }
   end
 
   private
