@@ -4,8 +4,8 @@ module Api
     before_action :set_task, only: [:show, :update, :destroy]
 
     def index
-      tasks = params[:user_id] ? Task.where(user_id: params[:user_id]) : Task.all
-      render json: tasks
+        root_tasks = Task.where(parent_id: nil)
+        render json: root_tasks.map(&:as_tree)
     end
 
     def show
@@ -13,17 +13,27 @@ module Api
     end
 
     def create
-      task = Task.new(task_params)
-      task.user = current_user
+      @task = current_user.tasks.new(task_params)
+      if @task.parent
+        @task.depth = @task.parent.depth + 1
+      end
 
-      if task.save
-        render json: task, status: :created
+      if @task.save
+        render json: @task, status: :created
       else
-        render json: { errors: task.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: @task.errors.full_messages }, status: :unprocessable_entity
       end
     end
 
     def update
+        new_parent_id = task_params[:parent_id]
+
+        # parent_id が変わった場合、 depth を再設定
+        if new_parent_id && new_parent_id != @task.parent_id
+            new_parent = Task.find_by(id: new_parent_id)
+            @task.depth = new_parent ? new_parent.depth + 1 : 1
+        end
+
         if @task.update(task_params)
             render json: @task, status: :ok
         else
@@ -44,7 +54,7 @@ module Api
     end
 
     def task_params
-      params.require(:task).permit(:title, :status, :parent_id, :user_id)
+        params.require(:task).permit(:title, :status, :parent_id, :description, :deadline)
     end
   end
 end
