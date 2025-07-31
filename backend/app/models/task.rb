@@ -42,6 +42,17 @@ class Task < ApplicationRecord
     parent.update_parent_progress if parent.parent.present?
   end
 
+  def as_json_recursive
+    {
+      id: id,
+      title: title,
+      status: status,
+      progress: progress,
+      depth: depth,
+      children: children.map(&:as_json_recursive)
+    }
+  end
+
   private
 
   # 子タスク作成時にdepthを自動設定
