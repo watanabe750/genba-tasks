@@ -1,9 +1,11 @@
 class ApplicationController < ActionController::API
+        include DeviseTokenAuth::Concerns::SetUserByToken
     include ActionController::MimeResponds # APIモード用のコントローラ
 
     # 未ログイン時はリダイレクトではなく401を返すように設定
-    before_action :configure_permitted_parameters, if: :devise_controller?
-
+    # before_action :configure_permitted_parameters, if: :devise_controller?
+    # protected def configure_permitted_parameters; end
+    
     protected
 
     # 未ログイン時の共通処理
