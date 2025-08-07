@@ -21,6 +21,13 @@ class Task < ApplicationRecord
   # 新規作成時のみ、保存前に自動でdepthを計算
   before_validation :set_depth, on: :create
   after_update :update_parent_progress
+  after_update :update_parent_progress_if_needed
+
+  def update_parent_progress_if_needed
+    if saved_change_to_status? || saved_change_to_parent_id?
+      parent&.update_parent_progress
+    end
+  end
 
   def update_parent_progress
     return unless parent
