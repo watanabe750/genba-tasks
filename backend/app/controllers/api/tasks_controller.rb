@@ -8,20 +8,24 @@ module Api
         render json: root_tasks.map(&:as_tree)
     end
 
+    # GET /api/tasks/priority
+    # 上位5件の優先タスク（完了除外）を返す
+    def priority
+      tasks = Task.priority_order
+      render json: tasks
+    end
+
     def show
         render json: @task
     end
 
     def create
       @task = current_user.tasks.new(task_params)
-      if @task.parent
-        @task.depth = @task.parent.depth + 1
-      end
-
+      # depth は before_validation で自動設定
       if @task.save
-        render json: @task, status: :created
+        render json: @task.as_tree, status: :created
       else
-        render json: { errors: @task.errors.full_messages }, status: :unprocessable_entity
+        render json:{ errors: @task.errors.full_messages }, statsu: :unprocessable_entity
       end
     end
 
@@ -35,7 +39,7 @@ module Api
         end
 
         if @task.update(task_params)
-            render json: @task, status: :ok
+            render json: @task.as_tree, status: :ok
         else
             render json: { errors: @task.errors.full_messages }, status: :unprocessable_entity
         end
