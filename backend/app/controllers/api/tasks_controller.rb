@@ -2,17 +2,18 @@ module Api
   class TasksController < ApplicationController
     before_action :authenticate_user!, only: [:create, :update, :destroy]
     before_action :set_task, only: [:show, :update, :destroy]
-
+    
     def index
-        root_tasks = Task.where(parent_id: nil)
-        render json: root_tasks.map(&:as_tree)
+      tasks = Task.all
+      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description)
     end
+    
 
     # GET /api/tasks/priority
     # 上位5件の優先タスク（完了除外）を返す
     def priority
       tasks = Task.priority_order
-      render json: tasks
+      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description)
     end
 
     def show
@@ -25,7 +26,7 @@ module Api
       if @task.save
         render json: @task.as_tree, status: :created
       else
-        render json:{ errors: @task.errors.full_messages }, statsu: :unprocessable_entity
+        render json:{ errors: @task.errors.full_messages }, status: :unprocessable_entity
       end
     end
 

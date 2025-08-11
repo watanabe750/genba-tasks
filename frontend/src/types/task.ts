@@ -1,9 +1,11 @@
 export type Task = {
-    id: number
-    title: string
-    deadline?: string | null
-    status: string
-    progress: number
-    depth: number
-    children: Task[]
-}
+    id: number;
+    title: string;
+    status: "not_started" | "in_progress" | "completed" | string;
+    progress: number;
+    deadline: string | null;
+    parent_id: number | null;
+    depth?: number;
+    description?: string | null;
+    children?: Task[]; // ここoptional
+  };
