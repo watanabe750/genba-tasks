@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import type { Task } from "../../types/task";
+import { api } from "../../lib/apiClient"
 
 async function getPriorityTasks(): Promise<Task[]> {
-  const res = await axios.get<Task[]>("/api/tasks/priority");
-  return res.data;
+    const { data } = await api.get<Task[]>("/api/tasks/priority");
+    return data;
 }
 
 export function usePriorityTasks() {
@@ -12,5 +12,8 @@ export function usePriorityTasks() {
     queryKey: ["priorityTasks"],
     queryFn: getPriorityTasks,
     retry: false,
+    staleTime: 30_000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
