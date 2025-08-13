@@ -1,3 +1,4 @@
+import { useUpdateTask } from "../tasks/useUpdateTask";
 import { usePriorityTasks } from "./usePriorityTasks";
 import { Link } from "react-router-dom";
 
@@ -31,6 +32,7 @@ function DueBadge({ deadline }: { deadline?: string | null }) {
 export default function PriorityTasksPanel() {
   const { data, isLoading, isError } = usePriorityTasks();
   const items = data ?? [];
+  const { mutate: updateTask, isPending } = useUpdateTask();
 
   return (
     // ← 右カラム化：幅・境界線・独立スクロール
@@ -74,6 +76,27 @@ export default function PriorityTasksPanel() {
                   </Link>
                   <DueBadge deadline={t.deadline} />
                 </div>
+
+                {/* クイック操作(完了チェック) */}
+                <div className="mt-2 flex items-center gap-2 text-sm">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={t.status === "completed"}
+                      disabled={isPending}
+                      onChange={(e) => 
+                        updateTask({
+                          id: t.id,
+                          data: e.target.checked
+                            ? { status: "completed", progress: 100 }
+                            : { status: "in_progress", progress: Math.min(progress, 99) },
+                        })
+                      }
+                      />
+                      <span>完了</span>
+                  </label>
+                </div>
+
                 <div className="text-xs text-gray-600 mt-1">
                   {formatDeadline(t.deadline)} ・ 進捗 {progress}%
                 </div>
@@ -85,6 +108,20 @@ export default function PriorityTasksPanel() {
                     }}
                   />
                 </div>
+
+                {/* ★任意：進捗スライダー（更新回数が多くなるので後でdebounce推奨） */}
++               {/* <input
++                 className="mt-2 w-full"
++                 type="range"
++                 min={0}
++                 max={100}
++                 defaultValue={progress}
++                 disabled={isPending}
++                 onChange={(e) =>
++                   updateTask({ id: t.id, data: { progress: Number(e.target.value) } })
++                 }
++               /> */}
+
               </li>
             );
           })}

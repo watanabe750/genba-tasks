@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import TaskItem from "../components/TaskItem";
 import type { Task } from "../types/task";
-import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
+import PriorityTasksPanel from "../features/priority/priority/PriorityTasksPanel";
 
 export default function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);

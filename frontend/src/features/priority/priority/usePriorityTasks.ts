@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Task } from "../../types/task";
-import { api } from "../../lib/apiClient"
+import type { Task } from "../../../types/task";
+import { api } from "../../../lib/apiClient"
 
 async function getPriorityTasks(): Promise<Task[]> {
     const { data } = await api.get<Task[]>("/api/tasks/priority");
