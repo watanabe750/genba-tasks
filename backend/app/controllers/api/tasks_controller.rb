@@ -1,6 +1,6 @@
 module Api
   class TasksController < ApplicationController
-    before_action :authenticate_user!, only: [:create, :update, :destroy]
+    before_action :authenticate_api_user!, only: [:create, :update, :destroy]
     before_action :set_task, only: [:show, :update, :destroy]
     
     def index
@@ -21,7 +21,7 @@ module Api
     end
 
     def create
-      @task = current_user.tasks.new(task_params)
+      @task = current_api_user.tasks.new(task_params)
       # depth は before_validation で自動設定
       if @task.save
         render json: @task.as_tree, status: :created
@@ -31,20 +31,18 @@ module Api
     end
 
     def update
-        new_parent_id = task_params[:parent_id]
-
-        # parent_id が変わった場合、 depth を再設定
-        if new_parent_id && new_parent_id != @task.parent_id
-            new_parent = Task.find_by(id: new_parent_id)
-            @task.depth = new_parent ? new_parent.depth + 1 : 1
-        end
-
-        if @task.update(task_params)
-            render json: @task.as_tree, status: :ok
-        else
-            render json: { errors: @task.errors.full_messages }, status: :unprocessable_entity
-        end
+      task = Task.find(params[:id])
+      if task.update(task_params)
+        render json: task
+      else
+        render json: { errors: task.errors.full_messages }, status: :unprocessable_entity
+      end
+    rescue ArgumentError => e  # enum不一致など
+      render json: { errors: [e.message] }, status: :unprocessable_entity
+    rescue ActionController::ParameterMissing => e
+      render json: { errors: [e.message] }, status: :unprocessable_entity
     end
+    
 
     def destroy
         @task.destroy
@@ -59,7 +57,7 @@ module Api
     end
 
     def task_params
-        params.require(:task).permit(:title, :status, :parent_id, :description, :deadline)
-    end
+      params.require(:task).permit(:title, :status, :progress, :deadline, :parent_id, :depth)
+    end    
   end
 end
