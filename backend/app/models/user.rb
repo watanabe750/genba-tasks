@@ -1,12 +1,9 @@
 class User < ApplicationRecord
-            # Include default devise modules.
-            devise :database_authenticatable, :registerable,
-                    :recoverable, :rememberable, :trackable, :validatable,
-                    :confirmable
-                    include DeviseTokenAuth::Concerns::User
+       # Devise modules: 必要最低限。trackable入れるならカラム追加済みが前提
+       devise :database_authenticatable, :registerable,
+              :recoverable, :rememberable, :validatable
 
-  devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable
+       include DeviseTokenAuth::Concerns::User
 
-  has_many :tasks, dependent: :destroy
+       has_many :tasks, dependent: :destroy
 end

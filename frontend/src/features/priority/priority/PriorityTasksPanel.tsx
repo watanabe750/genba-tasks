@@ -32,7 +32,7 @@ function DueBadge({ deadline }: { deadline?: string | null }) {
 }
 
 export default function PriorityTasksPanel() {
-  const { data, isLoading, isError } = usePriorityTasks();
+  const { data, isLoading, isError, refetch } = usePriorityTasks();
   const items = data ?? [];
   const [pendingId, setPendingId] = useState<number | null>(null);
   const { mutate: updateTask } = useUpdateTask();
@@ -50,8 +50,18 @@ export default function PriorityTasksPanel() {
           </span>
           {!authed && (
             <button
-              onClick={() => devSignIn()}
-              className="text-xs px-2 py-1 rounded bg-gray-800 text-white"
+            type="button"                 // ← 重要
+            className="text-xs px-2 py-1 rounded bg-gray-800 text-white"
+            onClick={async () => {
+              try {
+                await devSignIn();       // ← トークンが localStorage に入る
+                await refetch();         // ← そのまま再取得
+                // 必要なら window.location.reload();
+              } catch (e) {
+                console.error(e);
+                alert("開発用ログインに失敗しました");
+              }
+            }}
             >
               開発用ログイン
             </button>
