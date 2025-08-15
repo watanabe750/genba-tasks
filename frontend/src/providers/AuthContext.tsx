@@ -1,12 +1,4 @@
-// src/providers/AuthContext.tsx
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/apiClient";
 
@@ -24,100 +16,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
 
-  // ローカルストレージにあるトークンがあれば axios に復元
-  useEffect(() => {
-    const at = localStorage.getItem("access-token");
-    const client = localStorage.getItem("client");
-    const luid = localStorage.getItem("uid");
-    if (at && client && luid) {
-      api.defaults.headers.common["access-token"] = at;
-      api.defaults.headers.common["client"] = client;
-      api.defaults.headers.common["uid"] = luid;
-      setAuthed(true);
-      setUid(luid);
-    }
-  }, []);
+  const applyTokensToAxios = (tokens: { at?: string; client?: string; uid?: string }) => {
+    const { at, client, uid } = tokens;
+    if (at) api.defaults.headers.common["access-token"] = at; else delete api.defaults.headers.common["access-token"];
+    if (client) api.defaults.headers.common["client"] = client; else delete api.defaults.headers.common["client"];
+    if (uid) api.defaults.headers.common["uid"] = uid; else delete api.defaults.headers.common["uid"];
+  };
+
+  const saveTokens = (tokens: { at?: string; client?: string; uid?: string }) => {
+    if (tokens.at) localStorage.setItem("access-token", tokens.at); else localStorage.removeItem("access-token");
+    if (tokens.client) localStorage.setItem("client", tokens.client); else localStorage.removeItem("client");
+    if (tokens.uid) localStorage.setItem("uid", tokens.uid); else localStorage.removeItem("uid");
+  };
+
+  const loadTokens = () => {
+    const at = localStorage.getItem("access-token") ?? undefined;
+    const client = localStorage.getItem("client") ?? undefined;
+    const luid = localStorage.getItem("uid") ?? undefined;
+    return { at, client, uid: luid };
+  };
 
   const clearTokens = () => {
-    delete api.defaults.headers.common["access-token"];
-    delete api.defaults.headers.common["client"];
-    delete api.defaults.headers.common["uid"];
-    localStorage.removeItem("access-token");
-    localStorage.removeItem("client");
-    localStorage.removeItem("uid");
+    saveTokens({ at: undefined, client: undefined, uid: undefined });
+    applyTokensToAxios({ at: undefined, client: undefined, uid: undefined });
     setAuthed(false);
     setUid(null);
   };
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    // devise_token_auth: POST /api/auth/sign_in
-    const res = await api.post("/api/auth/sign_in", { email, password });
-
-    // ヘッダー型トークン対応
-    const at = res.headers["access-token"];
-    const client = res.headers["client"];
-    const luid = res.headers["uid"] || email; // header無い場合の保険
-
-    if (at && client && luid) {
-      localStorage.setItem("access-token", at);
-      localStorage.setItem("client", client);
-      localStorage.setItem("uid", String(luid));
-      api.defaults.headers.common["access-token"] = at;
-      api.defaults.headers.common["client"] = client;
-      api.defaults.headers.common["uid"] = String(luid);
+  // 初期化
+  useEffect(() => {
+    const t = loadTokens();
+    if (t.at && t.client && t.uid) {
+      applyTokensToAxios(t);
+      setAuthed(true);
+      setUid(t.uid);
     }
-    // Cookieベースの場合は withCredentials によりCookieセット済みなのでOK
-
-    setAuthed(true);
-    setUid(String(luid));
   }, []);
 
-  const signOut = useCallback(
-    async (silent = false) => {
-      try {
-        // devise_token_auth: DELETE /api/auth/sign_out
-        await api.delete("/api/auth/sign_out");
-      } catch {
-        // ネットワーク落ちなどは握りつぶす
-      } finally {
-        clearTokens();
-        if (!silent) nav("/login", { replace: true });
-      }
-    },
-    [nav]
-  );
+  const signIn = useCallback(async (email: string, password: string) => {
+    const res = await api.post("/api/auth/sign_in", { email, password });
 
-  // 401で自動ログアウト
+    const at = typeof res.headers["access-token"] === "string" ? res.headers["access-token"] : undefined;
+    const client = typeof res.headers["client"] === "string" ? res.headers["client"] : undefined;
+    const headerUid = typeof res.headers["uid"] === "string" ? res.headers["uid"] : undefined;
+
+    const uidResolved = headerUid ?? email;
+
+    saveTokens({ at, client, uid: uidResolved });
+    applyTokensToAxios({ at, client, uid: uidResolved });
+
+    setAuthed(true);
+    setUid(uidResolved);
+  }, []);
+
+  const signOut = useCallback(async (silent = false) => {
+    try {
+      await api.delete("/api/auth/sign_out");
+    } catch {
+      // ネットワーク障害などは無視
+    } finally {
+      clearTokens();
+      if (!silent) nav("/login", { replace: true });
+    }
+  }, [nav]);
+
+  // 401自動ログアウト（直前のパスへ戻す情報は最低限保持）
   useEffect(() => {
     const id = api.interceptors.response.use(
       (res) => res,
       async (error) => {
         if (error?.response?.status === 401) {
           clearTokens();
-          nav("/login", { replace: true, state: { from: location } });
+          const from = { pathname: window.location.pathname };
+          nav("/login", { replace: true, state: { from } });
         }
         return Promise.reject(error);
       }
     );
-    return () => {
-      api.interceptors.response.eject(id);
-    };
+    return () => { api.interceptors.response.eject(id); };
   }, [nav]);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      authed,
-      uid,
-      signIn,
-      signOut,
-    }),
-    [authed, uid, signIn, signOut]
-  );
+  const value = useMemo<AuthContextValue>(() => ({ authed, uid, signIn, signOut }), [authed, uid, signIn, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
