@@ -1,7 +1,7 @@
 // src/features/priority/priority/usePriorityTasks.ts
 import { useQuery } from "@tanstack/react-query";
-import type { Task } from "../../../types/task";
-import { api } from "../../../lib/apiClient";
+import type { Task } from "../../types/task";
+import { api } from "../../lib/apiClient";
 
 // 取得ロジックは関数に切り出して再利用しやすく
 async function getPriorityTasks(): Promise<Task[]> {

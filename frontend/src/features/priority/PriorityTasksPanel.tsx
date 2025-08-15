@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useUpdateTask } from "../tasks/useUpdateTask";
 import { usePriorityTasks } from "./usePriorityTasks";
 import { Link } from "react-router-dom";
-import { devSignIn } from "../../../lib/devSignIn";
+import { devSignIn } from "../../lib/devSignIn";
 
 function formatDeadline(iso?: string | null) {
   if (!iso) return "期限なし";

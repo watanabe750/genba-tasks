@@ -1,5 +1,5 @@
+// src/providers/AuthContext.tsx
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../lib/apiClient";
 
 type AuthContextValue = {
@@ -12,7 +12,6 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const nav = useNavigate();
   const [authed, setAuthed] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
 
@@ -55,13 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const res = await api.post("/api/auth/sign_in", { email, password });
-
     const at = typeof res.headers["access-token"] === "string" ? res.headers["access-token"] : undefined;
     const client = typeof res.headers["client"] === "string" ? res.headers["client"] : undefined;
     const headerUid = typeof res.headers["uid"] === "string" ? res.headers["uid"] : undefined;
 
     const uidResolved = headerUid ?? email;
-
     saveTokens({ at, client, uid: uidResolved });
     applyTokensToAxios({ at, client, uid: uidResolved });
 
@@ -70,34 +67,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async (silent = false) => {
-    try {
-      await api.delete("/api/auth/sign_out");
-    } catch {
-      // ネットワーク障害などは無視
-    } finally {
+    try { await api.delete("/api/auth/sign_out"); } catch {}
+    finally {
       clearTokens();
-      if (!silent) nav("/login", { replace: true });
+      if (!silent) window.location.replace("/login");
     }
-  }, [nav]);
+  }, []);
 
-  // 401自動ログアウト（直前のパスへ戻す情報は最低限保持）
+  // 401で自動ログアウト
   useEffect(() => {
     const id = api.interceptors.response.use(
       (res) => res,
       async (error) => {
         if (error?.response?.status === 401) {
           clearTokens();
-          const from = { pathname: window.location.pathname };
-          nav("/login", { replace: true, state: { from } });
+          window.location.replace("/login");
         }
         return Promise.reject(error);
       }
     );
     return () => { api.interceptors.response.eject(id); };
-  }, [nav]);
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => ({ authed, uid, signIn, signOut }), [authed, uid, signIn, signOut]);
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
