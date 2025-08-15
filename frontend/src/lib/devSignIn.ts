@@ -10,6 +10,8 @@ export async function devSignIn() {
         });
         console.log("[devSignIn] ok", res.status, res.headers);
         alert("開発用ログイン 成功");
+        // ★ トークン保存後に再取得させる
+        location.reload();
         return res.data;
     } catch (e) {
         console.error("[devSignIn] failed", e);
