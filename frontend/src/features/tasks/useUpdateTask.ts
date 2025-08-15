@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../../lib/apiClient";
-import type { Task } from "../../../types/task";
+import { api } from "../../lib/apiClient";
+import type { Task } from "../../types/task";
 
 type UpdateInput = { id: number; data: Partial<Pick<Task, "status" | "progress">> };
 

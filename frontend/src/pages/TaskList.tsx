@@ -2,11 +2,15 @@
 import { useEffect, useState } from "react";
 import TaskItem from "../components/TaskItem";
 import type { Task } from "../types/task";
-import PriorityTasksPanel from "../features/priority/priority/PriorityTasksPanel";
+import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
 import { api, signIn } from "../lib/apiClient";
+import { useAuth } from "../providers/AuthContext";
+import { usePriorityTasks } from "../features/priority/usePriorityTasks";
 
 
 export default function TaskList() {
+  const { authed } = useAuth();
+  const { data } = usePriorityTasks(authed);
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
