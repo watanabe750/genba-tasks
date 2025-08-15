@@ -9,7 +9,6 @@ class Task < ApplicationRecord
   # 進捗ステータス(0:未着手, 1:進行中, 2:完了)
   enum :status, { not_started: 0, in_progress: 1, completed: 2 }
 
-
   # バリデーション
   validates :title, presence: true
   validates :status, presence: true
@@ -17,7 +16,10 @@ class Task < ApplicationRecord
 
   # 新規作成時のみ、保存前に自動でdepthを計算
   before_validation :set_depth, on: :create
-  after_update :update_parent_progress_if_needed
+
+  # 子のprogress変更 / 親付け替え / 削除 を拾う
+  after_save    :update_parent_progress_if_needed
+  after_destroy :update_parent_progress
 
   scope :priority_order, -> {
     where.not(status: :completed)
@@ -25,36 +27,55 @@ class Task < ApplicationRecord
       .limit(5)
   }
 
+   # ---------- ロールアップ（確定後に実行） ----------
+   after_commit :recalc_new_parent, on: [:create, :update]
+   after_commit :recalc_old_parent, on: :update, if: -> { saved_change_to_parent_id? }
+   after_commit :recalc_parent_on_destroy, on: :destroy
+ 
+   def recalc_new_parent
+     parent&.recalc_from_children!
+   end
+ 
+   def recalc_old_parent
+     old_id = parent_id_before_last_save # Rails 7+ でOK（8も可）
+     Task.find_by(id: old_id)&.recalc_from_children! if old_id.present?
+   end
+ 
+   def recalc_parent_on_destroy
+     Task.find_by(id: parent_id)&.recalc_from_children!
+   end
+ 
+   # 親自身を子のprogress平均で更新し、祖先へ伝播
+   def recalc_from_children!
+     if children.exists?
+       avg = children.average(:progress)
+       update_columns(progress: (avg ? avg.to_f.round : 0))
+     else
+       update_columns(progress: 0)
+     end
+     parent&.recalc_from_children!
+   end
+   # -----------------------------------------------
+
     # 階層ツリーをJSON化（子を再帰）
     def as_tree
       {
-        id: id,
-        title: title,
-        status: status,
-        progress: progress,
-        depth: depth,
-        deadline: deadline,
-        description: description,
+        id:, title:, status:, progress:, depth:, deadline:, description:,
         children: children.map(&:as_tree)
       }
     end
 
-  # 親の進捗を子の状態から再計算して反映（再帰で祖先まで）
+  # 親のprogressを「子のprogressの平均」で更新（再帰）
   def update_parent_progress
     return unless parent
 
-    total = parent.children.count
-    return if total.zero?
-
-    progress_sum = parent.children.sum do |child|
-      case child.status
-      when "completed" then 100
-      when "in_progress" then 50
-      else 0
-      end
+    if parent.children.exists?
+      avg = parent.children.average(:progress).to_f
+      parent.update_column(:progress, avg.round)  # 整数で良ければ .round(0)
+    else
+      parent.update_column(:progress, 0)
     end
 
-    parent.update!(progress: (progress_sum.to_f / total).round(1))
     parent.update_parent_progress if parent.parent.present?
   end
 
@@ -70,10 +91,15 @@ class Task < ApplicationRecord
     end
   end
 
+  # progress/parent_id/status の変更で発火
+  #    親付け替え時は旧親も再計算
   def update_parent_progress_if_needed
-    if saved_change_to_status? || saved_change_to_parent_id?
+    if saved_change_to_progress? || saved_change_to_parent_id? || saved_change_to_status?
+      if saved_change_to_parent_id?
+        old_parent_id, _new_parent_id = saved_change_to_parent_id
+        Task.find_by(id: old_parent_id)&.update_parent_progress if old_parent_id.present?
+      end
       parent&.update_parent_progress
     end
   end
-
 end
