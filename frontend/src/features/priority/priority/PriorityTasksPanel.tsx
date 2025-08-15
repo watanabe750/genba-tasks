@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUpdateTask } from "../tasks/useUpdateTask";
 import { usePriorityTasks } from "./usePriorityTasks";
 import { Link } from "react-router-dom";
@@ -17,51 +17,46 @@ function DueBadge({ deadline }: { deadline?: string | null }) {
   const d = new Date(deadline);
   const diff = d.getTime() - now.getTime();
   if (diff < 0)
-    return (
-      <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">
-        期限超過
-      </span>
-    );
+    return <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">期限超過</span>;
   if (diff <= 24 * 60 * 60 * 1000)
-    return (
-      <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">
-        締切間近
-      </span>
-    );
+    return <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">締切間近</span>;
   return null;
 }
 
 export default function PriorityTasksPanel() {
-  const { data, isLoading, isError, refetch } = usePriorityTasks();
+  const [authed, setAuthed] = useState(() => !!localStorage.getItem("authTokens"));
+  // ← ログイン済みかどうかでクエリを有効化
+  const { data, isLoading, isError, refetch } = usePriorityTasks(authed);
   const items = data ?? [];
   const [pendingId, setPendingId] = useState<number | null>(null);
   const { mutate: updateTask } = useUpdateTask();
-  const authed = !!localStorage.getItem("access-token");
+
+  useEffect(() => {
+    const handler = () => setAuthed(false);
+    window.addEventListener("auth:logout", handler);
+    return () => window.removeEventListener("auth:logout", handler);
+  }, []);
 
   return (
-    // ← 右カラム化：幅・境界線・独立スクロール
     <div className="bg-white rounded-2xl shadow p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold">全体の優先タスク</h2>
-        {/* 件数バッジ */}
         <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-            {items.length}件
-          </span>
+          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{items.length}件</span>
           {!authed && (
             <button
-            type="button"                 // ← 重要
-            className="text-xs px-2 py-1 rounded bg-gray-800 text-white"
-            onClick={async () => {
-              try {
-                await devSignIn();       // ← トークンが localStorage に入る
-                await refetch();         // ← そのまま再取得
-                // 必要なら window.location.reload();
-              } catch (e) {
-                console.error(e);
-                alert("開発用ログインに失敗しました");
-              }
-            }}
+              type="button"
+              className="text-xs px-2 py-1 rounded bg-gray-800 text-white"
+              onClick={async () => {
+                try {
+                  await devSignIn();   // interceptor がトークン保存
+                  setAuthed(true);     // enabled が true になって…
+                  await refetch();     // …そのまま再取得
+                } catch (e) {
+                  console.error(e);
+                  alert("開発用ログインに失敗しました");
+                }
+              }}
             >
               開発用ログイン
             </button>
@@ -70,20 +65,12 @@ export default function PriorityTasksPanel() {
       </div>
 
       {isLoading && (
-        <ul className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <li key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
-          ))}
-        </ul>
+        <ul className="space-y-2">{[...Array(5)].map((_, i) => <li key={i} className="h-12 bg-gray-100 animate-pulse rounded" />)}</ul>
       )}
 
-      {isError && (
-        <p className="text-sm text-red-600">読み込みに失敗しました</p>
-      )}
+      {isError && <p className="text-sm text-red-600">読み込みに失敗しました</p>}
 
-      {!isLoading && !isError && items.length === 0 && (
-        <p className="text-sm text-gray-500">優先タスクはありません</p>
-      )}
+      {!isLoading && !isError && items.length === 0 && <p className="text-sm text-gray-500">優先タスクはありません</p>}
 
       {!isLoading && !isError && items.length > 0 && (
         <ul className="space-y-3">
@@ -92,23 +79,11 @@ export default function PriorityTasksPanel() {
             const disabled = pendingId === t.id;
 
             return (
-              <li
-                key={t.id}
-                className={`border rounded-xl p-3 hover:bg-gray-50 ${
-                  disabled ? "opacity-60" : ""
-                }`}
-              >
+              <li key={t.id} className={`border rounded-xl p-3 hover:bg-gray-50 ${disabled ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between">
-                  <Link
-                    to={`/tasks/${t.id}`}
-                    className="font-medium line-clamp-1"
-                  >
-                    {t.title}
-                  </Link>
+                  <Link to={`/tasks/${t.id}`} className="font-medium line-clamp-1">{t.title}</Link>
                   <div className="flex items-center gap-2">
                     <DueBadge deadline={t.deadline} />
-
-                    {/* ✔ 完了チェック（JSX整形＆行単位disable） */}
                     <label className="inline-flex items-center gap-1 text-xs">
                       <input
                         type="checkbox"
@@ -123,14 +98,9 @@ export default function PriorityTasksPanel() {
                               id: t.id,
                               data: checked
                                 ? { status: "completed", progress: 100 }
-                                : {
-                                    status: "in_progress",
-                                    progress: Math.min(progress, 99),
-                                  },
+                                : { status: "in_progress", progress: Math.min(progress, 99) },
                             },
-                            {
-                              onSettled: () => setPendingId(null),
-                            } // 成否に関わらず解除
+                            { onSettled: () => setPendingId(null) }
                           );
                         }}
                       />
@@ -144,12 +114,7 @@ export default function PriorityTasksPanel() {
                 </div>
 
                 <div className="w-full bg-gray-200 h-2 rounded mt-2">
-                  <div
-                    className="h-2 rounded bg-gray-700"
-                    style={{
-                      width: `${Math.min(Math.max(progress, 0), 100)}%`,
-                    }}
-                  />
+                  <div className="h-2 rounded bg-gray-700" style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }} />
                 </div>
               </li>
             );
@@ -157,11 +122,8 @@ export default function PriorityTasksPanel() {
         </ul>
       )}
 
-      {/* 補助リンク（任意） */}
       <div className="mt-4 text-right">
-        <Link to="/tasks" className="text-xs underline text-gray-700">
-          タスク一覧へ
-        </Link>
+        <Link to="/tasks" className="text-xs underline text-gray-700">タスク一覧へ</Link>
       </div>
     </div>
   );

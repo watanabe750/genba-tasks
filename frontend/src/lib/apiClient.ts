@@ -1,9 +1,15 @@
 // src/lib/apiClient.ts
-import axios from "axios";
+import axios, {
+  AxiosHeaders,
+  isAxiosError,
+  type AxiosResponseHeaders,
+  type RawAxiosResponseHeaders,
+} from "axios";
 
-export const api = axios.create({ baseURL: "/api" }); // Viteのproxyを使う前提
+export const api = axios.create({ baseURL: "/api" });
 
 const TOKENS_KEY = "authTokens";
+
 type Tokens = {
   uid: string;
   client: string;
@@ -12,46 +18,77 @@ type Tokens = {
   "token-type"?: string;
 };
 
-function saveTokens(h: Record<string, string | undefined>) {
-  const t: Tokens = {
-    uid: h["uid"] ?? "",
-    client: h["client"] ?? "",
-    "access-token": h["access-token"] ?? "",
-    expiry: h["expiry"],
-    "token-type": h["token-type"],
-  };
-  if (t.uid && t.client && t["access-token"]) {
+function getTokens(): Tokens | null {
+  const raw = localStorage.getItem(TOKENS_KEY);
+  if (!raw) return null;
+  try {
+    const t = JSON.parse(raw) as Tokens;
+    if (t.uid && t.client && t["access-token"]) return t;
+  } catch {
+    /* ignore JSON parse error */
+  }
+  return null;
+}
+
+export function clearTokens() {
+  localStorage.removeItem(TOKENS_KEY);
+}
+
+function saveTokensFromHeaders(h: AxiosResponseHeaders | RawAxiosResponseHeaders) {
+  const at = h["access-token"];
+  const cl = h["client"];
+  const uid = h["uid"];
+  if (typeof at === "string" && typeof cl === "string" && typeof uid === "string") {
+    const t: Tokens = {
+      uid,
+      client: cl,
+      "access-token": at,
+      expiry: typeof h["expiry"] === "string" ? h["expiry"] : undefined,
+      "token-type": typeof h["token-type"] === "string" ? h["token-type"] : undefined,
+    };
     localStorage.setItem(TOKENS_KEY, JSON.stringify(t));
   }
 }
 
+// ----- Interceptors -----
 api.interceptors.request.use((config) => {
-  const raw = localStorage.getItem(TOKENS_KEY);
-  if (raw) {
-    const t = JSON.parse(raw) as Tokens;
-    config.headers = {
-      ...(config.headers || {}),
-      uid: t.uid,
-      client: t.client,
-      "access-token": t["access-token"],
-    };
+  const t = getTokens();
+  if (t) {
+    const h = AxiosHeaders.from(config.headers); // 既存を元に生成
+    h.set("uid", t.uid);
+    h.set("client", t.client);
+    h.set("access-token", t["access-token"]);
+    config.headers = h; // AxiosHeaders インスタンスを戻す
   }
   return config;
 });
 
-api.interceptors.response.use((res) => {
-  if (res.headers["access-token"]) saveTokens(res.headers as any);
-  return res;
-});
+api.interceptors.response.use(
+  (res) => {
+    // 毎回ヘッダ更新があれば保存
+    saveTokensFromHeaders(res.headers as AxiosResponseHeaders & RawAxiosResponseHeaders);
+    return res;
+  },
+  (err) => {
+    if (isAxiosError(err) && err.response?.status === 401) {
+      clearTokens();
+      window.dispatchEvent(new Event("auth:logout")); // UIに未ログインを通知
+    }
+    return Promise.reject(err);
+  }
+);
 
-// 便利ヘルパ
+// ----- API helpers -----
 export async function signIn(email: string, password: string) {
   const res = await api.post("/auth/sign_in", { email, password });
-  saveTokens(res.headers as any);
+  saveTokensFromHeaders(res.headers as AxiosResponseHeaders & RawAxiosResponseHeaders);
   return res.data;
 }
-
+export function signOut() {
+  clearTokens();
+}
 export async function fetchTasks() {
   const res = await api.get("/tasks");
   return res.data;
 }
+export { isAxiosError }; // 必要なら再エクスポート
