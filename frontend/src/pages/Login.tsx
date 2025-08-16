@@ -70,20 +70,26 @@ export default function Login() {
 
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm mb-1">メールアドレス</label>
-          <input
+        <label htmlFor="login-email" className="block text-sm mb-1">メールアドレス</label>
+        <input
+            id="login-email"
+            name="email"
+            data-testid="login-email"
             className="w-full border rounded p-2"
             type="email"
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-          />
+            />
         </div>
 
         <div>
-          <label className="block text-sm mb-1">パスワード</label>
+          <label htmlFor="login-password" className="block text-sm mb-1">パスワード</label>
           <input
+            id="login-password"
+            name="password"
+            data-testid="login-password"
             className="w-full border rounded p-2"
             type="password"
             autoComplete="current-password"
@@ -91,7 +97,7 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-          />
+            />
         </div>
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
