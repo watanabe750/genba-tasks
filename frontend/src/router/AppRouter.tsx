@@ -5,12 +5,13 @@ import TaskList from "../pages/TaskList";
 import Summary from "../pages/Summary";
 import Layout from "../components/Layout";
 import RequireAuth from "../components/RequireAuth";
+import RedirectIfAuthed from "../components/RedirectIfAuthed";
 
 export const AppRouter = () => (
   <BrowserRouter>
     <Routes>
       {/* 非ログインOK */}
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<RedirectIfAuthed><Login /></RedirectIfAuthed>} />
       <Route path="/signin" element={<Navigate to="/login" replace />} />
 
       {/* 認証必須 */}
