@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadTokens, applyTokensToAxios]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const res = await api.post("/api/auth/sign_in", { email, password });
+    const res = await api.post("/auth/sign_in", { email, password });
     const at = typeof res.headers["access-token"] === "string" ? res.headers["access-token"] : undefined;
     const client = typeof res.headers["client"] === "string" ? res.headers["client"] : undefined;
     const headerUid = typeof res.headers["uid"] === "string" ? res.headers["uid"] : undefined;
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [applyTokensToAxios, saveTokens]);
 
   const signOut = useCallback(async (silent = false) => {
-    try { await api.delete("/api/auth/sign_out");    
+    try { await api.delete("/auth/sign_out");    
      } catch {
         // ネットワークエラー等は握りつぶす（no-op を置いて no-empty を回避）
         void 0;

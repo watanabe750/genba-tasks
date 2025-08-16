@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../providers/AuthContext";
+import { useAuth } from "../providers/useAuth";
 
 type RouteState = { from?: { pathname?: string } };
 
