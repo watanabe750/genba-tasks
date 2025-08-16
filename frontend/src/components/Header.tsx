@@ -1,52 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { signOut } from "../lib/apiClient";
-import { devSignIn } from "../lib/devSignIn";
 import { Link } from "react-router-dom";
-
-type Tokens = { uid: string };
-const readTokens = (): Tokens | null => {
-  try {
-    const raw = localStorage.getItem("authTokens");
-    if (!raw) return null;
-    const t = JSON.parse(raw);
-    return t?.uid ? { uid: String(t.uid) } : null;
-  } catch {
-    return null;
-  }
-};
+import { useAuth } from "../providers/useAuth";
 
 const Header = () => {
-  const [user, setUser] = useState<Tokens | null>(() => readTokens());
-  const nav = useNavigate();
   const qc = useQueryClient();
+  const { authed, uid, signOut } = useAuth();
 
-  useEffect(() => {
-    const onLogout = () => setUser(null);
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "authTokens") setUser(readTokens());
-    };
-    window.addEventListener("auth:logout", onLogout);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener("auth:logout", onLogout);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    signOut();
-    qc.clear();
-    nav("/signin");
-  };
-
-  const handleDevLogin = async () => {
-    await devSignIn();
-    setUser(readTokens());
-    qc.invalidateQueries({ queryKey: ["priorityTasks"] });
-    qc.invalidateQueries({ queryKey: ["tasks"] });
-    nav("/tasks");
+  const handleLogout = async () => {
+    qc.clear(); // 任意：キャッシュ掃除
+    await signOut(); // AuthContext側で /login に遷移する
   };
 
   return (
@@ -57,9 +19,9 @@ const Header = () => {
         </Link>
 
         <div className="flex items-center gap-3 text-sm">
-          {user ? (
+          {authed ? (
             <>
-              <span className="opacity-90">uid: {user.uid}</span>
+              <span className="opacity-90">uid: {uid}</span>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -71,19 +33,11 @@ const Header = () => {
           ) : (
             <>
               <Link
-                to="/signin"
+                to="/login"
                 className="px-3 py-1 rounded bg-white/10 hover:bg-white/20"
               >
                 ログイン
               </Link>
-              <button
-                type="button"
-                onClick={handleDevLogin}
-                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20"
-                title="開発用: dev@example.com / password"
-              >
-                開発ログイン
-              </button>
             </>
           )}
         </div>

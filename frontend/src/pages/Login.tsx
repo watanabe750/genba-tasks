@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { api } from "../lib/apiClient";
+import { useAuth } from "../providers/useAuth";
 
 type RouteState = { from?: { pathname?: string } };
 
@@ -9,22 +9,10 @@ function getErrorMessage(e: unknown): string {
   return "ログインに失敗しました";
 }
 
-// AuthContextと同等の最小ヘルパ（重複してOK：まず解消優先）
-function applyTokensToAxios(tokens: { at?: string; client?: string; uid?: string }) {
-  const { at, client, uid } = tokens;
-  if (at) api.defaults.headers.common["access-token"] = at; else delete api.defaults.headers.common["access-token"];
-  if (client) api.defaults.headers.common["client"] = client; else delete api.defaults.headers.common["client"];
-  if (uid) api.defaults.headers.common["uid"] = uid; else delete api.defaults.headers.common["uid"];
-}
-function saveTokens(tokens: { at?: string; client?: string; uid?: string }) {
-  if (tokens.at) localStorage.setItem("access-token", tokens.at); else localStorage.removeItem("access-token");
-  if (tokens.client) localStorage.setItem("client", tokens.client); else localStorage.removeItem("client");
-  if (tokens.uid) localStorage.setItem("uid", tokens.uid); else localStorage.removeItem("uid");
-}
-
 export default function Login() {
   const nav = useNavigate();
   const loc = useLocation();
+  const { signIn } = useAuth();
   const state = (loc.state ?? null) as RouteState | null;
   const from = state?.from?.pathname ?? "/tasks";
 
@@ -38,16 +26,7 @@ export default function Login() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await api.post("/api/auth/sign_in", { email, password });
-      const at = typeof res.headers["access-token"] === "string" ? res.headers["access-token"] : undefined;
-      const client = typeof res.headers["client"] === "string" ? res.headers["client"] : undefined;
-      const headerUid = typeof res.headers["uid"] === "string" ? res.headers["uid"] : undefined;
-      const uid = headerUid ?? email;
-
-      saveTokens({ at, client, uid });
-      applyTokensToAxios({ at, client, uid });
-
-      // AuthProvider の初期化が次回レンダでトークンを検出する
+      await signIn(email, password);
       nav(from, { replace: true });
     } catch (err: unknown) {
       setError(getErrorMessage(err));
