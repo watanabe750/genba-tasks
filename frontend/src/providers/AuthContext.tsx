@@ -85,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (res) => res,
       async (error) => {
         if (error?.response?.status === 401) {
+            try { sessionStorage.setItem("auth:expired", "1"); } catch { void 0; }
           clearTokens();
           window.location.replace("/login");
         }
@@ -93,6 +94,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
     return () => { api.interceptors.response.eject(id); };
   }, [clearTokens]);
+
+  // ★ タブ間同期（他タブでログイン/ログアウトしたら追従）
+  useEffect(() => {
+    const onStorage = () => {
+        const t = loadTokens();
+        const complete = !!(t.at && t.client && t.uid);
+        if (complete) {
+            applyTokensToAxios(t);
+            setAuthed(true);
+            setUid(t.uid ?? null);
+        } else {
+            clearTokens();
+        }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+    }, [applyTokensToAxios, clearTokens, loadTokens]);
 
   const value = useMemo<AuthContextValue>(() => ({ authed, uid, signIn, signOut }), [authed, uid, signIn, signOut]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
