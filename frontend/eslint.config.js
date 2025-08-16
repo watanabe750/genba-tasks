@@ -26,6 +26,7 @@ export default tseslint.config([
       'jsx-a11y': jsxA11y,
     },
     rules: {
+      "@typescript-eslint/no-explicit-any": "error",
       // react-refresh の推奨相当
       'react-refresh/only-export-components': 'warn',
 
