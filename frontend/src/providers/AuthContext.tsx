@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch { /* ignore */}
         }
         clearTokens();
+        try { window.dispatchEvent(new Event("auth:logout")); } catch { /* ignore */ }
         if (!silent) window.location.replace("/login");
     }
   }, [clearTokens]);
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 sessionStorage.setItem("auth:expired", "1");
             } catch {/* ignore */}
             clearTokens();
+            try { window.dispatchEvent(new Event("auth:logout")); } catch {/* ignore */}
             window.location.replace("/login");
         }
         return Promise.reject(error);
