@@ -69,13 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [applyTokensToAxios, saveTokens]);
 
   const signOut = useCallback(async (silent = false) => {
-    try { await api.delete("/auth/sign_out");    
-     } catch {
-        // ネットワークエラー等は握りつぶす（no-op を置いて no-empty を回避）
-        void 0;
-    } finally {
-      clearTokens();
-      if (!silent) window.location.replace("/login");
+    try { await api.delete("/auth/sign_out"); } catch { void 0; }    
+    finally {
+        if (!silent) {
+            try {
+                const p = window.location.pathname + window.location.search + window.location.hash;
+                if (p.startsWith("/") && !p.startsWith("//")) {
+                    sessionStorage.setItem("auth:from", p);
+                }
+            } catch { /* ignore */}
+        }
+        clearTokens();
+        if (!silent) window.location.replace("/login");
     }
   }, [clearTokens]);
 
@@ -85,9 +90,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (res) => res,
       async (error) => {
         if (error?.response?.status === 401) {
-            try { sessionStorage.setItem("auth:expired", "1"); } catch { void 0; }
-          clearTokens();
-          window.location.replace("/login");
+            try { 
+                // ログイン前にいた場所を保存（相対パスのみ）
+                const p = window.location.pathname + window.location.search + window.location.hash;
+                if (p.startsWith("/") && !p.startsWith("//")) {
+                    sessionStorage.setItem("auth:from", p);
+                }
+                sessionStorage.setItem("auth:expired", "1");
+            } catch {/* ignore */}
+            clearTokens();
+            window.location.replace("/login");
         }
         return Promise.reject(error);
       }
