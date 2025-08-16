@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../providers/useAuth";
 
@@ -35,9 +35,30 @@ export default function Login() {
     }
   };
 
+  const [expired] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem("auth:expired") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  // 表示後にフラグは一度だけ出す
+  useEffect(() => {
+    if (expired) {
+        try { sessionStorage.removeItem("auth:expired"); } catch {/* ignore */}
+    }
+  }, [expired]);
+  
   return (
     <div className="mx-auto max-w-sm p-6">
       <h1 className="text-2xl font-bold mb-4">ログイン</h1>
+      {expired && (
+        <p className="mb-3 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded p-2">
+          セッションが切れました。再度ログインしてください
+        </p>
+      )}
+
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="block text-sm mb-1">メールアドレス</label>
