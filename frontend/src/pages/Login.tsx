@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../providers/useAuth";
 
 type RouteState = { from?: { pathname?: string } };
+const isSafePath = (p: string | null): p is string =>
+    !!p && p.startsWith("/") && !p.startsWith("//");
 
 function getErrorMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -14,7 +16,14 @@ export default function Login() {
   const loc = useLocation();
   const { signIn } = useAuth();
   const state = (loc.state ?? null) as RouteState | null;
-  const from = state?.from?.pathname ?? "/tasks";
+  const savedFrom = (() => {
+    try {
+        const v = sessionStorage.getItem("auth:from");
+        if (v) sessionStorage.removeItem("auth:from");
+        return v ?? null;
+    } catch { return null; }
+  })();
+  const from = isSafePath(savedFrom) ? savedFrom : (state?.from?.pathname ?? "/tasks");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
