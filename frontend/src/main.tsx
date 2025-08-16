@@ -12,6 +12,11 @@ const queryClient = new QueryClient({
   },
 });
 
+// ログアウトイベントでキャッシュ全消去
+window.addEventListener("auth:logout", () => {
+  queryClient.clear();
+});
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
