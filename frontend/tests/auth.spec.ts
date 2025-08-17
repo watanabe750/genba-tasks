@@ -35,7 +35,7 @@ test('401で /login へ（セッション切れ表示）', async ({ page }) => {
     // 保護ページを踏ませて /login へ誘導（RequireAuth でリダイレクト）
   await page.goto('/tasks');
   await expect(page).toHaveURL(/\/login$/);
-  
+
     // セッション切れのバナーが表示されること
   await expect(page.getByText(/セッションが切れました/)).toBeVisible();
   });
