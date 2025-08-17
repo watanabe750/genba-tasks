@@ -1,9 +1,11 @@
 // src/pages/TaskList.tsx
+  import { useState } from "react";
   import TaskItem from "../components/TaskItem";
   import type { Task } from "../types/task";
   import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
   import { useTasks } from "../features/tasks/useTasks";
   import { useAuth } from "../providers/useAuth";
+  import NewTaskButton from "../components/NewTaskButton";
 
 export default function TaskList() {
   const { authed } = useAuth();
@@ -11,7 +13,10 @@ export default function TaskList() {
 
   return (
     <div className="max-w-6xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">タスク一覧ページ</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">タスク一覧ページ</h1>
+        <NewTaskButton />
+      </div>
       <div className="flex gap-6 items-start">
         <section className="flex-1 space-y-3">
           {tasks.map((task: Task) => (
