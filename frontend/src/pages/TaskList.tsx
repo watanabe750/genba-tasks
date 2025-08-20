@@ -1,15 +1,19 @@
 // src/pages/TaskList.tsx
-  import { useState } from "react";
+  import { useMemo, useState } from "react";
   import TaskItem from "../components/TaskItem";
   import type { Task } from "../types/task";
   import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
   import { useTasks } from "../features/tasks/useTasks";
   import { useAuth } from "../providers/useAuth";
   import NewTaskButton from "../components/NewTaskButton";
+  import { usePriorityTasks } from "../features/priority/usePriorityTasks";
+  import { nestTasks } from "../features/tasks/nest";
 
 export default function TaskList() {
   const { authed } = useAuth();
-  const { data: tasks = [] } = useTasks(authed);
+  const { data: priority } = usePriorityTasks(authed);
+  const { data: tasksFlat = [] } = useTasks(authed);
+  const tasks = useMemo(() => nestTasks(tasksFlat), [tasksFlat]); // ★ ツリー化
 
   return (
     <div className="max-w-6xl mx-auto p-4">
