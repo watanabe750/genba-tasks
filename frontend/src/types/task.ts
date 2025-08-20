@@ -7,5 +7,5 @@ export type Task = {
     parent_id: number | null;
     depth?: number;
     description?: string | null;
-    children?: Task[]; // ここoptional
+    children?: Task[];
   };

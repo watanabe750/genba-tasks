@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useDeleteTask } from "../features/tasks/useDeleteTask";
 import { useUpdateTask } from "../features/tasks/useUpdateTask";
+import { useCreateTask } from "../features/tasks/useCreateTask";
 import type { Task } from "../types/task";
 
 type TaskItemProps = { task: Task };
@@ -28,8 +29,12 @@ export default function TaskItem({ task }: TaskItemProps) {
 
   const { mutate: remove, isPending: removing } = useDeleteTask();
   const { mutate: update, isPending: updating } = useUpdateTask();
+  const { mutate: createChild, isPending: creating } = useCreateTask();
 
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+  const [addingChild, setAddingChild] = useState(false);
+  const [childTitle, setChildTitle] = useState("");
   const [title, setTitle] = useState(task.title);
   const [status, setStatus] = useState<Task["status"]>(task.status);
   const [progress, setProgress] = useState<number>(task.progress ?? 0);
@@ -91,6 +96,18 @@ export default function TaskItem({ task }: TaskItemProps) {
                   完了
                 </label>
               </p>
+              {children.length > 0 && (
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                  onClick={() => setExpanded((v) => !v)}
+                  aria-expanded={expanded}
+                >
+                  {expanded
+                    ? "－ 子を隠す"
+                    : `＋ 子を表示（${children.length}）`}
+                </button>
+              )}
             </>
           ) : (
             <div className="space-y-3">
@@ -176,6 +193,20 @@ export default function TaskItem({ task }: TaskItemProps) {
         <div className="shrink-0 flex items-center gap-2">
           {!editing ? (
             <>
+              {depth < 2 && (
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 rounded bg-gray-900 text-white disabled:opacity-60"
+                  onClick={() => {
+                    setAddingChild(true);
+                    setExpanded(true);
+                  }}
+                  disabled={creating}
+                >
+                  ＋ サブタスク
+                </button>
+              )}
+
               <button
                 type="button"
                 className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300"
@@ -193,6 +224,10 @@ export default function TaskItem({ task }: TaskItemProps) {
                 type="button"
                 data-testid={`task-delete-${task.id}`}
                 onClick={() => {
+                  if (children.length > 0) {
+                    alert("サブタスクがあるため削除できません（まず子を削除）");
+                    return;
+                  }
                   if (confirm("このタスクを削除しますか？")) remove(task.id);
                 }}
                 disabled={removing}
@@ -236,11 +271,41 @@ export default function TaskItem({ task }: TaskItemProps) {
         </>
       )}
 
-      {children.length > 0 && (
+      {/* 子作成フォーム（親の直下のみ） */}
+      {!editing && addingChild && depth < 2 && (
+        <form
+          className="mt-3 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const title = childTitle.trim();
+            if (!title) return;
+            createChild(
+              { title, parentId: task.id, deadline: null },
+              { onSuccess: () => { setChildTitle(""); setAddingChild(false); } }
+            );
+          }}
+        >
+          <input
+            aria-label="サブタスク名"
+            className="flex-1 border rounded p-2"
+            value={childTitle}
+            onChange={(e) => setChildTitle(e.target.value)}
+            disabled={creating}
+            autoFocus
+          />
+          <button type="submit" className="text-xs px-2 py-1 rounded bg-gray-900 text-white disabled:opacity-60" disabled={creating || !childTitle.trim()}>
+            作成
+          </button>
+          <button type="button" className="text-xs px-2 py-1 rounded border" onClick={() => setAddingChild(false)} disabled={creating}>
+            取消
+          </button>
+        </form>
+      )}
+
+      {/* 子の表示 */}
+      {children.length > 0 && expanded && (
         <div className="mt-2">
-          {children.map((child) => (
-            <TaskItem key={child.id} task={child} />
-          ))}
+          {children.map((child) => (<TaskItem key={child.id} task={child} />))}
         </div>
       )}
     </div>

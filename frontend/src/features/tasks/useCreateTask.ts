@@ -1,39 +1,23 @@
-// src/features/tasks/useCreateTask.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/apiClient";
 import type { Task } from "../../types/task";
 
-export type CreateTaskInput = {
+type CreateTaskInput = {
   title: string;
   deadline?: string | null;
   parentId?: number | null;
 };
 
-// Rails系 strong_params 想定のネスト形式に統一
-type NestedPayload = {
-  task: {
-    title: string;
-    status: "in_progress" | "todo" | "completed";
-    progress: number;
-    deadline: string | null;
-    parent_id: number | null;
-  };
-};
-
-function buildPayload(input: CreateTaskInput): NestedPayload {
-  return {
+async function createTaskApi(input: CreateTaskInput): Promise<Task> {
+  const payload = {
     task: {
-      title: input.title.trim(),
-      status: "in_progress",
+      title: input.title,
+      status: "in_progress" as const,
       progress: 0,
       deadline: input.deadline ?? null,
       parent_id: input.parentId ?? null,
     },
   };
-}
-
-async function createTaskApi(input: CreateTaskInput): Promise<Task> {
-  const payload = buildPayload(input);
   const { data } = await api.post<Task>("/tasks", payload);
   return data;
 }
@@ -41,41 +25,37 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
 export function useCreateTask() {
   const qc = useQueryClient();
 
-  return useMutation<Task, Error, CreateTaskInput, { prevTasks: Task[]; tempId: number }>({
+  return useMutation({
     mutationFn: createTaskApi,
-
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
-      await qc.cancelQueries({ queryKey: ["priorityTasks"] });
+      const prev = qc.getQueryData<Task[]>(["tasks"]) ?? [];
 
-      const prevTasks = qc.getQueryData<Task[]>(["tasks"]) ?? [];
       const tempId = -Date.now();
-
       const optimistic: Task = {
         id: tempId,
         title: input.title,
         status: "in_progress",
         progress: 0,
         deadline: input.deadline ?? null,
-      } as Task;
+        parent_id: input.parentId ?? null,
+        // children/depth は nest で付くので不要
+      };
 
-      qc.setQueryData<Task[]>(["tasks"], [optimistic, ...prevTasks]);
-      return { prevTasks, tempId };
+      qc.setQueryData<Task[]>(["tasks"], [optimistic, ...prev]);
+      return { prev, tempId };
     },
-
-    onError: (_err, _input, ctx) => {
-      if (ctx?.prevTasks) qc.setQueryData<Task[]>(["tasks"], ctx.prevTasks);
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["tasks"], ctx.prev);
       alert("作成に失敗しました");
     },
-
-    onSuccess: (created, _input, ctx) => {
+    onSuccess: (created, _vars, ctx) => {
       if (ctx?.tempId != null) {
         qc.setQueryData<Task[]>(["tasks"], (cur) =>
           (cur ?? []).map((t) => (t.id === ctx.tempId ? created : t))
         );
       }
     },
-
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["priorityTasks"] });
