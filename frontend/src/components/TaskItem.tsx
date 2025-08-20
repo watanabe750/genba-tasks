@@ -5,7 +5,8 @@ import { useUpdateTask } from "../features/tasks/useUpdateTask";
 import type { Task } from "../types/task";
 
 type TaskItemProps = { task: Task };
-const clamp = (n: number, min = 0, max = 100) => Math.min(Math.max(n, min), max);
+const clamp = (n: number, min = 0, max = 100) =>
+  Math.min(Math.max(n, min), max);
 
 // ISO⇄<input type="date"> 変換
 const toDateInputValue = (iso?: string | null) => {
@@ -17,7 +18,8 @@ const toDateInputValue = (iso?: string | null) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
 };
-const fromDateInputValue = (v: string): string | null => (v ? new Date(`${v}T00:00:00`).toISOString() : null);
+const fromDateInputValue = (v: string): string | null =>
+  v ? new Date(`${v}T00:00:00`).toISOString() : null;
 
 export default function TaskItem({ task }: TaskItemProps) {
   const depth = task.depth ?? 1;
@@ -31,7 +33,9 @@ export default function TaskItem({ task }: TaskItemProps) {
   const [title, setTitle] = useState(task.title);
   const [status, setStatus] = useState<Task["status"]>(task.status);
   const [progress, setProgress] = useState<number>(task.progress ?? 0);
-  const [deadline, setDeadline] = useState<string>(toDateInputValue(task.deadline));
+  const [deadline, setDeadline] = useState<string>(
+    toDateInputValue(task.deadline)
+  );
 
   const saveEdit = () => {
     update(
@@ -59,12 +63,18 @@ export default function TaskItem({ task }: TaskItemProps) {
     const done = task.status !== "completed";
     update({
       id: task.id,
-      data: done ? { status: "completed", progress: 100 } : { status: "in_progress", progress: Math.min(task.progress ?? 0, 99) },
+      data: done
+        ? { status: "completed", progress: 100 }
+        : { status: "in_progress", progress: Math.min(task.progress ?? 0, 99) },
     });
   };
 
   return (
-    <div className="mb-4 border rounded-xl p-3 hover:bg-gray-50" style={{ paddingLeft: `${indent}px` }}>
+    <div
+      data-testid={`task-item-${task.id}`}
+      className="mb-4 border rounded-xl p-3 hover:bg-gray-50"
+      style={{ paddingLeft: `${indent}px` }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {!editing ? (
@@ -73,7 +83,11 @@ export default function TaskItem({ task }: TaskItemProps) {
               <p className="text-sm text-gray-600 flex items-center gap-2">
                 期限: {task.deadline ?? "未設定"} ・ ステータス: {task.status}
                 <label className="inline-flex items-center gap-1 text-xs ml-2">
-                  <input type="checkbox" checked={task.status === "completed"} onChange={toggleComplete} />
+                  <input
+                    type="checkbox"
+                    checked={task.status === "completed"}
+                    onChange={toggleComplete}
+                  />
                   完了
                 </label>
               </p>
@@ -81,7 +95,12 @@ export default function TaskItem({ task }: TaskItemProps) {
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1" htmlFor={`title-${task.id}`}>タイトル</label>
+                <label
+                  className="block text-xs text-gray-600 mb-1"
+                  htmlFor={`title-${task.id}`}
+                >
+                  タイトル
+                </label>
                 <input
                   id={`title-${task.id}`}
                   className="w-full border rounded p-2"
@@ -95,7 +114,12 @@ export default function TaskItem({ task }: TaskItemProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1" htmlFor={`deadline-${task.id}`}>期限</label>
+                  <label
+                    className="block text-xs text-gray-600 mb-1"
+                    htmlFor={`deadline-${task.id}`}
+                  >
+                    期限
+                  </label>
                   <input
                     id={`deadline-${task.id}`}
                     type="date"
@@ -106,12 +130,19 @@ export default function TaskItem({ task }: TaskItemProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1" htmlFor={`status-${task.id}`}>ステータス</label>
+                  <label
+                    className="block text-xs text-gray-600 mb-1"
+                    htmlFor={`status-${task.id}`}
+                  >
+                    ステータス
+                  </label>
                   <select
                     id={`status-${task.id}`}
                     className="w-full border rounded p-2"
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as Task["status"])}
+                    onChange={(e) =>
+                      setStatus(e.target.value as Task["status"])
+                    }
                     disabled={updating}
                   >
                     <option value="todo">未着手</option>
@@ -120,7 +151,12 @@ export default function TaskItem({ task }: TaskItemProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1" htmlFor={`progress-${task.id}`}>進捗 {clamp(progress)}%</label>
+                  <label
+                    className="block text-xs text-gray-600 mb-1"
+                    htmlFor={`progress-${task.id}`}
+                  >
+                    進捗 {clamp(progress)}%
+                  </label>
                   <input
                     id={`progress-${task.id}`}
                     type="range"
@@ -156,7 +192,9 @@ export default function TaskItem({ task }: TaskItemProps) {
               <button
                 type="button"
                 data-testid={`task-delete-${task.id}`}
-                onClick={() => { if (confirm("このタスクを削除しますか？")) remove(task.id); }}
+                onClick={() => {
+                  if (confirm("このタスクを削除しますか？")) remove(task.id);
+                }}
                 disabled={removing}
                 className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 disabled:opacity-60"
               >
@@ -189,7 +227,10 @@ export default function TaskItem({ task }: TaskItemProps) {
       {!editing && (
         <>
           <div className="w-full bg-gray-200 rounded-full h-3 mt-2">
-            <div className="bg-gray-700 h-3 rounded-full" style={{ width: `${clamp(task.progress ?? 0)}%` }} />
+            <div
+              className="bg-gray-700 h-3 rounded-full"
+              style={{ width: `${clamp(task.progress ?? 0)}%` }}
+            />
           </div>
           <p className="text-sm text-gray-600">{clamp(task.progress ?? 0)}%</p>
         </>
@@ -197,7 +238,9 @@ export default function TaskItem({ task }: TaskItemProps) {
 
       {children.length > 0 && (
         <div className="mt-2">
-          {children.map((child) => (<TaskItem key={child.id} task={child} />))}
+          {children.map((child) => (
+            <TaskItem key={child.id} task={child} />
+          ))}
         </div>
       )}
     </div>
