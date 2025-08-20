@@ -4,6 +4,7 @@ import { useDeleteTask } from "../features/tasks/useDeleteTask";
 import { useUpdateTask } from "../features/tasks/useUpdateTask";
 import { useCreateTask } from "../features/tasks/useCreateTask";
 import type { Task } from "../types/task";
+import { MAX_CHILDREN_PER_NODE } from "../features/tasks/constraints";
 
 type TaskItemProps = { task: Task };
 const clamp = (n: number, min = 0, max = 100) =>
@@ -193,19 +194,25 @@ export default function TaskItem({ task }: TaskItemProps) {
         <div className="shrink-0 flex items-center gap-2">
           {!editing ? (
             <>
-              {depth < 2 && (
-                <button
-                  type="button"
-                  className="text-xs px-2 py-1 rounded bg-gray-900 text-white disabled:opacity-60"
-                  onClick={() => {
-                    setAddingChild(true);
-                    setExpanded(true);
-                  }}
-                  disabled={creating}
-                >
-                  ＋ サブタスク
-                </button>
-              )}
+              <button
+                data-testid={`task-add-child-${task.id}`}
+                type="button"
+                className="text-xs px-2 py-1 rounded bg-gray-900 text-white disabled:opacity-60"
+                onClick={() => {
+                  const count = children.length;
+                  if (count >= MAX_CHILDREN_PER_NODE) {
+                    alert(`このタスクにはこれ以上サブタスクを追加できません（最大${MAX_CHILDREN_PER_NODE}件）`);
+                    return;
+                  }
+                  setAddingChild(true);
+                  setExpanded(true);
+                }}
+                disabled={creating || children.length >= MAX_CHILDREN_PER_NODE}
+                aria-disabled={creating || children.length >= MAX_CHILDREN_PER_NODE}
+                title={children.length >= MAX_CHILDREN_PER_NODE ? `最大${MAX_CHILDREN_PER_NODE}件まで` : undefined}
+              >
+                + サブタスク
+              </button>
 
               <button
                 type="button"
@@ -271,8 +278,8 @@ export default function TaskItem({ task }: TaskItemProps) {
         </>
       )}
 
-      {/* 子作成フォーム（親の直下のみ） */}
-      {!editing && addingChild && depth < 2 && (
+      {/* 子作成フォーム */}
+      {!editing && addingChild && (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {
