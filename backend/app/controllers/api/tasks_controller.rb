@@ -5,12 +5,12 @@ module Api
 
     def index
       tasks = current_user.tasks
-      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description)
+      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description, :site)  
     end
 
     def priority
       tasks = current_user.tasks.priority_order
-      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description)
+      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description, :site) 
     end
 
     def show
@@ -88,7 +88,7 @@ module Api
         end
 
       ActionController::Parameters.new(src)
-        .permit(:title, :status, :progress, :deadline, :parent_id, :depth, :description)
+        .permit(:title, :status, :progress, :deadline, :parent_id, :depth, :description, :site)
     end
   end
 end

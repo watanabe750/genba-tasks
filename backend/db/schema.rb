@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_03_090356) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_22_014322) do
   create_table "tasks", force: :cascade do |t|
     t.string "title"
     t.text "description"
@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_03_090356) do
     t.integer "parent_id"
     t.integer "depth", default: 1, null: false
     t.float "progress", default: 0.0, null: false
+    t.string "site"
     t.index ["parent_id"], name: "index_tasks_on_parent_id"
     t.index ["user_id"], name: "index_tasks_on_user_id"
   end

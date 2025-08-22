@@ -12,6 +12,8 @@ class Task < ApplicationRecord
   # バリデーション
   validates :title, presence: true
   validates :status, presence: true
+  # 親（= parent_id が nil）のときだけ site 必須
+  validates :site, presence: true, if: -> { parent_id.nil? }
   validate :depth_limit
 
   # 新規作成時のみ、保存前に自動でdepthを計算
@@ -60,7 +62,7 @@ class Task < ApplicationRecord
     # 階層ツリーをJSON化（子を再帰）
     def as_tree
       {
-        id:, title:, status:, progress:, depth:, deadline:, description:,
+        id:, title:, status:, progress:, depth:, deadline:, description:, site:,
         children: children.map(&:as_tree)
       }
     end

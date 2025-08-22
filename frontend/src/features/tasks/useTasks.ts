@@ -20,6 +20,9 @@ export function useTasks(enabled: boolean) {
     queryFn: fetchTasks,
     enabled,
     staleTime: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always", 
     retry: false,
   });
 }

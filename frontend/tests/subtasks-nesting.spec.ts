@@ -1,53 +1,55 @@
+// tests/subtasks-nesting.spec.ts
 import { test, expect } from '@playwright/test';
-import { login, createTaskViaApi } from './helpers';
-
-test.beforeEach(async ({ page }) => { await login(page); });
+import { createTaskViaApi } from './helpers';
 
 // 各ノード、子は最大4つまで／5つ目は不可
 test('親に子4つまで、5つ目は不可', async ({ page }) => {
-  const p = await createTaskViaApi(page, `E2E親-${Date.now()}`);
-  await page.goto('/tasks');
+  await page.goto('/tasks'); // 先に踏む（helpers 側で reload 済み）
+  const p = await createTaskViaApi(page, { title: `E2E親-${Date.now()}` });
 
-  const parent = page.getByTestId(`task-item-${p.id}`);
+  const parent = page.getByTestId(`task-item-${p.id}`).first();
   await expect(parent).toBeVisible();
 
-  // 4つ連続作成（ボタンは testid で特定）
-  const plus = parent.getByTestId(`task-add-child-${p.id}`);
+  const plus = parent.locator('[data-testid^="task-add-child-"]').first();
   for (let i = 1; i <= 4; i++) {
     await plus.scrollIntoViewIfNeeded();
     await plus.click();
-    await parent.getByLabel('サブタスク名').fill(`子${i}`);
+    await parent.getByTestId('child-title-input').fill(`子${i}`);
     await parent.getByRole('button', { name: '作成' }).click();
     await expect(parent.getByRole('heading', { name: `子${i}` })).toBeVisible();
   }
 
-  // 5つ目は disabled になっているはず（アラートブロックでもOKだが disabled を優先確認）
   await expect(plus).toBeDisabled();
 });
 
-// 子→孫（深さ2→3）も作れる（深さ制限なし）
 test('子の下にさらに子を作れる（ネスト作成+折りたたみ）', async ({ page }) => {
-  const p = await createTaskViaApi(page, `E2E親-${Date.now()}`);
   await page.goto('/tasks');
-  const parent = page.getByTestId(`task-item-${p.id}`);
+  const p = await createTaskViaApi(page, { title: `E2E親-${Date.now()}` });
 
-  // 親に 子A（ID付きで一意に）
-  const plusParent = parent.getByTestId(`task-add-child-${p.id}`);
+  const parent = page.getByTestId(`task-item-${p.id}`).first();
+  await expect(parent).toBeVisible();
+
+  const plusParent = parent.locator('[data-testid^="task-add-child-"]').first();
   await plusParent.scrollIntoViewIfNeeded();
   await expect(plusParent).toBeEnabled();
   await plusParent.click();
-  await parent.getByLabel('サブタスク名').fill('子A');
+  await parent.getByTestId('child-title-input').fill('子A');
   await parent.getByRole('button', { name: '作成' }).click();
-  const childA = page.locator('[data-testid^="task-item-"]', { has: page.getByRole('heading', { name: '子A' }) }).first();
+
+  const childA = page
+    .locator('[data-testid^="task-item-"]', {
+      has: page.getByRole('heading', { name: '子A' }),
+    })
+    .first();
   await expect(childA).toBeVisible();
 
-  // 子Aの下に 孫A-1
-  await childA.locator('[data-testid^="task-add-child-"]').first().click();
-  await childA.getByLabel('サブタスク名').fill('孫A-1');
+  // ★ 子にも ID 付き testid が付くので prefix マッチで取得
+  const plusChild = childA.locator('[data-testid^="task-add-child-"]').first();
+  await plusChild.click();
+  await childA.getByTestId('child-title-input').fill('孫A-1');
   await childA.getByRole('button', { name: '作成' }).click();
-  await expect(childA.getByRole('heading', { name: '孫A-1' })).toBeVisible();
+  await expect(childA.getByRole('heading', { name: '孫A-1' }).first()).toBeVisible();
 
-  // 親で折りたたみ → 子A/孫A-1が隠れる → 再表示
   const toggleHide = parent.getByRole('button', { name: /子を隠す/ });
   await toggleHide.click();
   await expect(parent.getByRole('heading', { name: '子A' })).toHaveCount(0);

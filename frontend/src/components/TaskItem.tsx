@@ -57,6 +57,7 @@ export default function TaskItem({ task }: TaskItemProps) {
       { onSuccess: () => setEditing(false) }
     );
   };
+
   const cancelEdit = () => {
     setEditing(false);
     setTitle(task.title);
@@ -163,7 +164,7 @@ export default function TaskItem({ task }: TaskItemProps) {
                     }
                     disabled={updating}
                   >
-                    <option value="todo">未着手</option>
+                    <option value="not_started">未着手</option>
                     <option value="in_progress">進行中</option>
                     <option value="completed">完了</option>
                   </select>
@@ -191,25 +192,33 @@ export default function TaskItem({ task }: TaskItemProps) {
           )}
         </div>
 
+        {/* 右側の操作ボタン群 */}
         <div className="shrink-0 flex items-center gap-2">
           {!editing ? (
             <>
               <button
-                data-testid={`task-add-child-${task.id}`}
+                data-testid={`task-add-child-${task.id}`} // ←ここを id 付きに
                 type="button"
                 className="text-xs px-2 py-1 rounded bg-gray-900 text-white disabled:opacity-60"
                 onClick={() => {
-                  const count = children.length;
-                  if (count >= MAX_CHILDREN_PER_NODE) {
-                    alert(`このタスクにはこれ以上サブタスクを追加できません（最大${MAX_CHILDREN_PER_NODE}件）`);
+                  if (children.length >= MAX_CHILDREN_PER_NODE) {
+                    alert(
+                      `このタスクにはこれ以上サブタスクを追加できません（最大${MAX_CHILDREN_PER_NODE}件）`
+                    );
                     return;
                   }
                   setAddingChild(true);
                   setExpanded(true);
                 }}
                 disabled={creating || children.length >= MAX_CHILDREN_PER_NODE}
-                aria-disabled={creating || children.length >= MAX_CHILDREN_PER_NODE}
-                title={children.length >= MAX_CHILDREN_PER_NODE ? `最大${MAX_CHILDREN_PER_NODE}件まで` : undefined}
+                aria-disabled={
+                  creating || children.length >= MAX_CHILDREN_PER_NODE
+                }
+                title={
+                  children.length >= MAX_CHILDREN_PER_NODE
+                    ? `最大${MAX_CHILDREN_PER_NODE}件まで`
+                    : undefined
+                }
               >
                 + サブタスク
               </button>
@@ -227,6 +236,7 @@ export default function TaskItem({ task }: TaskItemProps) {
               >
                 編集
               </button>
+
               <button
                 type="button"
                 data-testid={`task-delete-${task.id}`}
@@ -278,21 +288,27 @@ export default function TaskItem({ task }: TaskItemProps) {
         </>
       )}
 
-      {/* 子作成フォーム */}
+      {/* 子作成フォーム（＋サブタスクを押した時だけ） */}
       {!editing && addingChild && (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            const title = childTitle.trim();
-            if (!title) return;
+            const t = childTitle.trim();
+            if (!t) return;
             createChild(
-              { title, parentId: task.id, deadline: null },
-              { onSuccess: () => { setChildTitle(""); setAddingChild(false); } }
+              { title: t, parentId: task.id, deadline: null },
+              {
+                onSuccess: () => {
+                  setChildTitle("");
+                  setAddingChild(false);
+                },
+              }
             );
           }}
         >
           <input
+            data-testid="child-title-input"
             aria-label="サブタスク名"
             className="flex-1 border rounded p-2"
             value={childTitle}
@@ -300,10 +316,20 @@ export default function TaskItem({ task }: TaskItemProps) {
             disabled={creating}
             autoFocus
           />
-          <button type="submit" className="text-xs px-2 py-1 rounded bg-gray-900 text-white disabled:opacity-60" disabled={creating || !childTitle.trim()}>
+          <button
+            type="submit"
+            data-testid="child-create-submit"
+            className="text-xs px-2 py-1 rounded bg-gray-900 text-white disabled:opacity-60"
+            disabled={creating || !childTitle.trim()}
+          >
             作成
           </button>
-          <button type="button" className="text-xs px-2 py-1 rounded border" onClick={() => setAddingChild(false)} disabled={creating}>
+          <button
+            type="button"
+            className="text-xs px-2 py-1 rounded border"
+            onClick={() => setAddingChild(false)}
+            disabled={creating}
+          >
             取消
           </button>
         </form>
@@ -312,7 +338,9 @@ export default function TaskItem({ task }: TaskItemProps) {
       {/* 子の表示 */}
       {children.length > 0 && expanded && (
         <div className="mt-2">
-          {children.map((child) => (<TaskItem key={child.id} task={child} />))}
+          {children.map((child) => (
+            <TaskItem key={child.id} task={child} />
+          ))}
         </div>
       )}
     </div>

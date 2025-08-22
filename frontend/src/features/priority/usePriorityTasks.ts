@@ -20,6 +20,9 @@ export function usePriorityTasks(enabled = true) {
     queryFn: fetchPriorityTasks,
     enabled,
     staleTime: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
     retry: false,
   });
 }
