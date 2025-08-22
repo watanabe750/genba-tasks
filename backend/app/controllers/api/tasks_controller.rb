@@ -1,16 +1,19 @@
 module Api
   class TasksController < Api::BaseController
     before_action :set_task, only: [:show, :update, :destroy]
-    before_action :_debug_params, only: [:create, :update]  # デバッグ（通ったら消してOK）
+    before_action :_debug_params, only: [:create, :update]
+
+    SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
 
     def index
-      tasks = current_user.tasks
-      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description, :site)  
+      # ✅ モデル側のホワイトリストでSQLインジェクション防御済み
+      tasks = Task.filter_sort(filter_params, user: current_user)
+      render json: tasks.select(SELECT_FIELDS)
     end
 
     def priority
       tasks = current_user.tasks.priority_order
-      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description, :site) 
+      render json: tasks.select(SELECT_FIELDS)
     end
 
     def show
@@ -62,18 +65,36 @@ module Api
       render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
     end
 
+    # site: string
+    # status: ["not_started","in_progress","completed"] or ["0","1","2"] どちらでもOK（モデル側で正規化）
+    # progress_min/max: number
+    # order_by: "deadline"|"progress"|"created_at"
+    # dir: "asc"|"desc"
+    # parents_only: "1" なら親だけ
+    def filter_params
+      {
+        site:          params[:site],
+        status:        Array(params[:status]),
+        progress_min:  params[:progress_min],
+        progress_max:  params[:progress_max],
+        order_by:      params[:order_by],
+        dir:           params[:dir],
+        parents_only:  params[:parents_only]
+      }
+    end
+    # ---------------------------------------------
+
     # ネスト / フラット / JSON文字列キー ぜんぶ対応
     def task_params
-      raw = request.request_parameters # Hash だが、キーが JSON 文字列のことがある
+      raw = request.request_parameters
 
       src =
         if raw.present?
           if raw.key?("task") || raw.key?(:task)
             raw["task"] || raw[:task]
           elsif raw.size == 1 && raw.keys.first.to_s.strip.start_with?("{")
-            # 例: { "{\"task\":{\"title\":\"...\"}}" => nil }
             begin
-              parsed = ActiveSupport::JSON.decode(raw.keys.first) # => {"task"=>{...}} or {...}
+              parsed = ActiveSupport::JSON.decode(raw.keys.first)
               parsed.is_a?(Hash) ? (parsed["task"] || parsed) : {}
             rescue StandardError
               {}

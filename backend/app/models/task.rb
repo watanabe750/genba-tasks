@@ -105,3 +105,61 @@ class Task < ApplicationRecord
     end
   end
 end
+
+  # ===== 絞り込み・並び替え =====
+  scope :for_user, ->(user) { where(user_id: user.id) } # 認証前提なら
+
+  scope :by_site, ->(site) {
+    site.present? ? where(site: site) : all
+  }
+
+  # status は "not_started"/"in_progress"/"completed" か、0/1/2 のどちらでも受け付ける
+  scope :by_status, ->(statuses) {
+    return all if statuses.blank?
+    names = Array(statuses).map(&:to_s)
+    normalized = names.map { |s|
+      if statuses().key?(s)           # enum名
+        s
+      elsif Integer(s, exception: false).is_a?(Integer) && statuses().invert.key?(s.to_i) # 数値
+        statuses().invert[s.to_i]
+      end
+    }.compact.uniq
+    normalized.present? ? where(status: normalized) : none
+  }
+
+  scope :by_progress_min, ->(min) {
+    min.present? ? where('progress >= ?', min.to_i) : all
+  }
+
+  scope :by_progress_max, ->(max) {
+    max.present? ? where('progress <= ?', max.to_i) : all
+  }
+
+  # 親だけ表示（親=site必須、子はsite任意なので親ビュー用に便利）
+  scope :root_only, ->(flag) {
+    flag.to_s == '1' ? where(parent_id: nil) : all
+  }
+
+  # 並び替えはホワイトリストで防御
+  ORDERABLE_COLUMNS = {
+    "deadline"   => :deadline,
+    "progress"   => :progress,
+    "created_at" => :created_at
+  }.freeze
+
+  scope :order_by_param, ->(order_by, dir = 'asc') {
+    column = ORDERABLE_COLUMNS[order_by.to_s] || :deadline
+    direction = %w[asc desc].include?(dir.to_s) ? dir : 'asc'
+    order(column => direction)
+  }
+
+  def self.filter_sort(p, user:)
+    for_user(user)
+      .root_only(p[:parents_only])
+      .by_site(p[:site])
+      .by_status(p[:status])
+      .by_progress_min(p[:progress_min])
+      .by_progress_max(p[:progress_max])
+      .order_by_param(p[:order_by], p[:dir])
+  end
+end
