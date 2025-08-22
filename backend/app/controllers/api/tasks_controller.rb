@@ -6,7 +6,6 @@ module Api
     SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
 
     def index
-      # ✅ モデル側のホワイトリストでSQLインジェクション防御済み
       tasks = Task.filter_sort(filter_params, user: current_user)
       render json: tasks.select(SELECT_FIELDS)
     end
@@ -50,8 +49,20 @@ module Api
       head :no_content
     end
 
-    private
+    # ✅ ここに移動：公開アクション
+    # 現場名候補（親タスクからdistinct、null/空白除外）
+    def sites
+      names = current_user.tasks
+                .where(parent_id: nil)
+                .where.not(site: [nil, ""])
+                .distinct
+                .order(Arel.sql("LOWER(site) ASC"))
+                .pluck(:site)
+      render json: names
+    end
 
+    private
+    # ---- ここから下はprivate ----
     def _debug_params
       Rails.logger.info("[Params] content_type=#{request.content_type.inspect}")
       Rails.logger.info("[Params] keys=#{params.keys.inspect}")
@@ -65,12 +76,7 @@ module Api
       render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
     end
 
-    # site: string
-    # status: ["not_started","in_progress","completed"] or ["0","1","2"] どちらでもOK（モデル側で正規化）
-    # progress_min/max: number
-    # order_by: "deadline"|"progress"|"created_at"
-    # dir: "asc"|"desc"
-    # parents_only: "1" なら親だけ
+    # site/status/progress/deadline/parents_only を受け取る
     def filter_params
       {
         site:          params[:site],
@@ -82,12 +88,10 @@ module Api
         parents_only:  params[:parents_only]
       }
     end
-    # ---------------------------------------------
 
     # ネスト / フラット / JSON文字列キー ぜんぶ対応
     def task_params
       raw = request.request_parameters
-
       src =
         if raw.present?
           if raw.key?("task") || raw.key?(:task)
@@ -109,7 +113,7 @@ module Api
         end
 
       ActionController::Parameters.new(src)
-        .permit(:title, :status, :progress, :deadline, :parent_id, :depth, :description, :site)
+        .permit(:title, :status, :progress, :deadline, :parent_id, :description, :site)
     end
   end
 end

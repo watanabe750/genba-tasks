@@ -1,10 +1,17 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useSites } from "./useSites";
+import { readSiteHistory } from "../../lib/siteHistory";
 
 const STATUSES = ["not_started", "in_progress", "completed"] as const;
 
 export function TaskFilterBar() {
   const [sp, setSp] = useSearchParams();
+  const { data: serverSites = [] } = useSites(true);
+  const localSites = readSiteHistory();
+  const siteOptions = Array.from(
+    new Set([...localSites, ...serverSites])
+  ).slice(0, 50);
 
   const filters = useMemo(
     () => ({
@@ -50,9 +57,15 @@ export function TaskFilterBar() {
       <input
         className="border rounded px-2 py-1"
         placeholder="現場名(site)"
+        list="site-options"
         value={filters.site}
         onChange={(e) => patch({ site: e.target.value })}
       />
+      <datalist id="site-options">
+        {siteOptions.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
 
       <label className="flex items-center gap-2">
         <input

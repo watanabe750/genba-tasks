@@ -10,7 +10,6 @@ type Props = {
     onToggleComplete: (id: number) => void; // 親から渡してもらう
 };
 
-
 const TaskCard = ({ task, onToggleComplete }: Props) => {
     const isCompleted = task.status === "completed";
 
@@ -22,7 +21,7 @@ const TaskCard = ({ task, onToggleComplete }: Props) => {
                 {/* チェックボックス */}
                 <label className="inline-flex items-center gap-1 text-sm">
                     <input
-                        type="checkebox"
+                        type="checkbox"
                         checked={isCompleted}
                         onChange={() => onToggleComplete(task.id)}
                         className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"

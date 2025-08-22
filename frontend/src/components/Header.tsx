@@ -26,6 +26,7 @@ const Header = () => {
                 type="button"
                 onClick={handleLogout}
                 className="px-3 py-1 rounded bg-white/10 hover:bg-white/20"
+                data-testid="header-logout"
               >
                 ログアウト
               </button>

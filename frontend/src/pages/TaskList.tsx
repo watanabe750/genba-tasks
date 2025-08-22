@@ -9,12 +9,13 @@ import { usePriorityTasks } from "../features/priority/usePriorityTasks";
 import { nestTasks } from "../features/tasks/nest";
 import NewParentTaskForm from "../components/NewParentTaskForm";
 import { TaskFilterBar } from "../features/tasks/TaskFilterBar";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 export default function TaskList() {
   const { authed } = useAuth();
   usePriorityTasks(authed); // 読み込み副作用だけ必要なら data を使わなくてもOK
   const [sp] = useSearchParams();
-  const filters = {
+  const rawFilters = {
     site: sp.get("site") || undefined,
     status: sp.getAll("status"),
     progress_min: sp.get("progress_min")
@@ -29,6 +30,7 @@ export default function TaskList() {
     dir: (sp.get("dir") as "asc" | "desc") || "asc",
     parents_only: sp.get("parents_only") === "1" ? "1" : undefined,
   };
+  const filters = useDebouncedValue(rawFilters, 300);
   const { data: tasksFlat = [] } = useFilteredTasks(filters, authed);
 
   // フラット配列 → ツリー化
