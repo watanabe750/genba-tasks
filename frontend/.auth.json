@@ -1,0 +1,22 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "client",
+          "value": "HrKbmUm_31wBp7ox3j6rPw"
+        },
+        {
+          "name": "access-token",
+          "value": "14uxay6Eo4GVI0u5Jywh0g"
+        },
+        {
+          "name": "uid",
+          "value": "e2e@example.com"
+        }
+      ]
+    }
+  ]
+}

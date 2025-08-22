@@ -60,18 +60,30 @@ function saveTokensFromHeaders(
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState(false);
-  const [uid, setUid] = useState<string | null>(null);
+  // ★ 初期値を localStorage から同期で決定（初回リダイレクトを防ぐ）
+  const initialTokens = (() => {
+    try {
+      const at = localStorage.getItem("access-token") ?? undefined;
+      const client = localStorage.getItem("client") ?? undefined;
+      const luid = localStorage.getItem("uid") ?? undefined;
+      return { at, client, uid: luid };
+    } catch {
+      return { at: undefined, client: undefined, uid: undefined };
+    }
+  })();
+  const [authed, setAuthed] = useState<boolean>(
+    !!(initialTokens.at && initialTokens.client && initialTokens.uid)
+  );
+  const [uid, setUid] = useState<string | null>(initialTokens.uid ?? null);
+
   const lastSavedAtRef = useRef(0);
 
   const applyTokensToAxios = useCallback(
     (tokens: { at?: string; client?: string; uid?: string }) => {
       const { at, client, uid } = tokens;
-      if (at)
-        api.defaults.headers.common["access-token"] = at;
+      if (at) api.defaults.headers.common["access-token"] = at;
       else delete api.defaults.headers.common["access-token"];
-      if (client)
-        api.defaults.headers.common["client"] = client;
+      if (client) api.defaults.headers.common["client"] = client;
       else delete api.defaults.headers.common["client"];
       if (uid) api.defaults.headers.common["uid"] = uid;
       else delete api.defaults.headers.common["uid"];
@@ -81,14 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const saveTokens = useCallback(
     (tokens: { at?: string; client?: string; uid?: string }) => {
-      if (tokens.at)
-        localStorage.setItem("access-token", tokens.at);
+      if (tokens.at) localStorage.setItem("access-token", tokens.at);
       else localStorage.removeItem("access-token");
-      if (tokens.client)
-        localStorage.setItem("client", tokens.client);
+      if (tokens.client) localStorage.setItem("client", tokens.client);
       else localStorage.removeItem("client");
-      if (tokens.uid)
-        localStorage.setItem("uid", tokens.uid);
+      if (tokens.uid) localStorage.setItem("uid", tokens.uid);
       else localStorage.removeItem("uid");
     },
     []
@@ -108,15 +117,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUid(null);
   }, [saveTokens, applyTokensToAxios]);
 
-  // 初期化：保管済みトークンがあれば適用
+  // 初回描画前に axios に同期適用（初回の /api/tasks が 401 にならないように）
+  if (initialTokens.at && initialTokens.client && initialTokens.uid) {
+    api.defaults.headers.common["access-token"] = initialTokens.at;
+    api.defaults.headers.common["client"] = initialTokens.client;
+    api.defaults.headers.common["uid"] = initialTokens.uid;
+  }
+
+  // 初期化：axios へのヘッダ適用（初回レンダー後に一度だけ）
   useEffect(() => {
-    const t = loadTokens();
-    if (t.at && t.client && t.uid) {
-      applyTokensToAxios(t);
-      setAuthed(true);
-      setUid(t.uid);
+    if (initialTokens.at && initialTokens.client && initialTokens.uid) {
+      applyTokensToAxios(initialTokens);
     }
-  }, [loadTokens, applyTokensToAxios]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
@@ -255,7 +269,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [authed, uid, signIn, signOut]
   );
 
-  return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-  );
+  // ★ 同一タブ内のトークン回転を拾う
+  useEffect(() => {
+    const onRefresh = () => {
+      const t = loadTokens();
+      const complete = !!(t.at && t.client && t.uid);
+      if (complete) {
+        applyTokensToAxios(t);
+        setAuthed(true);
+        setUid(t.uid ?? null);
+      } else {
+        // 何かの拍子に欠けていたらクリア
+        clearTokens();
+      }
+    };
+
+    window.addEventListener("auth:refresh", onRefresh);
+    // ついでにフォーカス復帰時も再適用しておくと堅い
+    window.addEventListener("focus", onRefresh);
+    return () => {
+      window.removeEventListener("auth:refresh", onRefresh);
+      window.removeEventListener("focus", onRefresh);
+    };
+  }, [applyTokensToAxios, clearTokens, loadTokens]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
