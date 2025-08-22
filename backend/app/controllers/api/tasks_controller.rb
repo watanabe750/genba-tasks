@@ -1,16 +1,18 @@
 module Api
   class TasksController < Api::BaseController
     before_action :set_task, only: [:show, :update, :destroy]
-    before_action :_debug_params, only: [:create, :update]  # デバッグ（通ったら消してOK）
+    before_action :_debug_params, only: [:create, :update]
+
+    SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
 
     def index
-      tasks = current_user.tasks
-      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description, :site)  
+      tasks = Task.filter_sort(filter_params, user: current_user)
+      render json: tasks.select(SELECT_FIELDS)
     end
 
     def priority
       tasks = current_user.tasks.priority_order
-      render json: tasks.select(:id, :title, :status, :progress, :deadline, :parent_id, :depth, :description, :site) 
+      render json: tasks.select(SELECT_FIELDS)
     end
 
     def show
@@ -47,8 +49,20 @@ module Api
       head :no_content
     end
 
-    private
+    # ✅ ここに移動：公開アクション
+    # 現場名候補（親タスクからdistinct、null/空白除外）
+    def sites
+      names = current_user.tasks
+                .where(parent_id: nil)
+                .where.not(site: [nil, ""])
+                .distinct
+                .order(Arel.sql("LOWER(site) ASC"))
+                .pluck(:site)
+      render json: names
+    end
 
+    private
+    # ---- ここから下はprivate ----
     def _debug_params
       Rails.logger.info("[Params] content_type=#{request.content_type.inspect}")
       Rails.logger.info("[Params] keys=#{params.keys.inspect}")
@@ -62,18 +76,29 @@ module Api
       render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
     end
 
+    # site/status/progress/deadline/parents_only を受け取る
+    def filter_params
+      {
+        site:          params[:site],
+        status:        Array(params[:status]),
+        progress_min:  params[:progress_min],
+        progress_max:  params[:progress_max],
+        order_by:      params[:order_by],
+        dir:           params[:dir],
+        parents_only:  params[:parents_only]
+      }
+    end
+
     # ネスト / フラット / JSON文字列キー ぜんぶ対応
     def task_params
-      raw = request.request_parameters # Hash だが、キーが JSON 文字列のことがある
-
+      raw = request.request_parameters
       src =
         if raw.present?
           if raw.key?("task") || raw.key?(:task)
             raw["task"] || raw[:task]
           elsif raw.size == 1 && raw.keys.first.to_s.strip.start_with?("{")
-            # 例: { "{\"task\":{\"title\":\"...\"}}" => nil }
             begin
-              parsed = ActiveSupport::JSON.decode(raw.keys.first) # => {"task"=>{...}} or {...}
+              parsed = ActiveSupport::JSON.decode(raw.keys.first)
               parsed.is_a?(Hash) ? (parsed["task"] || parsed) : {}
             rescue StandardError
               {}
@@ -88,7 +113,7 @@ module Api
         end
 
       ActionController::Parameters.new(src)
-        .permit(:title, :status, :progress, :deadline, :parent_id, :depth, :description, :site)
+        .permit(:title, :status, :progress, :deadline, :parent_id, :description, :site)
     end
   end
 end

@@ -89,6 +89,7 @@ export default function TaskItem({ task }: TaskItemProps) {
               <h2 className="text-lg font-semibold truncate">{task.title}</h2>
               <p className="text-sm text-gray-600 flex items-center gap-2">
                 期限: {task.deadline ?? "未設定"} ・ ステータス: {task.status}
+                {task.site ? <> ・ site: {task.site}</> : null}
                 <label className="inline-flex items-center gap-1 text-xs ml-2">
                   <input
                     type="checkbox"

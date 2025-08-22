@@ -1,9 +1,12 @@
 Rails.application.routes.draw do
   namespace :api do
     mount_devise_token_auth_for 'User', at: 'auth'
-    
+
     resources :tasks do
-      collection { get :priority }
+      collection do
+        get :priority
+        get :sites
+      end
     end
   end
 end
