@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSites } from "./useSites";
 import { readSiteHistory } from "../../lib/siteHistory";
@@ -24,44 +24,41 @@ export function TaskFilterBar() {
         | "progress"
         | "created_at",
       dir: (sp.get("dir") ?? "asc") as "asc" | "desc",
+      parents_only: sp.get("parents_only") ?? undefined,
     }),
     [sp]
   );
 
-  const patch = (
-    obj: Record<string, string | string[] | number | undefined>
-  ) => {
-    const curr = Object.fromEntries(sp.entries());
-    const next: Record<string, string> = { ...curr };
+  const patch = useCallback(
+    (obj: Record<string, string | string[] | number | undefined>) => {
+      // ★ 毎回“今のURL”から開始して競合を防ぐ
+      const curr = new URLSearchParams(window.location.search);
 
-    Object.entries(obj).forEach(([k, v]) => {
-      if (Array.isArray(v)) {
-        // 一旦削除して複数値を入れ直す
-        delete next[k];
-      } else if (v === "" || v === undefined) {
-        delete next[k];
-      } else {
-        next[k] = String(v);
-      }
-    });
+      // 変更対象キーは一旦全削除してから入れ直す（配列対応）
+      Object.entries(obj).forEach(([k, v]) => {
+        curr.delete(k);
+        if (Array.isArray(v)) {
+          v.forEach((val) => curr.append(k, String(val)));
+        } else if (v !== "" && v !== undefined) {
+          curr.set(k, String(v));
+        }
+      });
 
-    const nextSp = new URLSearchParams(next);
-    Object.entries(obj).forEach(([k, v]) => {
-      if (Array.isArray(v)) v.forEach((val) => nextSp.append(k, val));
-    });
-    setSp(nextSp, { replace: false });
-  };
+      setSp(curr, { replace: false });
+    },
+    [setSp]
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-3 border rounded-xl">
       <input
         className="border rounded px-2 py-1"
         placeholder="現場名(site)"
-        list="site-options"
+        list="site-list"
         value={filters.site}
         onChange={(e) => patch({ site: e.target.value })}
       />
-      <datalist id="site-options">
+      <datalist id="site-list">
         {siteOptions.map((s) => (
           <option key={s} value={s} />
         ))}
@@ -75,7 +72,7 @@ export function TaskFilterBar() {
             patch({ parents_only: e.target.checked ? "1" : undefined })
           }
         />
-        親タスクのみ
+        親のみ
       </label>
 
       <label className="flex items-center gap-2">
