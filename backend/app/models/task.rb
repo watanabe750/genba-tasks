@@ -4,6 +4,9 @@ class Task < ApplicationRecord
   belongs_to :parent, class_name: "Task", optional: true
   has_many   :children, class_name: "Task", foreign_key: "parent_id", dependent: :destroy
 
+  # 子タスク上限
+  MAX_CHILDREN_PER_NODE = 4
+
   # ステータス
   enum :status, { not_started: 0, in_progress: 1, completed: 2 }
 
@@ -12,6 +15,8 @@ class Task < ApplicationRecord
   validates :status, presence: true
   validates :site,   presence: true, if: -> { parent_id.nil? } # 親のみsite必須
   validate  :depth_limit
+  # 子は最大4件：作成時 or 親付け替え時のみチェック
+  validate  :children_count_limit, if: :validate_children_limit?
 
   # depthは作成時に自動計算
   before_validation :set_depth, on: :create
@@ -151,6 +156,20 @@ class Task < ApplicationRecord
     if depth.present? && depth > 4
       errors.add(:depth, "は4階層までしか作成できません")
     end
+  end
+
+  # 親直下の子が5件目にならないように制限
+  def children_count_limit
+    return unless parent # 念のため
+    siblings_count = parent.children.where.not(id: id).count
+    if siblings_count >= MAX_CHILDREN_PER_NODE
+      errors.add(:parent, "の子タスクは最大#{MAX_CHILDREN_PER_NODE}件までです")
+    end
+  end
+
+  # 新規 or 親付け替え時だけチェックする
+  def validate_children_limit?
+    parent_id.present? && (new_record? || will_save_change_to_parent_id?)
   end
 
   # progress/parent_id/status の変更で発火（親付け替え時は旧親も再計算）
