@@ -2,8 +2,7 @@
 require 'rails_helper'
 
 RSpec.describe "Task API", type: :request do
-  # Devise::Test::IntegrationHelpers はDTA認証では不要（トークンで叩く）
-  let(:user) { User.create!(email: "test@example.com", password: "password") }
+  let(:user) { create(:user) }
 
   def json
     JSON.parse(response.body)
@@ -26,8 +25,9 @@ RSpec.describe "Task API", type: :request do
   # ---- GET /api/tasks ----
   describe "GET /api/tasks" do
     it "タスク一覧を取得できる" do
-      Task.create!(title: "テストタスク1", status: :not_started, user: user)
-      Task.create!(title: "テストタスク2", status: :in_progress, user: user)
+      # 親タスクは site 必須
+      Task.create!(title: "テストタスク1", status: :not_started, user: user, site: "現場X")
+      Task.create!(title: "テストタスク2", status: :in_progress, user: user, site: "現場X")
 
       get "/api/tasks", headers: auth_headers_for(user)
 
@@ -40,11 +40,12 @@ RSpec.describe "Task API", type: :request do
   # ---- GET /api/tasks（current_userのみ返す想定）----
   describe "GET /api/tasks（current_userのみ）" do
     it "自分のタスクだけ取得できる" do
-      user1 = User.create!(email: "user1@example.com", password: "password")
-      user2 = User.create!(email: "user2@example.com", password: "password")
-      Task.create!(title: "user1のタスク1", status: :not_started, user: user1)
-      Task.create!(title: "user1のタスク2", status: :completed,   user: user1)
-      Task.create!(title: "user2のタスク",   status: :in_progress, user: user2)
+      user1 = create(:user)
+      user2 = create(:user)
+
+      Task.create!(title: "user1のタスク1", status: :not_started, user: user1, site: "現場A")
+      Task.create!(title: "user1のタスク2", status: :completed,   user: user1, site: "現場A")
+      Task.create!(title: "user2のタスク",   status: :in_progress, user: user2, site: "現場B")
 
       get "/api/tasks", headers: auth_headers_for(user1)
 
@@ -59,7 +60,7 @@ RSpec.describe "Task API", type: :request do
   describe "POST /api/tasks" do
     it "タスクを作成できる" do
       post "/api/tasks",
-           params: { task: { title: "新しいタスク", status: :not_started } }.to_json,
+           params: { task: { title: "新しいタスク", status: :not_started, site: "現場X" } }.to_json,
            headers: auth_headers_for(user).merge(json_headers)
 
       expect(response).to have_http_status(:created)
@@ -68,7 +69,7 @@ RSpec.describe "Task API", type: :request do
 
     it "タイトルが空なら422を返す" do
       post "/api/tasks",
-           params: { task: { title: "", status: :not_started } }.to_json,
+           params: { task: { title: "", status: :not_started, site: "現場X" } }.to_json, # site は入れてタイトルだけ落とす
            headers: auth_headers_for(user).merge(json_headers)
 
       expect(response).to have_http_status(:unprocessable_entity)
@@ -78,7 +79,7 @@ RSpec.describe "Task API", type: :request do
     context "未ログインの場合401を返す" do
       before do
         post "/api/tasks",
-             params: { task: { title: "未ログインタスク", status: :not_started } }.to_json,
+             params: { task: { title: "未ログインタスク", status: :not_started, site: "現場X" } }.to_json,
              headers: json_headers
       end
       it_behaves_like "unauthorized request"
@@ -88,7 +89,7 @@ RSpec.describe "Task API", type: :request do
   # ---- PATCH /api/tasks/:id ----
   describe "PATCH /api/tasks/:id" do
     it "タスクを更新できる" do
-      task = Task.create!(title: "更新前タスク", status: :not_started, user: user)
+      task = Task.create!(title: "更新前タスク", status: :not_started, user: user, site: "現場X")
 
       patch "/api/tasks/#{task.id}",
             params: { task: { title: "更新後タスク" } }.to_json,
@@ -108,7 +109,7 @@ RSpec.describe "Task API", type: :request do
     end
 
     context "未ログインの場合401を返す" do
-      let(:task) { Task.create!(title: "ログイン必須タスク", status: :not_started, user: user) }
+      let(:task) { Task.create!(title: "ログイン必須タスク", status: :not_started, user: user, site: "現場X") }
       before do
         patch "/api/tasks/#{task.id}",
               params: { task: { title: "x" } }.to_json,
@@ -121,7 +122,7 @@ RSpec.describe "Task API", type: :request do
   # ---- DELETE /api/tasks/:id ----
   describe "DELETE /api/tasks/:id" do
     it "タスクを削除できる" do
-      task = Task.create!(title: "削除タスク", status: :not_started, user: user)
+      task = Task.create!(title: "削除タスク", status: :not_started, user: user, site: "現場X")
 
       delete "/api/tasks/#{task.id}", headers: auth_headers_for(user)
 
@@ -135,7 +136,7 @@ RSpec.describe "Task API", type: :request do
     end
 
     context "未ログインの場合401を返す" do
-      let(:task) { Task.create!(title: "未ログイン削除タスク", status: :not_started, user: user) }
+      let(:task) { Task.create!(title: "未ログイン削除タスク", status: :not_started, user: user, site: "現場X") }
       before { delete "/api/tasks/#{task.id}" }
       it_behaves_like "unauthorized request"
     end

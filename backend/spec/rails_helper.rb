@@ -11,7 +11,7 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 require 'rspec/rails'
 
 # 3) support配下は Rails が読まれた“後”に読み込む
-Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
+Dir[Rails.root.join('spec/support/**/*.rb')].sort.each { |f| require f }
 
 # 4) DBスキーマをテスト環境と同期
 begin
@@ -21,8 +21,11 @@ rescue ActiveRecord::PendingMigrationError => e
 end
 
 RSpec.configure do |config|
-  # フィクスチャを使うなら（使わないなら消してOK）
-  config.fixture_paths = [Rails.root.join('spec/fixtures')]
+  # （任意）fixtures を使うなら有効化。使っていなければコメントアウトでOK
+  # config.fixture_path = Rails.root.join('spec/fixtures')
+
+  # FactoryBot の DSL（create/build など）をグローバルに使えるように
+  config.include FactoryBot::Syntax::Methods
 
   # トランザクションで囲む（System SpecでJS使う場合は後でDB Cleaner検討）
   config.use_transactional_fixtures = true
@@ -33,8 +36,10 @@ RSpec.configure do |config|
   # ノイズ削減
   config.filter_rails_from_backtrace!
 
-  # Deviseの sign_in ヘルパ（request用）
-  config.include ApiAuthHelpers,        type: :request  # ← 上で作ったやつ
-  config.include RequestJsonHelpers,    type: :request  # ← 上で作ったやつ
-  config.include Devise::Test::IntegrationHelpers, type: :request
+  # Request 用ヘルパ（自作）
+  config.include ApiAuthHelpers,     type: :request
+  config.include RequestJsonHelpers, type: :request
+
+  # ← APIはトークン運用なので基本は不要。セッション sign_in を使う場合のみ該当 spec で include
+  # config.include Devise::Test::IntegrationHelpers, type: :request
 end
