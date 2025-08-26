@@ -3,46 +3,53 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/apiClient";
 import type { Task } from "../../types/task";
 
-// ---- 新規: フィルタ型 ----
-export type TaskFilters = {
+type Filters = {
   site?: string;
-  status?: string[]; // ["not_started","in_progress","completed"]
+  status?: string[];          // ["not_started", ...]
   progress_min?: number;
   progress_max?: number;
   order_by?: "deadline" | "progress" | "created_at";
   dir?: "asc" | "desc";
-  parents_only?: "1" | "0"; // 親のみ表示
+  parents_only?: "1";
 };
 
-// APIの揺れを型で吸収（サーバ側は配列返却でOKだが念のため）
-type TasksResponse = Task[] | { tasks: Task[] };
-function normalizeTasks(data: TasksResponse): Task[] {
-  return Array.isArray(data) ? data : data.tasks;
+function cleanParams(p: Filters) {
+  const q: Record<string, any> = {};
+  if (p.site) q.site = p.site;
+  if (p.status && p.status.length > 0) q.status = p.status;
+  if (typeof p.progress_min === "number") q.progress_min = p.progress_min;
+  if (typeof p.progress_max === "number") q.progress_max = p.progress_max;
+  if (p.order_by) q.order_by = p.order_by;
+  if (p.dir) q.dir = p.dir;
+  if (p.parents_only === "1") q.parents_only = "1";
+  return q;
 }
 
-// ---- 新規: フィルタ対応の取得関数 ----
-async function fetchTasks(filters?: TaskFilters): Promise<Task[]> {
-  // NOTE: APIは /api/tasks を叩く
-  const { data } = await api.get<TasksResponse>("/tasks", { params: filters });
-  return normalizeTasks(data);
-}
-
-// ---- 新規: フィルタ対応フック ----
-export function useFilteredTasks(filters: TaskFilters, enabled = true) {
-  // filters を queryKey に入れることで操作に応じて自動リフェッチ
-  return useQuery<Task[], Error>({
+export function useFilteredTasks(filters: Filters, enabled = true) {
+  return useQuery<Task[]>({
     queryKey: ["tasks", filters],
-    queryFn: () => fetchTasks(filters),
     enabled,
+    queryFn: async () => {
+      const params = cleanParams(filters);
+      const { data } = await api.get<Task[]>("/tasks", {
+        params,
+        // status[]=... を indices なしで出す
+        paramsSerializer: { indexes: false },
+      });
+      return data;
+    },
     staleTime: 30_000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    refetchOnReconnect: "always",
-    retry: false,
   });
 }
 
-// ---- 既存互換: 引数が boolean のままでも動くように薄ラッパーを残す ----
-export function useTasks(enabled: boolean) {
-  return useFilteredTasks({}, enabled);
+export function useSites(enabled = true) {
+  return useQuery<string[]>({
+    queryKey: ["taskSites"],
+    enabled,
+    queryFn: async () => {
+      const { data } = await api.get<string[]>("/tasks/sites");
+      return data;
+    },
+    staleTime: 5 * 60_000,
+  });
 }
