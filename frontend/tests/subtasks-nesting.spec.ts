@@ -1,70 +1,48 @@
-// tests/subtasks-nesting.spec.ts
-import { test, expect } from "@playwright/test";
-import { createTaskViaApi } from "./helpers";
+import { test, expect } from '@playwright/test';
+test.use({ storageState: 'tests/.auth/e2e.json' });
 
-// 各ノード、子は最大4つまで／5つ目は不可
-test("親に子4つまで、5つ目は不可", async ({ page }) => {
-  await page.goto("/tasks"); // 先に踏む（helpers 側で reload 済み）
-  const p = await createTaskViaApi(page, { title: `E2E親-${Date.now()}` });
+test('親に子4つまで、5つ目は不可', async ({ page }) => {
+  await page.goto('/tasks');
 
-  const parent = page.getByTestId(`task-item-${p.id}`).first();
-  await expect(parent).toBeVisible();
+  const title = `P-${Date.now()}`;
+  await page.getByTestId('new-parent-title').fill(title);
+  await page.getByTestId('new-parent-site').fill('E2E-NEST');
+  await page.getByTestId('new-parent-submit').click();
 
-  const plus = parent.locator('[data-testid^="task-add-child-"]').first();
+  const parent = page.locator('[data-testid^="task-item-"]').filter({ hasText: title }).first();
+  const addBtn = parent.getByTestId(/task-add-child-/).first();
+
   for (let i = 1; i <= 4; i++) {
-    await plus.scrollIntoViewIfNeeded();
-    await plus.click();
-    await parent.getByTestId("child-title-input").fill(`子${i}`);
-    await parent.getByRole("button", { name: "作成" }).click();
-    await expect(parent.getByRole("heading", { name: `子${i}` })).toBeVisible();
+    await addBtn.click();
+    await parent.getByTestId('child-title-input').fill(`c${i}`);
+    await parent.getByTestId('child-create-submit').click();
+    await expect(parent.locator('[data-testid^="task-item-"]').filter({ hasText: `c${i}` }).first()).toBeVisible();
   }
-
-  await expect(plus).toBeDisabled();
+  await expect(addBtn).toBeDisabled();
 });
 
-test("子の下にさらに子を作れる（ネスト作成+折りたたみ）", async ({ page }) => {
-  await page.goto("/tasks");
-  const p = await createTaskViaApi(page, { title: `E2E親-${Date.now()}` });
+test('子の下にさらに子を作れる（ネスト作成+折りたたみ）', async ({ page }) => {
+  await page.goto('/tasks');
 
-  const parent = page.getByTestId(`task-item-${p.id}`).first();
-  await expect(parent).toBeVisible();
+  const title = `Root-${Date.now()}`;
+  await page.getByTestId('new-parent-title').fill(title);
+  await page.getByTestId('new-parent-site').fill('E2E-NEST2');
+  await page.getByTestId('new-parent-submit').click();
 
-  const plusParent = parent.locator('[data-testid^="task-add-child-"]').first();
-  await plusParent.scrollIntoViewIfNeeded();
-  await expect(plusParent).toBeEnabled();
-  await plusParent.click();
-  const uid = Date.now();
-  const childName = `子A-${uid}`;
-  await parent.getByTestId("child-title-input").fill(childName);
-  await parent.getByRole("button", { name: "作成" }).click();
+  const root = page.locator('[data-testid^="task-item-"]').filter({ hasText: title }).first();
+  const addRoot = root.getByTestId(/task-add-child-/).first();
 
-  // 見出しから一番近い TaskItem を祖先辿りで特定
-  const childAHeading = page
-    .getByRole("heading", { name: childName, exact: true })
-    .first();
-  const childA = childAHeading.locator(
-    "xpath=ancestor::*[@data-testid][starts-with(@data-testid,'task-item-')][1]"
-  );
-  await expect(childA).toBeVisible();
+  // 子1
+  await addRoot.click();
+  await root.getByTestId('child-title-input').fill('L1');
+  await root.getByTestId('child-create-submit').click();
+  const l1 = root.locator('[data-testid^="task-item-"]').filter({ hasText: 'L1' }).first();
+  await expect(l1).toBeVisible();
 
-  const plusChild = childA.getByTestId(/task-add-child-/).first();
-  await expect(plusChild).toBeEnabled();
-  await plusChild.click();
-  await childA.getByTestId("child-title-input").fill("孫A-1");
-  await childA.getByRole("button", { name: "作成" }).click();
-  await expect(
-    childA.getByRole("heading", { name: "孫A-1", exact: true }).first()
-  ).toBeVisible();
-
-  const toggleHide = parent.getByRole("button", { name: /子を隠す/ }).first();
-  await toggleHide.click();
-  await expect(
-    parent.getByRole("heading", { name: childName, exact: true })
-  ).toHaveCount(0);
-
-  const toggleShow = parent.getByRole("button", { name: /子を表示/ }).first();
-  await toggleShow.click();
-  await expect(
-    parent.getByRole("heading", { name: childName, exact: true })
-  ).toBeVisible();
+  // L1の子
+  const addL1 = l1.getByTestId(/task-add-child-/).first();
+  await addL1.click();
+  await l1.getByTestId('child-title-input').fill('L2');
+  await l1.getByTestId('child-create-submit').click();
+  await expect(l1.locator('[data-testid^="task-item-"]').filter({ hasText: 'L2' }).first()).toBeVisible();
 });

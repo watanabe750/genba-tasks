@@ -22,7 +22,10 @@ export default function PriorityTasksPanel() {
   const { mutate: update } = useUpdateTask();
 
   return (
-    <div className="rounded-xl border p-3 shadow-sm bg-white/60 dark:bg-zinc-900/40">
+    <div
+      data-testid="priority-panel"
+      className="rounded-xl border p-3 shadow-sm bg-white/60 dark:bg-zinc-900/40"
+    >
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold">優先タスク</h2>
         <span className="text-xs text-gray-500">{tasks.length}件</span>
@@ -33,27 +36,34 @@ export default function PriorityTasksPanel() {
 
       <ul className="space-y-2">
         {tasks.map((t: Task) => (
-          <li key={t.id} className="rounded-lg border p-2">
+          <li
+            key={t.id}
+            data-testid="priority-item"
+            className="rounded-lg border p-2"
+          >
             <div className="flex items-center gap-2">
               <input
+                data-testid="priority-done"
                 type="checkbox"
                 checked={t.status === "completed"}
-                onChange={() => {
-                  const toCompleted = t.status !== "completed";
+                onChange={() =>
                   update({
                     id: t.id,
-                    data: toCompleted
-                      ? { status: "completed" } // useUpdateTask 側で progress=100 に寄せる
-                      : {
-                          status: "in_progress",
-                          progress: Math.min(t.progress ?? 100, 99),
-                        },
-                  });
-                }}
+                    data: {
+                      status:
+                        t.status === "completed" ? "in_progress" : "completed",
+                    },
+                  })
+                }
                 aria-label="完了"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{t.title}</p>
+                <p
+                  data-testid="priority-title"
+                  className="truncate text-sm font-medium"
+                >
+                  {t.title}
+                </p>
                 <p className="text-xs text-gray-500">
                   {fmtDeadline(t.deadline)}・進捗 {Math.round(t.progress ?? 0)}%
                 </p>

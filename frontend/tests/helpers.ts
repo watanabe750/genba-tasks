@@ -2,16 +2,13 @@
 import type { Page, Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-// 既存の ensureOnApp を置き換え
 async function ensureOnApp(page: Page) {
   const url = page.url();
-  // baseURL 未適用や /tasks 以外に居る場合は /tasks へ
   if (!/^https?:\/\//.test(url) || !/\/tasks(\b|\/|$)/.test(url)) {
     await page.goto("/tasks");
   }
 }
 
-// 入力全消し（⌘/Ctrl + A → Delete）
 export async function clearInput(input: Locator) {
   await input.click();
   const mod = process.platform === "darwin" ? "Meta" : "Control";
@@ -19,24 +16,59 @@ export async function clearInput(input: Locator) {
   await input.press("Delete");
 }
 
+// ★ 追加: 必要なら /api/auth/sign_in を叩いてトークンを確保
+async function ensureAuthTokens(page: Page) {
+  await page.evaluate(async () => {
+    const hasTokens =
+      !!localStorage.getItem("access-token") &&
+      !!localStorage.getItem("client") &&
+      !!localStorage.getItem("uid");
+
+    if (hasTokens) return;
+
+    const res = await fetch("/api/auth/sign_in", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ email: "e2e@example.com", password: "password" }),
+    });
+
+    const at = res.headers.get("access-token");
+    const client = res.headers.get("client");
+    const uid = res.headers.get("uid");
+    if (at && client && uid) {
+      localStorage.setItem("access-token", at);
+      localStorage.setItem("client", client);
+      localStorage.setItem("uid", uid);
+      // AuthProvider に再適用させる
+      window.dispatchEvent(new Event("auth:refresh"));
+    } else {
+      throw new Error("sign_in failed: no DTA headers");
+    }
+  });
+}
+
 /**
- * Devise Token Auth のトークンを localStorage から読み取り、
- * ブラウザ側(fetch)で /api/tasks を叩く。
- * レスポンスヘッダに新トークンが来たら localStorage を更新（トークン回転対応）。
- * 作成後は /tasks をリロードして、DOM に新タスクが出現するまで待つ。
+ * localStorage の DTA トークンで /api/tasks を叩いて作成。
+ * 新トークンが返れば localStorage を更新し、/tasks を再読込して反映を待つ。
  */
 export async function createTaskViaApi(
   page: Page,
   overrides: Record<string, any> = {}
 ) {
   await ensureOnApp(page);
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForLoadState("networkidle");
+
+  // ★ サインイン確保（storageState が空でも自前で入る）
+  await ensureAuthTokens(page);
 
   const isParent = overrides.parent_id == null;
   const payload = {
     title: `Seed-${Date.now()}`,
     deadline: null,
     parent_id: null,
-    status: "in_progress", // backend の必須を満たす
+    status: "in_progress",
     progress: 0,
     ...(isParent ? { site: "E2E" } : {}),
     ...overrides,
@@ -55,11 +87,7 @@ export async function createTaskViaApi(
       headers["client"] = client;
       headers["uid"] = uid;
     } else {
-      return {
-        ok: false,
-        status: 0,
-        data: { errors: ["DTA tokens missing in localStorage"] },
-      };
+      return { ok: false, status: 0, data: { errors: ["DTA tokens missing in localStorage"] } };
     }
 
     const res = await fetch("/api/tasks", {
@@ -69,7 +97,6 @@ export async function createTaskViaApi(
       credentials: "same-origin",
     });
 
-    // トークン回転：新しいヘッダが来ていたら更新
     const newAt = res.headers.get("access-token");
     const newClient = res.headers.get("client");
     const newUid = res.headers.get("uid");
@@ -81,9 +108,7 @@ export async function createTaskViaApi(
     }
 
     let data: any = null;
-    try {
-      data = await res.json();
-    } catch {}
+    try { data = await res.json(); } catch {}
     return { ok: res.ok, status: res.status, data };
   }, payload);
 
@@ -94,35 +119,25 @@ export async function createTaskViaApi(
 
   const createdId = result.data?.id;
   if (createdId) {
-    // 必ず /tasks へ寄せる（reload より安全）
     await page.goto("/tasks");
-
-    // /api/tasks の成功を待つ（React Query が新規データを取ってくるまで待機）
     try {
       await page.waitForResponse(
-        (r) => r.url().includes("/api/tasks") && r.status() === 200,
+        (r) =>
+          r.request().method() === "GET" &&
+          /(\/api\/)?tasks\b/.test(r.url()) &&
+          r.status() === 200,
         { timeout: 10_000 }
       );
-    } catch { /* ignore: キャッシュでリクエストが出ない可能性あり */ }
-
-    // ネットワーク静穏も待つと安定（描画完了待ち）
+    } catch {}
     await page.waitForLoadState("networkidle");
 
-    // レンダが遅れるケースに備えて軽いポーリング
-    const target = page
-      .locator(`[data-testid="task-item-${createdId}"]`)
-      .first();
+    const selector = `[data-testid="task-item-${createdId}"]`;
     for (let i = 0; i < 10; i++) {
-      if (await target.isVisible()) break;
+      if (await page.locator(selector).first().isVisible()) break;
       await page.waitForTimeout(300);
     }
-
-    // 最終的に可視になるまで待つ
-    await page.waitForSelector(`[data-testid="task-item-${createdId}"]`, {
-      state: "visible",
-      timeout: 10_000,
-    });
+    await page.waitForSelector(selector, { state: "visible", timeout: 10_000 });
   }
 
-  return result.data; // { id, ... }
+  return result.data;
 }
