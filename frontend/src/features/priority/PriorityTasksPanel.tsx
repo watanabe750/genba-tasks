@@ -1,154 +1,77 @@
-import { useState } from "react";
-import { useUpdateTask } from "../tasks/useUpdateTask";
 import { usePriorityTasks } from "./usePriorityTasks";
-import { Link } from "react-router-dom";
 import { useAuth } from "../../providers/useAuth";
+import { useUpdateTask } from "../tasks/useUpdateTask";
+import type { Task } from "../../types/task";
 
-function formatDeadline(iso?: string | null) {
+const clamp = (n: number, min = 0, max = 100) =>
+  Math.min(Math.max(n ?? 0, min), max);
+
+function fmtDeadline(iso?: string | null) {
   if (!iso) return "期限なし";
   const d = new Date(iso);
-  const w = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
-  return `${d.getMonth() + 1}/${d.getDate()}(${w})`;
-}
-
-function DueBadge({ deadline }: { deadline?: string | null }) {
-  if (!deadline) return null;
-  const now = new Date();
-  const d = new Date(deadline);
-  const diff = d.getTime() - now.getTime();
-  if (diff < 0)
-    return (
-      <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">
-        期限超過
-      </span>
-    );
-  if (diff <= 24 * 60 * 60 * 1000)
-    return (
-      <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">
-        締切間近
-      </span>
-    );
-  return null;
+  if (Number.isNaN(d.getTime())) return iso;
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const dow = "日月火水木金土"[d.getDay()];
+  return `${m}/${day}(${dow})`;
 }
 
 export default function PriorityTasksPanel() {
   const { authed } = useAuth();
-  const { data, isLoading, isError } = usePriorityTasks(authed);
-
-  const items = data ?? [];
-  const [pendingId, setPendingId] = useState<number | null>(null);
-  const { mutate: updateTask } = useUpdateTask();
-
-  // auth:logout の手動購読は不要（AuthProviderのinterceptorで処理済み）
+  const { data: tasks = [], isLoading, error } = usePriorityTasks(authed);
+  const { mutate: update } = useUpdateTask();
 
   return (
-    <div className="bg-white rounded-2xl shadow p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">全体の優先タスク</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-            {items.length}件
-          </span>
-          {!authed && (
-            <Link
-              to="/login"
-              className="text-xs px-2 py-1 rounded bg-gray-800 text-white"
-            >
-              ログイン
-            </Link>
-            )}
-        </div>
+    <div className="rounded-xl border p-3 shadow-sm bg-white/60 dark:bg-zinc-900/40">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-semibold">優先タスク</h2>
+        <span className="text-xs text-gray-500">{tasks.length}件</span>
       </div>
 
-      {isLoading && (
-        <ul className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <li key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
-          ))}
-        </ul>
-      )}
+      {isLoading && <p className="text-sm text-gray-500">読み込み中…</p>}
+      {error && <p className="text-sm text-red-600">読み込みに失敗しました</p>}
 
-      {isError && (
-        <p className="text-sm text-red-600">読み込みに失敗しました</p>
-      )}
-
-      {!isLoading && !isError && items.length === 0 && (
-        <p className="text-sm text-gray-500">優先タスクはありません</p>
-      )}
-
-      {!isLoading && !isError && items.length > 0 && (
-        <ul className="space-y-3">
-          {items.map((t) => {
-            const progress = t.progress ?? 0;
-            const disabled = pendingId === t.id;
-
-            return (
-              <li
-                key={t.id}
-                className={`border rounded-xl p-3 hover:bg-gray-50 ${
-                  disabled ? "opacity-60" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <Link
-                    to={`/tasks/${t.id}`}
-                    className="font-medium line-clamp-1"
-                  >
-                    {t.title}
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <DueBadge deadline={t.deadline} />
-                    <label className="inline-flex items-center gap-1 text-xs">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={t.status === "completed"}
-                        disabled={disabled}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          setPendingId(t.id);
-                          const checked = e.target.checked;
-                          updateTask(
-                            {
-                              id: t.id,
-                              data: checked
-                                ? { status: "completed", progress: 100 }
-                                : {
-                                    status: "in_progress",
-                                    progress: Math.min(progress, 99),
-                                  },
-                            },
-                            { onSettled: () => setPendingId(null) }
-                          );
-                        }}
-                      />
-                      <span>完了</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="text-xs text-gray-600 mt-1">
-                  {formatDeadline(t.deadline)} ・ 進捗 {progress}%
-                </div>
-
-                <div className="w-full bg-gray-200 h-2 rounded mt-2">
+      <ul className="space-y-2">
+        {tasks.map((t: Task) => (
+          <li key={t.id} className="rounded-lg border p-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={t.status === "completed"}
+                onChange={() => {
+                  const toCompleted = t.status !== "completed";
+                  update({
+                    id: t.id,
+                    data: toCompleted
+                      ? { status: "completed" } // useUpdateTask 側で progress=100 に寄せる
+                      : {
+                          status: "in_progress",
+                          progress: Math.min(t.progress ?? 100, 99),
+                        },
+                  });
+                }}
+                aria-label="完了"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{t.title}</p>
+                <p className="text-xs text-gray-500">
+                  {fmtDeadline(t.deadline)}・進捗 {Math.round(t.progress ?? 0)}%
+                </p>
+                <div className="mt-1 h-2 w-full rounded bg-gray-200">
                   <div
                     className="h-2 rounded bg-gray-700"
-                    style={{
-                      width: `${Math.min(Math.max(progress, 0), 100)}%`,
-                    }}
+                    style={{ width: `${clamp(t.progress ?? 0, 0, 100)}%` }}
                   />
                 </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
 
-      <div className="mt-4 text-right">
-        <Link to="/tasks" className="text-xs underline text-gray-700">
-          タスク一覧へ
-        </Link>
-      </div>
+      {!isLoading && tasks.length === 0 && (
+        <p className="text-sm text-gray-500">未完了の優先タスクはありません</p>
+      )}
     </div>
   );
 }
