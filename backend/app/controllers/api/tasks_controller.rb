@@ -7,12 +7,12 @@ module Api
 
     def index
       tasks = Task.filter_sort(filter_params, user: current_user)
-      render json: tasks.select(SELECT_FIELDS)
+      render json: tasks.as_json(only: SELECT_FIELDS)
     end
 
     def priority
       tasks = current_user.tasks.priority_order
-      render json: tasks.select(SELECT_FIELDS)
+      render json: tasks.as_json(only: SELECT_FIELDS)
     end
 
     def show
