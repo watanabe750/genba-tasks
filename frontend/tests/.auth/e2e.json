@@ -1,0 +1,33 @@
+{
+  "cookies": [
+    {
+      "name": "_backend_session",
+      "value": "gMc8IrZcB2zLrZDcHwUOwsGL2AB6M8BFckA73Lb%2Fa5hiorIpF%2BqVyC6ZqaI4V3L9vTUY7GKV3nD%2FkCsY%2FY7ii4Vk4nwZ34cfsoOd77s7ogVjDGr2Tku5jVPy0ifbUFJxjPM2KSExCM4nPAPdSHNcLwOpf4v%2BivVm74%2BHQm6rMWJ6EiCFWk7xMESVqbECCuP4IyWi%2BYUpbiAT3Zvvkf%2FyZQN4zL%2FtfCMpSDRdmBHgSf2CPunsieLd66EQ90Z53JIn4Yda2Q3xUzEnWNspVXwuxeP6TUP4sFpVOBXUyZJxP0ekNvMJEQF33x8aDkBPnNiZcp18XhUR2RIaj5nxr7VvH3XbAGwOtYN03tW%2BTrclzJAqxujoMyPpyjVZOhkv%2BtkmAgiYJcMXCMJ2%2FKe%2Fl6mLfHyaGodlIjkZsNZb8RZsW%2BPCe6zW0EROZUZARzX0d3GJydCErAIBfVCC6vpd93ltTkXUZ%2F%2BuVISNtaYPdqHgKsLKiqlHZYWuo7Pa9xviLVAOJM8%2BvXoQDKE%3D--UI7XXTpt%2BR9OBRyK--2hMANKRxsQW%2B8wqc55G%2BcQ%3D%3D",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "client",
+          "value": "CTXR3RmYAhDDWKe5PcYC6w"
+        },
+        {
+          "name": "access-token",
+          "value": "SCT9XKDW6YWjQa8bk4WNZQ"
+        },
+        {
+          "name": "uid",
+          "value": "e2e@example.com"
+        }
+      ]
+    }
+  ]
+}

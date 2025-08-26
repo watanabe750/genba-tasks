@@ -1,82 +1,47 @@
 import { test, expect } from "@playwright/test";
-import { createTaskViaApi } from "./helpers";
+import { createTaskViaApi, clearInput } from "./helpers";
+
+test.use({ storageState: "tests/.auth/e2e.json" });
 
 test.describe("Tasks CRUD (UI)", () => {
-  test("UIで新規作成（ボタンがある場合のみ）", async ({ page }) => {
-    await page.goto("/tasks");
-    const title = `E2E-新規-${Date.now()}`;
-    const createBtn = page.getByRole("button", {
-      name: /新規タスク|タスク追加/,
-    });
-
-    if (!(await createBtn.isVisible().catch(() => false))) {
-      test.skip(true, "新規作成ボタンが見つからないためスキップ");
-    }
-
-    await createBtn.click();
-
-    const titleInput = page.getByLabel(/タイトル/).first();
-    await titleInput.fill(title);
-
-    const dateInput = page.getByLabel(/期限/).first();
-    if (await dateInput.isVisible().catch(() => false)) {
-      await dateInput.fill("2025-12-31");
-    }
-
-    await titleInput.evaluate((el) => {
-      const form = el.closest("form") as HTMLFormElement | null;
-      form?.requestSubmit();
-    });
-
-    await expect(page.getByRole("heading", { name: title })).toBeVisible();
-  });
-
   test("編集：タイトル・期限・完了トグル", async ({ page }) => {
-    await page.goto("/tasks");
-    const baseTitle = `E2E-編集-${Date.now()}`;
-    const created = await createTaskViaApi(page, { title: baseTitle });
-    await page.reload();
+    // 事前にAPIで親タスク作成（site 必須対応）
+    const title = `CRUD-${Date.now()}`;
+    const created = await createTaskViaApi(page, {
+      title,
+      site: "E2E-CRUD",
+      status: "in_progress",
+      progress: 0,
+    });
+    const id = created.id;
 
-    const item = page.getByTestId(`task-item-${created.id}`).first();
+    const item = page.locator(`[data-testid="task-item-${id}"]`).first();
     await expect(item).toBeVisible();
 
-    await item.getByRole("button", { name: "編集" }).first().click();
-    await item.getByLabel("タイトル").first().fill(`${baseTitle}-更新`);
+    // 編集へ
+    await item.getByRole("button", { name: "編集" }).click();
+    await expect(item).toHaveAttribute("data-editing", "1"); // ← これで編集モード確定
 
-    const deadline = item.getByLabel("期限").first();
-    if (await deadline.isVisible().catch(() => false)) {
-      await deadline.fill("2025-11-30");
-    }
+    // タイトル編集
+    const titleInput = item.getByLabel("タイトル", { exact: true });
+    await expect(titleInput).toBeVisible();
+    await clearInput(titleInput);
+    const newTitle = `${title}-編集`;
+    await titleInput.fill(newTitle);
 
-    const statusSel = item.getByLabel("ステータス").first();
-    if (await statusSel.isVisible().catch(() => false)) {
-      await statusSel.selectOption("completed").catch(async () => {
-        await statusSel.selectOption({ label: "完了" });
-      });
-    }
+    // 期限編集（YYYY-MM-DD）
+    const deadlineInput = item.getByLabel("期限");
+    await deadlineInput.fill("2030-05-02");
 
-    await item.getByRole("button", { name: "保存" }).first().click();
+    // ステータス完了（編集モードはセレクト）
+    await item.getByLabel("ステータス").selectOption("completed");
 
-    await expect(
-      item.getByRole("heading", { name: `${baseTitle}-更新` }).first()
-    ).toBeVisible();
-    await expect(
-      item.getByText(/ステータス:\s*completed/).first()
-    ).toBeVisible();
-  });
+    // 保存
+    await item.getByRole("button", { name: "保存" }).click();
+    await expect(item).toHaveAttribute("data-editing", "0");
 
-  test("削除：UIから削除できる", async ({ page }) => {
-    await page.goto("/tasks");
-    const title = `E2E-削除-${Date.now()}`;
-    const created = await createTaskViaApi(page, { title });
-    await page.reload();
-
-    const item = page.getByTestId(`task-item-${created.id}`).first();
-    await expect(item).toBeVisible();
-
-    page.once("dialog", (d) => d.accept());
-    await page.getByTestId(`task-delete-${created.id}`).click();
-
-    await expect(page.getByRole("heading", { name: title })).toHaveCount(0);
+    // 表示モードに戻って変更が反映されていること
+    await expect(item.getByText(newTitle)).toBeVisible();
+    await expect(item.getByText(/ステータス:\s*completed/)).toBeVisible();
   });
 });

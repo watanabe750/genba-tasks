@@ -29,7 +29,7 @@ export default function NewParentTaskForm() {
           <label className="block text-xs text-gray-600 mb-1" htmlFor="parent-title">タイトル</label>
           <input
             id="parent-title"
-            data-testid="parent-create-title"
+            data-testid="new-parent-title"
             className="w-full border rounded p-2"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -41,7 +41,7 @@ export default function NewParentTaskForm() {
           <label className="block text-xs text-gray-600 mb-1" htmlFor="parent-site">現場名</label>
           <input
             id="parent-site"
-            data-testid="parent-create-site"
+            data-testid="new-parent-site"
             className="w-full border rounded p-2"
             value={site}
             onChange={(e) => setSite(e.target.value)}
@@ -53,7 +53,7 @@ export default function NewParentTaskForm() {
           <label className="block text-xs text-gray-600 mb-1" htmlFor="parent-deadline">期限</label>
           <input
             id="parent-deadline"
-            data-testid="parent-create-deadline"
+            data-testid="new-parent-deadline"
             type="date"
             className="w-full border rounded p-2"
             value={deadline}
@@ -64,7 +64,7 @@ export default function NewParentTaskForm() {
         <div className="sm:col-span-3">
           <button
             type="submit"
-            data-testid="parent-create-submit"
+            data-testid="new-parent-submit"
             className="px-3 py-1.5 rounded bg-gray-900 text-white disabled:opacity-60"
             disabled={isPending || !title.trim() || !site.trim()}
           >

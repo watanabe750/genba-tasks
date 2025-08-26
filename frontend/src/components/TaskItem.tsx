@@ -79,6 +79,7 @@ export default function TaskItem({ task }: TaskItemProps) {
   return (
     <div
       data-testid={`task-item-${task.id}`}
+      data-editing={editing ? "1" : "0"}
       className="mb-4 border rounded-xl p-3 hover:bg-gray-50"
       style={{ paddingLeft: `${indent}px` }}
     >
@@ -234,6 +235,7 @@ export default function TaskItem({ task }: TaskItemProps) {
                   setProgress(task.progress ?? 0);
                   setDeadline(toDateInputValue(task.deadline));
                 }}
+                aria-pressed={editing}
               >
                 編集
               </button>
