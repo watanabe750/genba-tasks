@@ -30,8 +30,11 @@ module Api
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#create] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
       render json: { errors: [e.message] }, status: :bad_request
+    rescue ArgumentError => e  # ← 追加: enum無効値など
+      Rails.logger.warn("[Task#create] ArgumentError: #{e.message}")
+      render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
-
+    
     def update
       if @task.update(task_params)
         render json: @task
@@ -42,7 +45,11 @@ module Api
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#update] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
       render json: { errors: [e.message] }, status: :bad_request
+    rescue ArgumentError => e  # ← 追加: enum無効値など
+      Rails.logger.warn("[Task#update] ArgumentError: #{e.message}")
+      render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
+    
 
     def destroy
       @task.destroy
