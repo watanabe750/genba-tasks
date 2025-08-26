@@ -17,6 +17,11 @@ class Task < ApplicationRecord
   validate  :depth_limit
   # 子は最大4件：作成時 or 親付け替え時のみチェック
   validate  :children_count_limit, if: :validate_children_limit?
+  # 0..100 の範囲を保証（NULLは既存互換で許容。将来NOT NULLにする時はallow_nilを外す）
+  validates :progress,
+  numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
+  allow_nil: true
+
 
   # depthは作成時に自動計算
   before_validation :set_depth, on: :create
