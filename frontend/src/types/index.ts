@@ -1,0 +1,55 @@
+// ---- 基本ユーティリティ ----
+export type Brand<T, B extends string> = T & { readonly __brand: B };
+export type IsoDateString = Brand<string, "IsoDate">; // "2025-01-02T00:00:00.000Z"
+
+// ---- React ページ型 ----
+export type PageComponent = () => JSX.Element;
+
+// ---- ドメイン列挙 ----
+export type Status = "not_started" | "in_progress" | "completed";
+export type OrderBy = "deadline" | "progress" | "created_at";
+export type SortDir = "asc" | "desc";
+
+// ---- API の Task（フラット） ----
+export type Task = {
+  id: number;
+  title: string;
+  status: Status;
+  progress: number;             // 0..100
+  deadline: IsoDateString | null;
+  site: string | null;          // 子では null が許容
+  parent_id: number | null;     // 親は null
+};
+
+// ---- UI 用 Task ツリー ----
+export type TaskNode = Task & {
+  depth?: number;               // UI 計算用
+  children?: TaskNode[];        // UI 計算用
+};
+
+// ---- フィルタ ----
+export type TaskFilters = {
+  site?: string;
+  status?: Status[];
+  progress_min?: number;
+  progress_max?: number;
+  order_by?: OrderBy;
+  dir?: SortDir;
+  parents_only?: "1";
+};
+
+// ---- DTO ----
+export type CreateTaskPayload = {
+  task: {
+    title: string;
+    status?: Status;
+    progress?: number;
+    deadline?: IsoDateString | null;
+    parent_id?: number | null;
+    site?: string;              // 親で必須
+  };
+};
+
+export type UpdateTaskPayload = {
+  task: Partial<Pick<Task, "status" | "progress" | "title" | "deadline">>;
+};

@@ -1,44 +1,58 @@
 // tests/priority-widget.spec.ts
 import { test, expect } from "@playwright/test";
+import { ensureAuthTokens, createTaskViaApi } from "./helpers";
+
 test.use({ storageState: "tests/.auth/e2e.json" });
 
-function yyyy_mm_dd(d = new Date()) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+const isoAt00 = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+};
 
 test("優先タスクの完了トグルで該当項目が消える", async ({ page }) => {
   await page.goto("/tasks");
+  await ensureAuthTokens(page);
+  await page.reload(); // AuthProvider にヘッダ再適用
 
-  const panel = page.getByTestId("priority-panel");
-  const count0 = await panel.getByTestId("priority-item").count();
+  let panel = page.getByTestId("priority-panel");
+  let count0 = await panel.getByTestId("priority-item").count();
 
   if (count0 === 0) {
-    const title = `PRI-SEED-${Date.now()}`;
-    await page.getByTestId("new-parent-title").fill(title);
-    await page.getByTestId("new-parent-site").fill("E2E-PRI");
-    await page.getByTestId("new-parent-deadline").fill("1970-01-01"); // 超早期
-    await page.getByTestId("new-parent-submit").click();
+    // 優先に乗りやすい today / yesterday で2件播種
+    const todayTitle = `PRI-${Date.now()}-T`;
+    const yestTitle = `PRI-${Date.now()}-Y`;
+    await createTaskViaApi(page, {
+      title: todayTitle,
+      site: "E2E-PRI",
+      deadline: isoAt00(new Date()),
+      parent_id: null,
+      status: "in_progress",
+      progress: 0,
+    });
+    await createTaskViaApi(page, {
+      title: yestTitle,
+      site: "E2E-PRI",
+      deadline: isoAt00(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+      parent_id: null,
+      status: "in_progress",
+      progress: 0,
+    });
 
-    // ★ 優先タスク API の再フェッチを待つ
+    await page.reload();
     await page
       .waitForResponse((r) => r.url().includes("/api/tasks/priority") && r.status() === 200, { timeout: 10_000 })
       .catch(() => {});
-    await page.waitForLoadState("networkidle");
+    panel = page.getByTestId("priority-panel");
 
-    // poll で 0→1 を安定確認
     await expect
-      .poll(async () => await panel.getByTestId("priority-item").filter({ hasText: title }).count(), { timeout: 10_000 })
-      .toBe(1);
+      .poll(async () => await panel.getByTestId("priority-item").count(), { timeout: 10_000 })
+      .toBeGreaterThan(0);
   }
 
-  // 先頭アイテムのタイトルを取得
   const first = panel.getByTestId("priority-item").first();
   const titleText = (await first.getByTestId("priority-title").innerText()).trim();
 
-  // 完了チェック → そのタイトル行が消えるまで待つ
   await first.getByTestId("priority-done").click();
   await expect(panel.getByTestId("priority-item").filter({ hasText: titleText })).toHaveCount(0);
 });

@@ -1,28 +1,22 @@
 // tests/.auth/setup.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test('login and save storage', async ({ page }) => {
-  await page.goto('/login');
+test("login and save storage", async ({ page, context }) => {
+  await page.goto("/login");
+  await page.getByTestId("login-email").fill("e2e@example.com");
+  await page.getByTestId("login-password").fill("password");
+  await page.getByRole("button", { name: "ログイン" }).click();
 
-  await page.getByLabel('メール').fill('e2e@example.com');
-  await page.getByLabel('パスワード').fill('password');
-  await page.getByRole('button', { name: 'ログイン' }).click();
+  await expect(page).toHaveURL(/\/tasks(\?.*)?$/);
+  await expect(page.getByTestId("header-logout")).toBeVisible();
 
-  await expect(page.getByText('uid: e2e@example.com')).toBeVisible();
-
-  // ★ localStorage に DTA が入っていることを確認（入ってなければここで止まる）
+  // DTA が入っているか軽く確認
   const dta = await page.evaluate(() => ({
-        at: localStorage.getItem('access-token'),
-        client: localStorage.getItem('client'),
-        uid: localStorage.getItem('uid'),
-      }));
-      expect(!!(dta.at && dta.client && dta.uid)).toBeTruthy();
-    
-      // ★ /tasks を開いて UI 側も安定させてから保存
-      await page.goto('/tasks');
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForLoadState('networkidle');
-      await expect(page.getByTestId('task-list-root')).toBeVisible();
+    at: localStorage.getItem("access-token"),
+    client: localStorage.getItem("client"),
+    uid: localStorage.getItem("uid"),
+  }));
+  expect(Boolean(dta.at && dta.client && dta.uid)).toBeTruthy();
 
-  await page.context().storageState({ path: 'tests/.auth/e2e.json' });
+  await context.storageState({ path: "tests/.auth/storage.json" });
 });

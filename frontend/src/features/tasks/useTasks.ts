@@ -1,19 +1,8 @@
-// src/features/tasks/useTasks.ts
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/apiClient";
-import type { Task } from "../../types/task";
+import type { Task, TaskFilters } from "../../types";
 
-type Filters = {
-  site?: string;
-  status?: string[];          // ["not_started", ...]
-  progress_min?: number;
-  progress_max?: number;
-  order_by?: "deadline" | "progress" | "created_at";
-  dir?: "asc" | "desc";
-  parents_only?: "1";
-};
-
-function cleanParams(p: Filters) {
+function cleanParams(p: TaskFilters) {
   const q: Record<string, any> = {};
   if (p.site) q.site = p.site;
   if (p.status && p.status.length > 0) q.status = p.status;
@@ -25,7 +14,7 @@ function cleanParams(p: Filters) {
   return q;
 }
 
-export function useFilteredTasks(filters: Filters, enabled = true) {
+export function useFilteredTasks(filters: TaskFilters, enabled = true) {
   return useQuery<Task[]>({
     queryKey: ["tasks", filters],
     enabled,
@@ -33,23 +22,10 @@ export function useFilteredTasks(filters: Filters, enabled = true) {
       const params = cleanParams(filters);
       const { data } = await api.get<Task[]>("/tasks", {
         params,
-        // status[]=... を indices なしで出す
-        paramsSerializer: { indexes: false },
+        paramsSerializer: { indexes: false }, // status[]= を indices なしで
       });
       return data;
     },
     staleTime: 30_000,
-  });
-}
-
-export function useSites(enabled = true) {
-  return useQuery<string[]>({
-    queryKey: ["taskSites"],
-    enabled,
-    queryFn: async () => {
-      const { data } = await api.get<string[]>("/tasks/sites");
-      return data;
-    },
-    staleTime: 5 * 60_000,
   });
 }

@@ -18,16 +18,17 @@ import {
 export type AuthContextValue = {
   authed: boolean;
   uid: string | null;
+  name: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: (silent?: boolean) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** リクエスト開始時刻を渡す自前ヘッダ（並行リクエストの競合回避用） */
+/** リクエスト開始時刻（並行競合回避用） */
 const REQ_TIME_HEADER = "x-auth-start";
 
-/** AxiosHeaders/素オブジェクト両対応でヘッダから文字列を安全に取得 */
+/** AxiosHeaders/素オブジェクト両対応でヘッダから文字列を取得 */
 function getHeaderString(h: unknown, key: string): string | undefined {
   if (h instanceof AxiosHeaders) {
     const v = h.get(key);
@@ -50,17 +51,14 @@ function saveTokensFromHeaders(
   const client = getHeaderString(headers, "client");
   const uid = getHeaderString(headers, "uid");
   if (!at || !client || !uid) return;
-
-  // 古いリクエスト由来なら上書きしない
-  if (startedAtMs < lastSavedAtRef.current) return;
-
+  if (startedAtMs < lastSavedAtRef.current) return; // 古いリクエストは破棄
   save({ at, client, uid });
   apply({ at, client, uid });
   lastSavedAtRef.current = startedAtMs;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // ★ 初期値を localStorage から同期で決定（初回リダイレクトを防ぐ）
+  // 初期トークンを同期取得（初回の API を 401 にしない）
   const initialTokens = (() => {
     try {
       const at = localStorage.getItem("access-token") ?? undefined;
@@ -71,10 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { at: undefined, client: undefined, uid: undefined };
     }
   })();
+
   const [authed, setAuthed] = useState<boolean>(
     !!(initialTokens.at && initialTokens.client && initialTokens.uid)
   );
   const [uid, setUid] = useState<string | null>(initialTokens.uid ?? null);
+  const [name, setName] = useState<string | null>(null);
 
   const lastSavedAtRef = useRef(0);
 
@@ -115,16 +115,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     applyTokensToAxios({ at: undefined, client: undefined, uid: undefined });
     setAuthed(false);
     setUid(null);
+    setName(null);
   }, [saveTokens, applyTokensToAxios]);
 
-  // 初回描画前に axios に同期適用（初回の /api/tasks が 401 にならないように）
+  // ★ 親の初回実行タイミングで axios に同期適用（子のフックより先に走る）
   if (initialTokens.at && initialTokens.client && initialTokens.uid) {
     api.defaults.headers.common["access-token"] = initialTokens.at;
     api.defaults.headers.common["client"] = initialTokens.client;
     api.defaults.headers.common["uid"] = initialTokens.uid;
   }
 
-  // 初期化：axios へのヘッダ適用（初回レンダー後に一度だけ）
+  // 初期化：一度だけ defaults を再適用
   useEffect(() => {
     if (initialTokens.at && initialTokens.client && initialTokens.uid) {
       applyTokensToAxios(initialTokens);
@@ -132,12 +133,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // /me 取得
+  const fetchMe = useCallback(async () => {
+    try {
+      const res = await api.get("/me");
+      setName(res.data?.name ?? null);
+      if (typeof res.data?.email === "string" && !uid) {
+        setUid(res.data.email);
+      }
+    } catch {
+      /* 401 等はレスポンス側で処理 */
+    }
+  }, [uid]);
+
   const signIn = useCallback(
     async (email: string, password: string) => {
       const startedAt = Date.now();
       const res = await api.post("/auth/sign_in", { email, password });
 
-      // レスポンスに新トークンが来ていれば保存
       saveTokensFromHeaders(
         res.headers as AxiosResponseHeaders & RawAxiosResponseHeaders,
         startedAt,
@@ -148,11 +161,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const headerUid =
         typeof res.headers["uid"] === "string" ? res.headers["uid"] : undefined;
-
       setAuthed(true);
       setUid(headerUid ?? email);
+      fetchMe();
     },
-    [applyTokensToAxios, saveTokens]
+    [applyTokensToAxios, saveTokens, fetchMe]
   );
 
   const signOut = useCallback(
@@ -189,9 +202,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // リクエスト/レスポンスのインターセプタ
   useEffect(() => {
-    // 各リクエストに開始時刻を埋め込む
+    // ★ 各リクエスト直前に localStorage からも再注入（堅牢性UP）
     const reqId = api.interceptors.request.use((config) => {
       const headers = AxiosHeaders.from(config.headers);
+
+      // auth ヘッダを都度同期
+      const at = localStorage.getItem("access-token");
+      const client = localStorage.getItem("client");
+      const luid = localStorage.getItem("uid");
+      if (at && client && luid) {
+        headers.set("access-token", at);
+        headers.set("client", client);
+        headers.set("uid", luid);
+      }
+
+      // 競合回避用タイムスタンプ
       headers.set(REQ_TIME_HEADER, String(Date.now()));
       config.headers = headers;
       return config;
@@ -199,7 +224,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const resId = api.interceptors.response.use(
       (res) => {
-        // 成功レスポンス時：新トークンがあれば保存（並行競合防止）
         const startedAtStr = getHeaderString(
           res.config.headers as unknown,
           REQ_TIME_HEADER
@@ -247,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [applyTokensToAxios, saveTokens, clearTokens]);
 
-  // ★ タブ間同期：他タブのログイン/ログアウトに追従
+  // タブ間同期：他タブのログイン/ログアウト
   useEffect(() => {
     const onStorage = () => {
       const t = loadTokens();
@@ -256,20 +280,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         applyTokensToAxios(t);
         setAuthed(true);
         setUid(t.uid ?? null);
+        fetchMe();
       } else {
         clearTokens();
       }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [applyTokensToAxios, clearTokens, loadTokens]);
+  }, [applyTokensToAxios, clearTokens, loadTokens, fetchMe]);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({ authed, uid, signIn, signOut }),
-    [authed, uid, signIn, signOut]
-  );
+  // 初回：認証済みなら /me
+  useEffect(() => {
+    if (authed) fetchMe();
+  }, [authed, fetchMe]);
 
-  // ★ 同一タブ内のトークン回転を拾う
+  // 同一タブ内のトークン更新
   useEffect(() => {
     const onRefresh = () => {
       const t = loadTokens();
@@ -278,20 +303,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         applyTokensToAxios(t);
         setAuthed(true);
         setUid(t.uid ?? null);
+        fetchMe();
       } else {
-        // 何かの拍子に欠けていたらクリア
         clearTokens();
       }
     };
-
     window.addEventListener("auth:refresh", onRefresh);
-    // ついでにフォーカス復帰時も再適用しておくと堅い
     window.addEventListener("focus", onRefresh);
     return () => {
       window.removeEventListener("auth:refresh", onRefresh);
       window.removeEventListener("focus", onRefresh);
     };
-  }, [applyTokensToAxios, clearTokens, loadTokens]);
+  }, [applyTokensToAxios, clearTokens, loadTokens, fetchMe]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ authed, uid, name, signIn, signOut }),
+    [authed, uid, name, signIn, signOut]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
