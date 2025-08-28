@@ -1,13 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/apiClient";
-import type { Task } from "../../types/task";
+import type { Task, CreateTaskPayload, IsoDateString } from "../../types";
 import { pushSiteHistory } from "../../lib/siteHistory";
 
 export type CreateTaskInput = {
   title: string;
-  deadline?: string | null;
+  deadline?: IsoDateString | null;
   parentId?: number | null;
-  site?: string | null;  // 親タスクでは必須
+  site?: string | null; // 親タスクでは必須
 };
 
 async function createTaskApi(input: CreateTaskInput): Promise<Task> {
@@ -19,12 +19,12 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
     throw new Error("親タスクには現場名が必須です");
   }
 
-  const payloadNested = {
+  const payloadNested: CreateTaskPayload = {
     task: {
       title,
-      status: "in_progress" as const,
+      status: "in_progress",
       progress: 0,
-      deadline: input.deadline ?? null,
+      deadline: (input.deadline ?? null) as IsoDateString | null,
       parent_id: input.parentId ?? null,
       ...(isParent ? { site: (input.site ?? "").trim() } : {}),
     },
@@ -55,11 +55,9 @@ export function useCreateTask() {
           title: input.title.trim(),
           status: "in_progress",
           progress: 0,
-          deadline: input.deadline ?? null,
+          deadline: (input.deadline ?? null) as IsoDateString | null,
           site: isParent ? (input.site ?? null) : null,
           parent_id: input.parentId ?? null,
-          depth: isParent ? 1 : undefined,
-          children: [],
         } as Task,
         ...prevTasks,
       ]);

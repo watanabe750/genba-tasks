@@ -1,15 +1,28 @@
-// src/types/task.ts
+import type { ISODateString, Nullable } from "./shared";
+
 export type TaskStatus = "not_started" | "in_progress" | "completed";
 
 export type Task = {
   id: number;
   title: string;
-  status: TaskStatus;         // ← 余計な | string は排除
-  progress?: number;          // APIにより未設定もあるので optional 推奨
-  deadline?: string | null;   // ISO or YYYY-MM-DD 文字列
-  parent_id?: number | null;  // 子でなければ null/undefined
-  site?: string | null;       // ★ 親タスクで必須
-  depth?: number;
   description?: string | null;
-  children?: Task[];          // APIが返さないなら空/undefinedでOK
+
+  status: TaskStatus;
+  progress: number;                 // v1はUI計算/固定、のち自動ロールアップ
+
+  deadline: Nullable<ISODateString>;
+  site?: string | null;
+
+  user_id: number;
+  parent_id?: number | null;
+
+  // UI補助（nest後やD&D中に使う）
+  depth?: number;
+  children?: Task[];
+};
+
+// D&D用の拡張ノード（必要ならこちらをUI側で使う）
+export type TreeNode = Task & {
+  children?: TreeNode[];
+  depth?: number;
 };

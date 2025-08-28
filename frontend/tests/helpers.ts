@@ -2,29 +2,33 @@
 import type { Page, Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-async function ensureOnApp(page: Page) {
+async function ensureOnApp(page: Page): Promise<void> {
   const url = page.url();
   if (!/^https?:\/\//.test(url) || !/\/tasks(\b|\/|$)/.test(url)) {
     await page.goto("/tasks");
   }
 }
 
-export async function clearInput(input: Locator) {
+export async function clearInput(input: Locator): Promise<void> {
   await input.click();
   const mod = process.platform === "darwin" ? "Meta" : "Control";
   await input.press(`${mod}+A`);
   await input.press("Delete");
 }
 
-// ★ 追加: 必要なら /api/auth/sign_in を叩いてトークンを確保
-async function ensureAuthTokens(page: Page) {
+// ★ export に変更：各テストから使えるように
+export async function ensureAuthTokens(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const hasTokens =
       !!localStorage.getItem("access-token") &&
       !!localStorage.getItem("client") &&
       !!localStorage.getItem("uid");
 
-    if (hasTokens) return;
+    if (hasTokens) {
+      // axios へ反映（AuthProvider 連携）
+      window.dispatchEvent(new Event("auth:refresh"));
+      return;
+    }
 
     const res = await fetch("/api/auth/sign_in", {
       method: "POST",
@@ -40,7 +44,6 @@ async function ensureAuthTokens(page: Page) {
       localStorage.setItem("access-token", at);
       localStorage.setItem("client", client);
       localStorage.setItem("uid", uid);
-      // AuthProvider に再適用させる
       window.dispatchEvent(new Event("auth:refresh"));
     } else {
       throw new Error("sign_in failed: no DTA headers");
@@ -48,33 +51,28 @@ async function ensureAuthTokens(page: Page) {
   });
 }
 
-/**
- * localStorage の DTA トークンで /api/tasks を叩いて作成。
- * 新トークンが返れば localStorage を更新し、/tasks を再読込して反映を待つ。
- */
+/** localStorage の DTA トークンで /api/tasks を叩いて作成 */
 export async function createTaskViaApi(
   page: Page,
-  overrides: Record<string, any> = {}
-) {
+  overrides: Record<string, unknown> = {}
+): Promise<{ id: number }> {
   await ensureOnApp(page);
   await page.waitForLoadState("domcontentloaded");
   await page.waitForLoadState("networkidle");
-
-  // ★ サインイン確保（storageState が空でも自前で入る）
   await ensureAuthTokens(page);
 
-  const isParent = overrides.parent_id == null;
+  const isParent = (overrides as any).parent_id == null;
   const payload = {
     title: `Seed-${Date.now()}`,
-    deadline: null,
-    parent_id: null,
+    deadline: null as string | null,
+    parent_id: null as number | null,
     status: "in_progress",
     progress: 0,
     ...(isParent ? { site: "E2E" } : {}),
     ...overrides,
   };
 
-  const result = await page.evaluate(async (payload) => {
+  const result = await page.evaluate(async (payloadInner) => {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -93,7 +91,7 @@ export async function createTaskViaApi(
     const res = await fetch("/api/tasks", {
       method: "POST",
       headers,
-      body: JSON.stringify({ task: payload }),
+      body: JSON.stringify({ task: payloadInner }),
       credentials: "same-origin",
     });
 
@@ -107,17 +105,17 @@ export async function createTaskViaApi(
       window.dispatchEvent(new Event("auth:refresh"));
     }
 
-    let data: any = null;
+    let data: unknown = null;
     try { data = await res.json(); } catch {}
     return { ok: res.ok, status: res.status, data };
   }, payload);
 
   expect(
-    result.ok,
-    `createTaskViaApi ${result.status} ${JSON.stringify(result.data)}`
+    (result as any).ok,
+    `createTaskViaApi ${(result as any).status} ${JSON.stringify((result as any).data)}`
   ).toBeTruthy();
 
-  const createdId = result.data?.id;
+  const createdId = (result as any).data?.id as number | undefined;
   if (createdId) {
     await page.goto("/tasks");
     try {
@@ -137,7 +135,8 @@ export async function createTaskViaApi(
       await page.waitForTimeout(300);
     }
     await page.waitForSelector(selector, { state: "visible", timeout: 10_000 });
+    return { id: createdId };
   }
 
-  return result.data;
+  return (result as any).data as { id: number };
 }

@@ -1,196 +1,174 @@
-import { useEffect, useMemo, useState } from "react";
+// src/features/tasks/TaskFilterBar.tsx
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useSites } from "./useTasks";
-import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import type { OrderBy, SortDir, Status } from "../../types";
 
-const ALL_STATUS = ["not_started", "in_progress", "completed"] as const;
-type Status = (typeof ALL_STATUS)[number];
+const allStatuses: Status[] = ["not_started", "in_progress", "completed"];
 
 export function TaskFilterBar() {
   const [sp, setSp] = useSearchParams();
-  const { data: sites = [] } = useSites(true);
 
-  const initial = useMemo(() => {
-    const status = sp.getAll("status");
-    return {
-      site: sp.get("site") ?? "",
-      status: (status.length ? status : []) as Status[],
-      progress_min: sp.get("progress_min") ?? "",
-      progress_max: sp.get("progress_max") ?? "",
-      order_by: (sp.get("order_by") ?? "deadline") as
-        | "deadline"
-        | "progress"
-        | "created_at",
-      dir: (sp.get("dir") ?? "asc") as "asc" | "desc",
-      parents_only: sp.get("parents_only") === "1",
-    };
-  }, [sp]);
+  // --- クエリ同期 ---
+  const site = sp.get("site") ?? "";
+  const order_by = (sp.get("order_by") as OrderBy) ?? "deadline";
+  const dir = (sp.get("dir") as SortDir) ?? "asc";
+  const parents_only = sp.get("parents_only") === "1";
+  const status = sp.getAll("status") as Status[];
 
-  const [site, setSite] = useState(initial.site);
-  const [status, setStatus] = useState<Status[]>(initial.status);
-  const [progressMin, setProgressMin] = useState(initial.progress_min);
-  const [progressMax, setProgressMax] = useState(initial.progress_max);
-  const [orderBy, setOrderBy] = useState(initial.order_by);
-  const [dir, setDir] = useState<"asc" | "desc">(initial.dir);
-  const [parentsOnly, setParentsOnly] = useState(initial.parents_only);
+  // 表示中のチップ
+  const chips = useMemo(() => {
+    const out: JSX.Element[] = [];
+    if (order_by || dir) {
+      out.push(
+        <span key="sort" className="px-2 py-1 text-xs rounded-full bg-gray-100">
+          sort: {order_by} / {dir}
+        </span>
+      );
+    }
+    if (status.length) {
+      const label = status
+        .map((s) => (s === "not_started" ? "未着手" : s === "in_progress" ? "進行中" : "完了"))
+        .join(" , ");
+      out.push(
+        <span key="status" className="px-2 py-1 text-xs rounded-full bg-gray-100">
+          status: {label}
+        </span>
+      );
+    }
+    if (site) {
+      out.push(
+        <span key="site" className="px-2 py-1 text-xs rounded-full bg-gray-100">
+          site: {site}
+        </span>
+      );
+    }
+    if (parents_only) {
+      out.push(
+        <span key="parents" className="px-2 py-1 text-xs rounded-full bg-gray-100">
+          上位タスクのみ
+        </span>
+      );
+    }
+    return out;
+  }, [order_by, dir, status, site, parents_only]);
 
-  const debounced = useDebouncedValue(
-    { site, status, progressMin, progressMax, orderBy, dir, parentsOnly },
-    300
-  );
+  // --- 操作ユーティリティ ---
+  const setOrDelete = (key: string, value: string | null) => {
+    if (value == null || value === "") sp.delete(key);
+    else sp.set(key, value);
+    setSp(sp, { replace: true });
+  };
 
-  useEffect(() => {
-    const next = new URLSearchParams();
-    if (debounced.site.trim()) next.set("site", debounced.site.trim());
-    debounced.status.forEach((s) => next.append("status", s));
-    if (debounced.progressMin !== "")
-      next.set("progress_min", String(debounced.progressMin));
-    if (debounced.progressMax !== "")
-      next.set("progress_max", String(debounced.progressMax));
-    if (debounced.orderBy) next.set("order_by", debounced.orderBy);
-    if (debounced.dir) next.set("dir", debounced.dir);
-    if (debounced.parentsOnly) next.set("parents_only", "1");
-    setSp(next, { replace: true });
-  }, [debounced, setSp]);
+  const toggleParentsOnly = () => {
+    if (parents_only) sp.delete("parents_only");
+    else sp.set("parents_only", "1");
+    setSp(sp, { replace: true });
+  };
 
-  const toggleStatus = (s: Status) =>
-    setStatus((cur) =>
-      cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]
-    );
-
-  const reset = () => {
-    setSite("");
-    setStatus([]);
-    setProgressMin("");
-    setProgressMax("");
-    setOrderBy("deadline");
-    setDir("asc");
-    setParentsOnly(false);
+  const toggleStatus = (s: Status) => {
+    const cur = new Set(sp.getAll("status"));
+    if (cur.has(s)) cur.delete(s);
+    else cur.add(s);
+    sp.delete("status");
+    [...cur].forEach((v) => sp.append("status", v));
+    setSp(sp, { replace: true });
   };
 
   return (
-    <div
-      data-testid="filter-bar"
-      className="mb-4 rounded-xl border p-3 bg-white/60 dark:bg-zinc-900/40"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold">フィルター</h3>
-        <button
-          type="button"
-          onClick={reset}
-          className="text-sm underline decoration-dotted"
-          aria-label="フィルタをクリア"
-        >
-          クリア
-        </button>
+    <section className="mb-4" data-testid="filter-bar">
+      {/* 上段：チップ + 全解除 */}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        {chips.length ? (
+          <>
+            {chips}
+            <button
+              type="button"
+              className="ml-2 text-xs text-gray-600 underline decoration-dotted"
+              onClick={() => setSp({}, { replace: true })}
+            >
+              すべて解除
+            </button>
+          </>
+        ) : (
+          <span className="text-xs text-gray-500">条件なし</span>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {/* site */}
-        <label className="block text-sm">
-          <span className="block text-xs text-gray-500 mb-1">現場</span>
-          <input
-            data-testid="filter-site"
-            list="site-options"
-            className="w-full rounded border px-2 py-1"
-            value={site}
-            onChange={(e) => setSite(e.target.value)}
-            placeholder="現場名で絞り込み"
-          />
-          <datalist id="site-options">
-            {sites.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        </label>
-
-        {/* status */}
-        <div className="text-sm">
-          <div className="text-xs text-gray-500 mb-1">ステータス</div>
-          <div className="flex gap-3">
-            {ALL_STATUS.map((s) => (
-              <label key={s} className="inline-flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={status.includes(s)}
-                  onChange={() => toggleStatus(s)}
-                />
-                <span className="capitalize">
-                  {s === "not_started"
-                    ? "未着手"
-                    : s === "in_progress"
-                    ? "進行中"
-                    : "完了"}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* parents_only */}
-        <label className="inline-flex items-center gap-2 text-sm mt-5 md:mt-0">
-          <input
-            data-testid="parents-only"
-            type="checkbox"
-            checked={parentsOnly}
-            onChange={(e) => setParentsOnly(e.target.checked)}
-          />
-          親タスクのみ
-        </label>
-
-        {/* progress */}
-        <div className="text-sm">
-          <div className="text-xs text-gray-500 mb-1">進捗(%)</div>
-          <div className="flex items-center gap-2">
+      {/* 下段：横幅いっぱい、中央にステータス、右端に上位タスクのみ・並び替え */}
+      <div className="w-full rounded-xl border bg-white px-3 py-2">
+        <div className="grid grid-cols-12 items-center gap-2">
+          {/* 左：現場名（コンパクト） */}
+          <div className="col-span-3">
             <input
-              type="number"
-              min={0}
-              max={100}
-              className="w-20 rounded border px-2 py-1"
-              value={progressMin}
-              onChange={(e) => setProgressMin(e.target.value)}
-              placeholder="最小"
-            />
-            <span>〜</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              className="w-20 rounded border px-2 py-1"
-              value={progressMax}
-              onChange={(e) => setProgressMax(e.target.value)}
-              placeholder="最大"
+              data-testid="filter-site"
+              placeholder="現場名"
+              className="w-full rounded border px-2 py-1 text-sm"
+              value={site}
+              onChange={(e) => setOrDelete("site", e.target.value)}
             />
           </div>
-        </div>
 
-        {/* order_by / dir */}
-        <div className="text-sm">
-          <div className="text-xs text-gray-500 mb-1">並び替え</div>
-          <div className="flex gap-2">
+          {/* 中央：ステータス（セグメント三連ボタン） */}
+          <div className="col-span-6 flex justify-center">
+            <div
+              role="group"
+              aria-label="ステータスで絞り込み"
+              className="inline-flex rounded-full bg-gray-100 p-1"
+            >
+              {allStatuses.map((s) => {
+                const active = status.includes(s);
+                const label =
+                  s === "not_started" ? "未着手" : s === "in_progress" ? "進行中" : "完了";
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => toggleStatus(s)}
+                    className={[
+                      "px-3 py-1 text-xs rounded-full transition",
+                      active ? "bg-white shadow border" : "text-gray-600 hover:bg-white/70",
+                    ].join(" ")}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 右：上位タスクのみ + 並び替え（右寄せ） */}
+          <div className="col-span-3 flex items-center justify-end gap-2 flex-nowrap">
+            <label
+              className="inline-flex items-center gap-1 text-sm whitespace-nowrap shrink-0"
+              title="上位タスク（親）だけを表示"
+            >
+              <input
+                type="checkbox"
+                checked={parents_only}
+                onChange={toggleParentsOnly}
+                className="accent-blue-600"
+                data-testid="filter-parents-only"
+              />
+              <span>上位タスクのみ</span>
+            </label>
+
             <select
-              id="order_by"
-              name="order_by"
-              className="rounded border px-2 py-1"
               data-testid="order_by"
-              value={orderBy}
-              onChange={(e) =>
-                setOrderBy(
-                  e.target.value as "deadline" | "progress" | "created_at"
-                )
-              }
+              className="w-28 rounded border px-2 py-1 text-sm"
+              value={order_by}
+              onChange={(e) => setOrDelete("order_by", e.target.value)}
             >
               <option value="deadline">期限</option>
               <option value="progress">進捗</option>
-              <option value="created_at">作成日時</option>
+              <option value="created_at">作成日</option>
             </select>
+
             <select
-              id="dir"
-              name="dir"
-              className="rounded border px-2 py-1"
               data-testid="dir"
+              className="w-20 rounded border px-2 py-1 text-sm"
               value={dir}
-              onChange={(e) => setDir(e.target.value as "asc" | "desc")}
+              onChange={(e) => setOrDelete("dir", e.target.value)}
             >
               <option value="asc">昇順</option>
               <option value="desc">降順</option>
@@ -198,6 +176,6 @@ export function TaskFilterBar() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

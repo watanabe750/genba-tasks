@@ -1,11 +1,10 @@
-// src/features/tasks/useUpdateTask.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/apiClient";
-import type { Task } from "../../types/task";
+import type { Task, UpdateTaskPayload } from "../../types";
 
 type UpdateInput = {
   id: number;
-  data: Partial<Pick<Task, "status" | "progress" | "title" | "deadline">>;
+  data: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">>;
 };
 
 const clamp = (n: number, min = 0, max = 100) =>
@@ -16,17 +15,17 @@ function normalize(data: UpdateInput["data"]) {
   let progress =
     typeof data.progress === "number" ? clamp(data.progress) : undefined;
 
-  // 相互整合性
   if (status === "completed") progress = 100;
   if (progress === 100) status = "completed";
 
-  const out: Partial<Pick<Task, "status" | "progress" | "title" | "deadline">> =
+  const out: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">> =
     {};
-  if (data.title !== undefined) out.title = data.title.trim();
-  if (data.deadline === null || typeof data.deadline === "string")
-    out.deadline = data.deadline ?? null;
-  if (status) out.status = status;
-  if (typeof progress === "number") out.progress = progress;
+    if (data.title !== undefined) out.title = data.title.trim();
+    if (data.deadline === null || typeof data.deadline === "string")
+      out.deadline = data.deadline ?? null;
+    if (status) out.status = status;
+    if (typeof progress === "number") out.progress = progress;
+    if (data.parent_id !== undefined) out.parent_id = data.parent_id;
 
   return out;
 }
@@ -47,7 +46,8 @@ export function useUpdateTask() {
     retry: false,
     mutationFn: async ({ id, data }) => {
       const n = normalize(data);
-      const res = await api.patch<Task>(`/tasks/${id}`, { task: n }); // strong_params 想定
+      const payload: UpdateTaskPayload = { task: n };
+      const res = await api.patch<Task>(`/tasks/${id}`, payload);
       return res.data;
     },
 
@@ -58,10 +58,7 @@ export function useUpdateTask() {
       ]);
 
       const prevPriority = qc.getQueryData<Task[]>(["priorityTasks"]);
-      // ★ すべての ["tasks", ...] を取得
-      const prevTasksEntries = qc.getQueriesData<Task[]>({
-        queryKey: ["tasks"],
-      });
+      const prevTasksEntries = qc.getQueriesData<Task[]>({ queryKey: ["tasks"] });
       const n = normalize(data);
 
       const patch = (arr?: Task[]) =>
@@ -69,7 +66,7 @@ export function useUpdateTask() {
 
       if (prevPriority)
         qc.setQueryData<Task[]>(["priorityTasks"], patch(prevPriority));
-      // ★ すべての tasks クエリを更新
+
       prevTasksEntries.forEach(([key, arr]) => {
         if (arr) qc.setQueryData<Task[]>(key as any, patch(arr));
       });
@@ -79,7 +76,6 @@ export function useUpdateTask() {
     onError: (_e, _v, ctx) => {
       if (ctx?.prevPriority)
         qc.setQueryData(["priorityTasks"], ctx.prevPriority);
-      // ★ 巻き戻し
       ctx?.prevTasksEntries?.forEach(([key, data]) => {
         qc.setQueryData(key as any, data);
       });
@@ -89,10 +85,8 @@ export function useUpdateTask() {
     onSuccess: (fresh) => {
       const sync = (arr?: Task[]) =>
         arr?.map((t) => (t.id === fresh.id ? fresh : t));
-      qc.setQueryData<Task[] | undefined>(["priorityTasks"], (old) =>
-        sync(old)
-      );
-      // ★ すべての tasks クエリを同期
+
+      qc.setQueryData<Task[] | undefined>(["priorityTasks"], (old) => sync(old));
       qc.setQueriesData<Task[]>(
         { queryKey: ["tasks"] },
         (old) => sync(old ?? undefined) as any
@@ -101,7 +95,7 @@ export function useUpdateTask() {
 
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["priorityTasks"] });
-      qc.invalidateQueries({ queryKey: ["tasks"] }); // 全 tasks を再取得
+      qc.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 }

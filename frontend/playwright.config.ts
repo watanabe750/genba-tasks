@@ -1,20 +1,45 @@
-import { defineConfig, devices } from '@playwright/test';
+// playwright.config.ts
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: 'tests',
+  testDir: "tests",
   timeout: 30_000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
-    video: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    baseURL: "http://localhost:5173",
+    trace: "on-first-retry",
+    video: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
-  webServer: [
-    // Vite を自前で起動するならここに定義（起動済みなら削除OK）
-    // { command: 'pnpm dev', port: 5173, reuseExistingServer: true },
+    // 1) ストレージ作成用（この1ファイルだけ実行）
+    {
+      name: "setup",
+      testMatch: /tests\/\.auth\/setup\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    // 2) 認証前提のテスト群（ほぼ全部がこちら）
+    {
+      name: "chromium-auth",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "tests/.auth/storage.json",
+      },
+      dependencies: ["setup"],
+      // auth の挙動を検証する spec は除外
+      testIgnore: [
+        /tests\/\.auth\/setup\.spec\.ts/,
+        /tests\/auth\.spec\.ts/,
+      ],
+    },
+
+    // 3) 未ログイン挙動（/login リダイレクト等）だけこちら
+    {
+      name: "chromium-unauth",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      testMatch: [/tests\/auth\.spec\.ts/],
+    },
   ],
 });
