@@ -38,14 +38,19 @@ module Api
     end
 
     def update
-      # ★ 並び替え: after_id を受けたら同一親内でpositionを振り直し
-      if params.key?(:after_id)
-        reorder_within_parent!(@task, params[:after_id])
-        render json: @task.reload, status: :ok
-        return
+      # まずパラメータを確定
+      attrs = task_params
+    
+      # ---- 親またぎ禁止の防御（UI壊れてもDBを守る） ----
+      if attrs.key?(:parent_id)
+        # 同値（=変更なし）は許容、異なる場合は 422
+        if attrs[:parent_id] != @task.parent_id
+          render json: { errors: ["親をまたぐ移動は不可です"] }, status: :unprocessable_entity and return
+        end
       end
-
-      if @task.update(task_params)
+      # -----------------------------------------------
+    
+      if @task.update(attrs)
         render json: @task
       else
         Rails.logger.warn("[Task#update] validation failed: #{ @task.errors.full_messages.inspect }")
@@ -54,7 +59,7 @@ module Api
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#update] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
       render json: { errors: [e.message] }, status: :bad_request
-    rescue ArgumentError => e
+    rescue ArgumentError => e  # ← enum無効値など
       Rails.logger.warn("[Task#update] ArgumentError: #{e.message}")
       render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
