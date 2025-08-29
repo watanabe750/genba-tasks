@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../lib/apiClient";
+import api from "../../lib/apiClient";
 import type { Task, CreateTaskPayload, IsoDateString } from "../../types";
 import { pushSiteHistory } from "../../lib/siteHistory";
 

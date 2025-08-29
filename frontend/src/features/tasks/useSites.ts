@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../../lib/apiClient";
+import api from "../../lib/apiClient";
 
 export function useSites(enabled = true) {
   return useQuery<string[], Error>({

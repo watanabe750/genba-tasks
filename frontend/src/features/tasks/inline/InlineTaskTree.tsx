@@ -2,9 +2,7 @@
 import InlineTaskRow from "./InlineTaskRow";
 import type { Task } from "../../../types/task";
 
-type Props = {
-  tree: Task[];
-};
+type Props = { tree: Task[] };
 
 export default function InlineTaskTree({ tree }: Props) {
   return (

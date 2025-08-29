@@ -1,11 +1,10 @@
+// src/router/AppRouter.tsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import TaskList from "../pages/TaskList";
 import Layout from "../components/Layout";
-import { AuthProvider } from "../providers/AuthContext";
 import RequireAuth from "../components/RequireAuth";
 import Settings from "../pages/Settings";
-
 
 export const AppRouter = () => {
   return (

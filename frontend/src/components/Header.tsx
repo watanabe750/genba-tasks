@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { useAuth } from "../providers/useAuth";
+import useAuth from "../providers/useAuth";
 
 const Header = () => {
   const qc = useQueryClient();

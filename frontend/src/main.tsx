@@ -12,7 +12,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// ログアウトイベントでキャッシュ全消去
 window.addEventListener("auth:logout", () => {
   queryClient.clear();
 });

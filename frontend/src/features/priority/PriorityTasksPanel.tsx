@@ -1,6 +1,6 @@
 // src/features/priority/PriorityTasksPanel.tsx
 import { usePriorityTasks } from "./usePriorityTasks";
-import { useAuth } from "../../providers/useAuth";
+import useAuth from "../../providers/useAuth";
 import { useUpdateTask } from "../tasks/useUpdateTask";
 import type { Task } from "../../types/task";
 
