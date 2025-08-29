@@ -1,113 +1,63 @@
+// src/pages/Login.tsx
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../providers/useAuth";
-
-type RouteState = { from?: { pathname?: string } };
-const isSafePath = (p: string | null): p is string =>
-    !!p && p.startsWith("/") && !p.startsWith("//");
-
-function getErrorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  return "ログインに失敗しました";
-}
+import { useNavigate } from "react-router-dom";
+import useAuth from "../providers/useAuth";
 
 export default function Login() {
-  const nav = useNavigate();
-  const loc = useLocation();
   const { signIn } = useAuth();
-  const state = (loc.state ?? null) as RouteState | null;
-  const savedFrom = (() => {
-    try {
-        const v = sessionStorage.getItem("auth:from");
-        if (v) sessionStorage.removeItem("auth:from");
-        return v ?? null;
-    } catch { return null; }
-  })();
-  const from = isSafePath(savedFrom) ? savedFrom : (state?.from?.pathname ?? "/tasks");
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const nav = useNavigate();
+  const [email, setEmail] = useState("dev@example.com");
+  const [password, setPassword] = useState("password");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    // 期限切れ通知があれば一度だけ表示
+    const expired = sessionStorage.getItem("auth:expired");
+    if (expired) {
+      setError("ログインの有効期限が切れました。再ログインしてください。");
+      sessionStorage.removeItem("auth:expired");
+    }
+  }, []);
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBusy(true);
     setError(null);
-    setSubmitting(true);
     try {
       await signIn(email, password);
+      const from = sessionStorage.getItem("auth:from") || "/tasks";
+      sessionStorage.removeItem("auth:from");
       nav(from, { replace: true });
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
+    } catch (err: any) {
+      setError(err?.response?.data?.errors?.[0] ?? "ログインに失敗しました。");
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   };
 
-  const [expired] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem("auth:expired") === "1";
-    } catch {
-      return false;
-    }
-  });
-
-  // 表示後にフラグは一度だけ出す
-  useEffect(() => {
-    if (expired) {
-        try { sessionStorage.removeItem("auth:expired"); } catch {/* ignore */}
-    }
-  }, [expired]);
-  
   return (
-    <div className="mx-auto max-w-sm p-6">
-      <h1 className="text-2xl font-bold mb-4">ログイン</h1>
-      {expired && (
-        <p className="mb-3 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded p-2">
-          セッションが切れました。再度ログインしてください
-        </p>
-      )}
-
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-        <label htmlFor="login-email" className="block text-sm mb-1">メールアドレス</label>
+    <div className="mx-auto mt-24 max-w-sm rounded-lg border p-6 shadow-sm">
+      <h1 className="mb-4 text-lg font-semibold">ログイン</h1>
+      {error && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-700">{error}</div>}
+      <form onSubmit={onSubmit} className="space-y-3">
         <input
-            id="login-email"
-            name="email"
-            data-testid="login-email"
-            className="w-full border rounded p-2"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            />
-        </div>
-
-        <div>
-          <label htmlFor="login-password" className="block text-sm mb-1">パスワード</label>
-          <input
-            id="login-password"
-            name="password"
-            data-testid="login-password"
-            className="w-full border rounded p-2"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            />
-        </div>
-
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-
-        <button
-          className="w-full border rounded p-2 disabled:opacity-60"
-          type="submit"
-          disabled={submitting}
-        >
-          {submitting ? "ログイン中..." : "ログイン"}
+          className="w-full rounded border p-2"
+          type="email"
+          placeholder="メールアドレス"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+        />
+        <input
+          className="w-full rounded border p-2"
+          type="password"
+          placeholder="パスワード"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button className="w-full rounded bg-gray-900 px-3 py-2 text-white disabled:opacity-60" disabled={busy}>
+          ログイン
         </button>
       </form>
     </div>

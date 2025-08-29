@@ -76,3 +76,6 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* ドラッグ中は右ペインの pointer-events を殺して、左カラムへの被りを防ぐ */
+body.is-dragging .priority-panel { pointer-events: none; }

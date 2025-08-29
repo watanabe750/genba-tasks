@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+// src/providers/AuthContext.tsx
 import type React from "react";
 import {
   createContext,
@@ -8,7 +9,7 @@ import {
   useState,
   useRef,
 } from "react";
-import { api } from "../lib/apiClient";
+import api from "../lib/apiClient";
 import {
   AxiosHeaders,
   type AxiosResponseHeaders,
@@ -118,14 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setName(null);
   }, [saveTokens, applyTokensToAxios]);
 
-  // ★ 親の初回実行タイミングで axios に同期適用（子のフックより先に走る）
+  // 初期値を axios に同期適用（子のフックより先に走る）
   if (initialTokens.at && initialTokens.client && initialTokens.uid) {
     api.defaults.headers.common["access-token"] = initialTokens.at;
     api.defaults.headers.common["client"] = initialTokens.client;
     api.defaults.headers.common["uid"] = initialTokens.uid;
   }
 
-  // 初期化：一度だけ defaults を再適用
+  // 起動時に defaults 再適用
   useEffect(() => {
     if (initialTokens.at && initialTokens.client && initialTokens.uid) {
       applyTokensToAxios(initialTokens);
@@ -202,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // リクエスト/レスポンスのインターセプタ
   useEffect(() => {
-    // ★ 各リクエスト直前に localStorage からも再注入（堅牢性UP）
+    // 各リクエスト直前に localStorage からも再注入（堅牢性UP）
     const reqId = api.interceptors.request.use((config) => {
       const headers = AxiosHeaders.from(config.headers);
 

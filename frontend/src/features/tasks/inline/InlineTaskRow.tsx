@@ -1,10 +1,12 @@
 // src/features/tasks/inline/InlineTaskRow.tsx
-import { useMemo, useState } from "react";
+import { useMemo, useState, type DragEvent } from "react";
 import type { Task } from "../../../types/task";
 import { useUpdateTask } from "../../tasks/useUpdateTask";
 import { useDeleteTask } from "../../tasks/useDeleteTask";
 import { useCreateTask } from "../../tasks/useCreateTask";
 import { MAX_CHILDREN_PER_NODE } from "../../tasks/constraints";
+import { useInlineDnd } from "./dndContext";
+import InlineDropZone from "./InlineDropZone";
 
 const toDateInputValue = (iso?: string | null) => {
   if (!iso) return "";
@@ -23,13 +25,13 @@ const STATUS_LABEL: Record<Task["status"], string> = {
 };
 
 type RowProps = { task: Task; depth: number };
-
 const INDENT_STEP = 24;
 
 export default function InlineTaskRow({ task, depth }: RowProps) {
   const children = task.children ?? [];
   const isLeaf = children.length === 0;
   const isParent = depth === 1;
+  const dnd = useInlineDnd();
 
   const { mutate: update } = useUpdateTask();
   const { mutate: remove } = useDeleteTask();
@@ -66,7 +68,9 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
       Pick<Task, "title" | "deadline" | "status" | "progress">
     > = {
       title: title.trim(),
-      deadline: deadline ? new Date(`${deadline}T00:00:00`).toISOString() : null,
+      deadline: deadline
+        ? new Date(`${deadline}T00:00:00`).toISOString()
+        : null,
       status,
       progress: status === "completed" ? 100 : Math.min(task.progress ?? 0, 99),
     };
@@ -117,6 +121,55 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     );
   };
 
+  // --- DnD: 行コンテナは「ドロップ受け入れのみ」。ドラッグ開始はハンドルのボタンだけ ---
+  const onDragOver = (e: DragEvent) => {
+    const sameDepth =
+      dnd.state.draggingId != null && dnd.state.draggingDepth === depth;
+    if (!sameDepth) return;
+    const toPid = task.parent_id ?? null;
+    const ok =
+      dnd.state.draggingParentId === toPid || dnd.canAcceptIntoParent(toPid);
+    if (ok) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    }
+  };
+
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const movingId = dnd.state.draggingId;
+    if (movingId == null || movingId === task.id) return dnd.onDragEnd();
+
+    const fromPid = dnd.state.draggingParentId;
+    const toPid = task.parent_id ?? null;
+
+    if (fromPid === toPid) {
+      dnd.reorderWithinParent(toPid, movingId, task.id);
+    } else {
+      if (!dnd.canAcceptIntoParent(toPid)) return dnd.onDragEnd();
+      dnd.moveAcrossParents({ fromPid, toPid, movingId, afterId: task.id });
+      update({ id: movingId, data: { parent_id: toPid } });
+    }
+    dnd.onDragEnd();
+  };
+  const onDragEnd = () => dnd.onDragEnd();
+
+  const canDropHere =
+    dnd.state.draggingId != null &&
+    dnd.state.draggingDepth === depth &&
+    dnd.state.draggingId !== task.id &&
+    (dnd.state.draggingParentId === (task.parent_id ?? null) ||
+      dnd.canAcceptIntoParent(task.parent_id ?? null));
+
+  // 子リスト（並びはDND管理の順序）
+  const orderedChildren = dnd.getOrderedChildren(task.id, children);
+  const lastChildId = orderedChildren.length
+    ? orderedChildren[orderedChildren.length - 1].id
+    : null;
+
   return (
     <div
       role="treeitem"
@@ -124,11 +177,15 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
       aria-expanded={children.length ? expanded : undefined}
       data-testid={`task-item-${task.id}`}
       data-editing={editing ? "1" : "0"}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       className={[
-        "group relative",
+        "group relative z-0 isolate",
         "py-1.5 pr-0",
         isParent ? "mt-5 mb-1" : "mb-0.5",
         "hover:bg-gray-50/60 transition-colors",
+        canDropHere ? "ring-1 ring-blue-300" : "",
       ].join(" ")}
       style={{ paddingLeft: `${(depth - 1) * INDENT_STEP}px` }}
     >
@@ -154,7 +211,36 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
           <span className="mt-0.5 inline-block h-5 w-5 shrink-0" />
         )}
 
-        {/* ★ testid 追加 */}
+        {/* ドラッグハンドル（ドラッグ可能なのはこのボタンだけ） */}
+        <button
+          type="button"
+          aria-label="並び替え"
+          data-testid={`task-drag-${task.id}`}
+          draggable={true}
+          onDragStart={(e) => {
+            if (editing) {
+              e.preventDefault();
+              return;
+            }
+            e.stopPropagation();
+            e.dataTransfer?.setData("application/x-task-id", String(task.id));
+            e.dataTransfer?.setData("text/plain", String(task.id));
+            if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+            dnd.onDragStart(task, depth);
+          }}
+          onDragEnd={onDragEnd}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={[
+            "relative z-50 pointer-events-auto select-none touch-none",
+            "mt-0.5 inline-flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded",
+            "hover:bg-gray-200 active:cursor-grabbing",
+          ].join(" ")}
+          title="ドラッグで並び替え"
+        >
+          ⋮⋮
+        </button>
+
+        {/* 葉の完了チェック */}
         {isLeaf && !editing && (
           <input
             type="checkbox"
@@ -182,7 +268,6 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
                 >
                   {task.title}
                 </span>
-
                 {isParent && (
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
                     上位タスク
@@ -196,8 +281,13 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
               </div>
 
               <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-gray-600">
-                <span>期限: {task.deadline ? toDateInputValue(task.deadline) : "—"}</span>
-                <span data-testid={`task-status-${task.id}`} data-status={task.status}>
+                <span>
+                  期限: {task.deadline ? toDateInputValue(task.deadline) : "—"}
+                </span>
+                <span
+                  data-testid={`task-status-${task.id}`}
+                  data-status={task.status}
+                >
                   ステータス: {STATUS_LABEL[task.status]}
                 </span>
                 {task.site ? <span>site: {task.site}</span> : null}
@@ -223,7 +313,12 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
                     e.preventDefault();
                     cancel();
                   }
-                  if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !e.metaKey &&
+                    !e.ctrlKey
+                  ) {
                     e.preventDefault();
                     createSiblingBelow();
                   }
@@ -322,7 +417,9 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
           <div
             className="h-2 rounded bg-blue-500"
             data-testid={`task-progress-bar-${task.id}`}
-            style={{ width: `${Math.min(Math.max(task.progress ?? 0, 0), 100)}%` }}
+            style={{
+              width: `${Math.min(Math.max(task.progress ?? 0, 0), 100)}%`,
+            }}
           />
         </div>
       )}
@@ -362,11 +459,23 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
         </form>
       )}
 
-      {children.length > 0 && expanded && (
+      {/* 子リスト＋末尾ドロップゾーン */}
+      {expanded && (
         <div className="mt-1">
-          {children.map((c) => (
+          {orderedChildren.map((c) => (
             <InlineTaskRow key={c.id} task={c} depth={c.depth ?? depth + 1} />
           ))}
+          <div className="pointer-events-none">
+            <div className="pointer-events-auto">
+              <InlineDropZone
+                parentId={task.id}
+                acceptDepth={depth + 1}
+                lastChildId={lastChildId}
+                currentCount={orderedChildren.length}
+                showEmptyState={orderedChildren.length === 0}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

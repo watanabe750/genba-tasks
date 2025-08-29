@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../lib/apiClient";
+import api from "../../lib/apiClient";
 import type { Task } from "../../types/task";
 
 async function deleteTaskApi(id: number): Promise<void> {
