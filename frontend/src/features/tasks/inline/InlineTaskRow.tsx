@@ -27,6 +27,11 @@ const STATUS_LABEL: Record<Task["status"], string> = {
 type RowProps = { task: Task; depth: number };
 const INDENT_STEP = 24;
 
+// 親ID比較の正規化ヘルパ
+const normPid = (v: number | null | undefined) => (v == null ? null : Number(v));
+const samePid = (a: number | null | undefined, b: number | null | undefined) =>
+  normPid(a) === normPid(b);
+
 export default function InlineTaskRow({ task, depth }: RowProps) {
   const children = task.children ?? [];
   const isLeaf = children.length === 0;
@@ -64,13 +69,9 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
   }, [task, isLeaf]);
 
   const save = () => {
-    const payload: Partial<
-      Pick<Task, "title" | "deadline" | "status" | "progress">
-    > = {
+    const payload: Partial<Pick<Task, "title" | "deadline" | "status" | "progress">> = {
       title: title.trim(),
-      deadline: deadline
-        ? new Date(`${deadline}T00:00:00`).toISOString()
-        : null,
+      deadline: deadline ? new Date(`${deadline}T00:00:00`).toISOString() : null,
       status,
       progress: status === "completed" ? 100 : Math.min(task.progress ?? 0, 99),
     };
@@ -121,14 +122,24 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     );
   };
 
-  // --- DnD: 行コンテナは「ドロップ受け入れのみ」。ドラッグ開始はハンドルのボタンだけ ---
+  // --- DnD handlers ---
+  const onDragStart = (e: DragEvent) => {
+    if (editing) return e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer?.setData("application/x-task-id", String(task.id));
+    e.dataTransfer?.setData("text/plain", String(task.id));
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+    dnd.onDragStart(task, depth);
+  };
+
   const onDragOver = (e: DragEvent) => {
-    const sameDepth =
+    const sameDepthNow =
       dnd.state.draggingId != null && dnd.state.draggingDepth === depth;
-    if (!sameDepth) return;
+    if (!sameDepthNow) return;
+
+    // 同一親内のみ OK（親をまたぐ移動は不可）
     const toPid = task.parent_id ?? null;
-    const ok =
-      dnd.state.draggingParentId === toPid || dnd.canAcceptIntoParent(toPid);
+    const ok = samePid(dnd.state.draggingParentId, toPid);
     if (ok) {
       e.preventDefault();
       e.stopPropagation();
@@ -146,13 +157,11 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     const fromPid = dnd.state.draggingParentId;
     const toPid = task.parent_id ?? null;
 
-    if (fromPid === toPid) {
-      dnd.reorderWithinParent(toPid, movingId, task.id);
-    } else {
-      if (!dnd.canAcceptIntoParent(toPid)) return dnd.onDragEnd();
-      dnd.moveAcrossParents({ fromPid, toPid, movingId, afterId: task.id });
-      update({ id: movingId, data: { parent_id: toPid } });
+    if (samePid(fromPid, toPid)) {
+      // 同一親内のみ並べ替えを実行
+      dnd.reorderWithinParent(normPid(toPid), movingId, task.id);
     }
+    // 親が違う場合は何もしない（禁止）
     dnd.onDragEnd();
   };
   const onDragEnd = () => dnd.onDragEnd();
@@ -161,8 +170,7 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     dnd.state.draggingId != null &&
     dnd.state.draggingDepth === depth &&
     dnd.state.draggingId !== task.id &&
-    (dnd.state.draggingParentId === (task.parent_id ?? null) ||
-      dnd.canAcceptIntoParent(task.parent_id ?? null));
+    samePid(dnd.state.draggingParentId, task.parent_id ?? null); // 同一親のみ
 
   // 子リスト（並びはDND管理の順序）
   const orderedChildren = dnd.getOrderedChildren(task.id, children);
@@ -180,6 +188,22 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
+      draggable={true}
+      onDragStart={(e) => {
+        if (dnd.state.draggingId != null) return;
+        const origin = e.target as HTMLElement | null;
+        const testid = origin?.getAttribute?.("data-testid") ?? "";
+        const isHandle = testid.startsWith("task-drag-");
+        if (!isHandle || editing) {
+          e.preventDefault();
+          return;
+        }
+        e.stopPropagation();
+        e.dataTransfer?.setData("application/x-task-id", String(task.id));
+        e.dataTransfer?.setData("text/plain", String(task.id));
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+        dnd.onDragStart(task, depth);
+      }}
       className={[
         "group relative z-0 isolate",
         "py-1.5 pr-0",
@@ -211,23 +235,13 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
           <span className="mt-0.5 inline-block h-5 w-5 shrink-0" />
         )}
 
-        {/* ドラッグハンドル（ドラッグ可能なのはこのボタンだけ） */}
+        {/* ドラッグハンドル */}
         <button
           type="button"
           aria-label="並び替え"
           data-testid={`task-drag-${task.id}`}
           draggable={true}
-          onDragStart={(e) => {
-            if (editing) {
-              e.preventDefault();
-              return;
-            }
-            e.stopPropagation();
-            e.dataTransfer?.setData("application/x-task-id", String(task.id));
-            e.dataTransfer?.setData("text/plain", String(task.id));
-            if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-            dnd.onDragStart(task, depth);
-          }}
+          onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           onMouseDown={(e) => e.stopPropagation()}
           className={[
@@ -459,7 +473,7 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
         </form>
       )}
 
-      {/* 子リスト＋末尾ドロップゾーン */}
+      {/* 子リスト（空でも末尾ドロップゾーンを常設） */}
       {expanded && (
         <div className="mt-1">
           {orderedChildren.map((c) => (
