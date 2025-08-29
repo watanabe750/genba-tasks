@@ -23,7 +23,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_023751) do
     t.integer "depth", default: 1, null: false
     t.float "progress", default: 0.0, null: false
     t.string "site"
+    t.integer "position", null: false
     t.index ["parent_id"], name: "index_tasks_on_parent_id"
+    t.index ["user_id", "parent_id", "position"], name: "index_tasks_on_user_id_and_parent_id_and_position"
     t.index ["user_id"], name: "index_tasks_on_user_id"
   end
 

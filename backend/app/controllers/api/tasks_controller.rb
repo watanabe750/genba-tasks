@@ -7,6 +7,8 @@ module Api
 
     def index
       tasks = Task.filter_sort(filter_params, user: current_user)
+      # ★ 兄弟内の並びは position 昇順
+      tasks = tasks.order(:parent_id, :position)
       render json: tasks.as_json(only: SELECT_FIELDS)
     end
 
@@ -30,12 +32,19 @@ module Api
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#create] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
       render json: { errors: [e.message] }, status: :bad_request
-    rescue ArgumentError => e  # ← 追加: enum無効値など
+    rescue ArgumentError => e
       Rails.logger.warn("[Task#create] ArgumentError: #{e.message}")
       render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
-    
+
     def update
+      # ★ 並び替え: after_id を受けたら同一親内でpositionを振り直し
+      if params.key?(:after_id)
+        reorder_within_parent!(@task, params[:after_id])
+        render json: @task.reload, status: :ok
+        return
+      end
+
       if @task.update(task_params)
         render json: @task
       else
@@ -45,18 +54,16 @@ module Api
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#update] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
       render json: { errors: [e.message] }, status: :bad_request
-    rescue ArgumentError => e  # ← 追加: enum無効値など
+    rescue ArgumentError => e
       Rails.logger.warn("[Task#update] ArgumentError: #{e.message}")
       render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
-    
 
     def destroy
       @task.destroy
       head :no_content
     end
 
-    # ✅ ここに移動：公開アクション
     # 現場名候補（親タスクからdistinct、null/空白除外）
     def sites
       names = current_user.tasks
@@ -121,6 +128,43 @@ module Api
 
       ActionController::Parameters.new(src)
         .permit(:title, :status, :progress, :deadline, :parent_id, :description, :site)
+    end
+
+    # === 並び替え（同一親内）===
+    def reorder_within_parent!(task, after_id_param)
+      after_id = after_id_param.present? ? after_id_param.to_i : nil
+
+      Task.transaction do
+        # after_id が nil のときは先頭に移動
+        target_pos =
+          if after_id.nil?
+            1
+          else
+            sib = current_user.tasks.find(after_id)
+            raise ActiveRecord::RecordInvalid, "Cannot move across parents" if sib.parent_id != task.parent_id
+            (sib.position || 0) + 1
+          end
+
+        # 同一親の兄弟を lock して詰め直し
+        scope = current_user.tasks.where(parent_id: task.parent_id).order(:position).lock
+
+        # まず対象の行を抜いて隙間を詰める
+        removed_pos = task.position
+        scope.where("position > ?", removed_pos).update_all("position = position - 1")
+
+        # target_pos 以降を空ける
+        scope.reload.where("position >= ?", target_pos).update_all("position = position + 1")
+
+        # 自分を target_pos に
+        task.update!(position: target_pos)
+
+        # 念のため 1..N を再採番
+        pos = 1
+        scope.reload.each do |t|
+          t.update_columns(position: pos) unless t.position == pos
+          pos += 1
+        end
+      end
     end
   end
 end

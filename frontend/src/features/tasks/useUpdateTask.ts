@@ -5,12 +5,14 @@ import type { Task, UpdateTaskPayload } from "../../types";
 
 type UpdateInput = {
   id: number;
-  data: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">>;
+  data: (Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">> & {
+    after_id?: number | null;
+  });
 };
 
 const clamp = (n: number, min = 0, max = 100) => Math.min(Math.max(n, min), max);
 
-// ★ 渡されたフィールドだけを送る
+// ★ 渡されたフィールドだけを送る（after_id はトップレベルで送る）
 function normalize(data: UpdateInput["data"]) {
   const out: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">> = {};
 
@@ -47,10 +49,15 @@ export function useUpdateTask() {
     mutationKey: ["updateTask"],
     retry: false,
     mutationFn: async ({ id, data }) => {
-      const n = normalize(data);
-      const payload: UpdateTaskPayload = { task: n };
-      const res = await api.patch<Task>(`/tasks/${id}`, payload);
-      return res.data;
+      if ("after_id" in data) {
+        const res = await api.patch<Task>(`/tasks/${id}`, { after_id: data.after_id ?? null });
+        return res.data;
+      } else {
+        const n = normalize(data);
+        const payload: UpdateTaskPayload = { task: n };
+        const res = await api.patch<Task>(`/tasks/${id}`, payload);
+        return res.data;
+      }
     },
 
     onMutate: async ({ id, data }) => {
@@ -61,8 +68,13 @@ export function useUpdateTask() {
 
       const prevPriority = qc.getQueryData<Task[]>(["priorityTasks"]);
       const prevTasksEntries = qc.getQueriesData<Task[]>({ queryKey: ["tasks"] });
-      const n = normalize(data);
 
+      // 並び替え（after_id）のときは楽観更新しない（サーバ順をソースオブトゥルースに）
+      if ("after_id" in data) {
+        return { prevPriority, prevTasksEntries };
+      }
+
+      const n = normalize(data);
       const patch = (arr?: Task[]) => arr?.map((t) => (t.id === id ? { ...t, ...n } : t));
 
       if (prevPriority) qc.setQueryData<Task[]>(["priorityTasks"], patch(prevPriority));
@@ -82,6 +94,7 @@ export function useUpdateTask() {
     },
 
     onSuccess: (fresh) => {
+      // フィールド更新はローカルも同期、並び替えはinvalidateで再取得に任せる
       const sync = (arr?: Task[]) => arr?.map((t) => (t.id === fresh.id ? fresh : t));
       qc.setQueryData<Task[] | undefined>(["priorityTasks"], (old) => sync(old));
       qc.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (old) => sync(old ?? undefined) as any);

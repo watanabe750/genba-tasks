@@ -158,8 +158,9 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     const toPid = task.parent_id ?? null;
 
     if (samePid(fromPid, toPid)) {
-      // 同一親内のみ並べ替えを実行
+      // 同一親内のみ並べ替えを実行（UI）＋ DB 永続化（after_id = この行のID）
       dnd.reorderWithinParent(normPid(toPid), movingId, task.id);
+      update({ id: movingId, data: { after_id: task.id } });
     }
     // 親が違う場合は何もしない（禁止）
     dnd.onDragEnd();

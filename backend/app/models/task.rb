@@ -17,14 +17,17 @@ class Task < ApplicationRecord
   validate  :depth_limit
   # 子は最大4件：作成時 or 親付け替え時のみチェック
   validate  :children_count_limit, if: :validate_children_limit?
-  # 0..100 の範囲を保証（NULLは既存互換で許容。将来NOT NULLにする時はallow_nilを外す）
+  # 0..100 の範囲を保証
   validates :progress,
-  numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
-  allow_nil: true
+            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
+            allow_nil: true
+  # 並び順
+  validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
 
-
-  # depthは作成時に自動計算
+  # depth/position は作成時に自動計算・更新時の親変更でも末尾へ
   before_validation :set_depth, on: :create
+  before_validation :set_position_at_end, on: :create
+  before_validation :set_position_at_end_on_parent_change, on: :update, if: -> { will_save_change_to_parent_id? }
 
   # 子のprogress変更 / 親付け替え / 削除 を拾う
   after_save    :update_parent_progress_if_needed
@@ -117,23 +120,27 @@ class Task < ApplicationRecord
     order_by = ORDERABLE_COLUMNS.include?(p[:order_by].to_s) ? p[:order_by].to_s : "deadline"
     dir      = %w[asc desc].include?(p[:dir].to_s.downcase) ? p[:dir].to_s.upcase : "ASC"
 
-    case order_by
-    when "deadline"
-      # NULLS LAST 相当（SQLiteでも効く）
-      rel.order(Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC"))
-         .order("deadline #{dir}")
-    when "progress"
-      rel.order(Arel.sql("COALESCE(progress,0) #{dir}"))
-    else
-      rel.order("created_at #{dir}")
-    end
+    rel =
+      case order_by
+      when "deadline"
+        # NULLS LAST 相当（SQLiteでも効く）
+        rel.order(Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC"))
+           .order("deadline #{dir}")
+      when "progress"
+        rel.order(Arel.sql("COALESCE(progress,0) #{dir}"))
+      else
+        rel.order("created_at #{dir}")
+      end
+
+    # ★ 兄弟内は常に position 昇順に（任意の order_by に追加のセカンダリソート）
+    rel.order(:parent_id, :position)
   end
 
   # 階層ツリーをJSON化（子を再帰）
   def as_tree
     {
       id:, title:, status:, progress:, depth:, deadline:, description:, site:,
-      children: children.map(&:as_tree)
+      children: children.order(:position).map(&:as_tree)
     }
   end
 
@@ -155,6 +162,17 @@ class Task < ApplicationRecord
 
   def set_depth
     self.depth = parent.present? ? parent.depth + 1 : 1
+  end
+
+  # 末尾に配置（同一親の最大position+1）
+  def set_position_at_end
+    scope = Task.where(user_id: user_id, parent_id: parent_id)
+    self.position ||= (scope.maximum(:position) || 0) + 1
+  end
+
+  def set_position_at_end_on_parent_change
+    scope = Task.where(user_id: user_id, parent_id: parent_id)
+    self.position = (scope.maximum(:position) || 0) + 1
   end
 
   def depth_limit

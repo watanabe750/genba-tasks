@@ -1,3 +1,4 @@
+// src/features/tasks/inline/InlineDropZone.tsx
 import { MAX_CHILDREN_PER_NODE } from "../../tasks/constraints";
 import { useUpdateTask } from "../../tasks/useUpdateTask";
 import { useInlineDnd } from "./dndContext";
@@ -34,7 +35,7 @@ export default function InlineDropZone({
   const sameDepth = dnd.state.draggingDepth === acceptDepth;
 
   const fromPid = dnd.state.draggingParentId;        // 現在掴んでるタスクの親
-  const toPid = parentId;                             // このDropZoneの親
+  const toPid = parentId;                            // このDropZoneの親
   const sameParent = samePid(fromPid, toPid);
 
   // “親またぎ禁止”なので、同一親のみ許可
@@ -54,10 +55,12 @@ export default function InlineDropZone({
     // 同一親のみ並べ替え。親が違えば何もしない（禁止）。
     if (!sameParent) return dnd.onDragEnd();
 
-    const afterId = lastChildId ?? -1;
-    dnd.reorderWithinParent(normPid(toPid), movingId, afterId);
+    const afterId = lastChildId ?? null; // 末尾に置く
+    dnd.reorderWithinParent(normPid(toPid), movingId, lastChildId ?? -1);
 
-    // 親は変えない=サーバ更新不要。念のため何もしないで終了。
+    // ★ DB 永続化：末尾ドロップは after_id = lastChildId（子0なら null で先頭扱い）
+    update({ id: movingId, data: { after_id: afterId } });
+
     dnd.onDragEnd();
   };
 
