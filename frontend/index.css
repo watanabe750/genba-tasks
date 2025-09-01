@@ -70,3 +70,16 @@ button:focus-visible {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 余計なテンプレのセンタリングは外す */
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+/* ドラッグ開始前でも右ペインを一時的に殺せるように2段階のフラグ */
+body.pre-drag .priority-panel,
+body.is-dragging .priority-panel {
+  pointer-events: none !important;
+}
+
+/* 見た目（任意） */
+body.is-dragging { cursor: grabbing !important; }

@@ -5,7 +5,6 @@ import React, {
     useContext,
     useEffect,
     useMemo,
-    useRef,
     useState,
   } from "react";
   import type { Task } from "../../../types/task";
@@ -20,19 +19,30 @@ import React, {
     state: DndState;
     onDragStart: (task: Task, depth: number) => void;
     onDragEnd: () => void;
+  
+    // 親またぎ不可（同一親だけ true）
     canAcceptIntoParent: (parentId: number | null) => boolean;
+  
+    // 同一親内の並べ替え（UIローカル）
     reorderWithinParent: (
       parentId: number | null,
       movingId: number,
       afterId: number | null
     ) => void;
+  
+    // 親またぎ移動は未対応（no-op）
     moveAcrossParents: (args: {
       fromPid: number | null;
       toPid: number | null;
       movingId: number;
       afterId: number | null;
     }) => void;
+  
+    // 表示順の取得（プロバイダが保持する順に並べる）
     getOrderedChildren: (parentId: number, children: Task[]) => Task[];
+  
+    // サーバから受け取った“現在の並び”を登録
+    registerChildren: (parentId: number | null, childIds: number[]) => void;
   };
   
   const C = createContext<Ctx | null>(null);
@@ -43,8 +53,15 @@ import React, {
     return ctx;
   }
   
-  // key 生成（null 親は 'root' 扱い）
-  const pidKey = (pid: number | null) => (pid == null ? "root" : String(pid));
+  // ---- helpers ----
+  const keyOf = (pid: number | null) => (pid == null ? "root" : `p:${pid}`);
+  
+  const eqArray = (a?: number[], b?: number[]) => {
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  };
   
   export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     const [state, setState] = useState<DndState>({
@@ -53,31 +70,54 @@ import React, {
       draggingDepth: null,
     });
   
-    // 親ごとのローカル順序（子ID配列）を保持
-    // useRef: setStateでdraggingフラグだけ更新しても順序は維持したい
-    const localOrders = useRef<Record<string, number[]>>({});
+    // 親IDごとの“子IDの順序”を UI ローカルに保持
+    const [orderMap, setOrderMap] = useState<Record<string, number[]>>({});
   
+    // ドラッグ中フラグ（右ペイン等の当たり判定を殺すためのグローバルフラグ）
     useEffect(() => {
       document.body.classList.toggle("is-dragging", !!state.draggingId);
-      return () => document.body.classList.remove("is-dragging");
+      if (!state.draggingId) document.body.classList.remove("pre-drag");
+      return () => {
+        document.body.classList.remove("is-dragging");
+        document.body.classList.remove("pre-drag");
+      };
     }, [state.draggingId]);
   
-    // dragstart の直後はネイティブD&Dの初期化を壊さないよう次フレームに反映
+    // ★ Chrome keep-alive：ドラッグ中は常に「どこか」が preventDefault する
+    useEffect(() => {
+      const onDragOver = (e: DragEvent) => {
+        if (!state.draggingId) return;
+        // これが無いと、最初の dragover までに対象が居ないケースで即 dragend になる
+        e.preventDefault();
+      };
+      window.addEventListener("dragover", onDragOver as any, {
+        passive: false,
+        capture: true,
+      });
+      return () =>
+        window.removeEventListener("dragover", onDragOver as any, true);
+    }, [state.draggingId]);
+  
+    // ★ Playwright/ブラウザ差対策：即時 set + 次フレームでも再度 set
     const onDragStart = useCallback((task: Task, depth: number) => {
       const pid = task.parent_id ?? null;
-      requestAnimationFrame(() => {
-        setState({
-          draggingId: task.id,
-          draggingParentId: pid,
-          draggingDepth: depth,
-        });
-      });
+      const next = {
+        draggingId: task.id,
+        draggingParentId: pid,
+        draggingDepth: depth,
+      };
+      setState(next);
+      requestAnimationFrame(() => setState(next));
     }, []);
   
     const onDragEnd = useCallback(() => {
-      requestAnimationFrame(() =>
-        setState({ draggingId: null, draggingParentId: null, draggingDepth: null })
-      );
+      const cleared = {
+        draggingId: null,
+        draggingParentId: null,
+        draggingDepth: null,
+      };
+      setState(cleared);
+      requestAnimationFrame(() => setState(cleared));
     }, []);
   
     const canAcceptIntoParent = useCallback(
@@ -85,65 +125,95 @@ import React, {
       [state.draggingParentId]
     );
   
-    // 親内のローカル順序を取り出し（未初期化なら現在の children で初期化）
-    const ensureOrder = useCallback(
-      (parentId: number | null, children: Task[]) => {
-        const k = pidKey(parentId);
-        if (!localOrders.current[k]) {
-          localOrders.current[k] = children.map((c) => c.id);
-        }
-        return localOrders.current[k];
-      },
-      []
-    );
+    // サーバから受け取った現在の並びを登録
+    // 集合が同じなら “順序差” はローカル優先（上書きしない）
+    const registerChildren = useCallback(
+      (parentId: number | null, childIds: number[]) => {
+        console.log("[REGISTER]", { parentId, childIds });
+        const k = keyOf(parentId);
+        setOrderMap((prev) => {
+          const current = prev[k];
+          if (!current) return { ...prev, [k]: childIds.slice() };
   
-    // 呼び出し時点の order を元に、movingId を afterId の直後に差し込む
-    const reorderWithinParent = useCallback(
-      (parentId: number | null, movingId: number, afterId: number | null) => {
-        const k = pidKey(parentId);
-        const order = localOrders.current[k];
-        if (!order) {
-          // 初回は getOrderedChildren 側で初期化されるので安全側 return
-          return;
-        }
-        const next = order.filter((id) => id !== movingId);
-        const idx = afterId == null || afterId === -1 ? next.length - 1 : next.indexOf(afterId);
-        const insertAt = idx < 0 ? next.length : idx + 1;
-        next.splice(insertAt, 0, movingId);
-        localOrders.current[k] = next;
-        // 順序更新だけでOK（draggingフラグは drop 側で onDragEnd が呼ばれる）
-        // setState を叩かないと再描画されないので、draggingId を同値で入れて軽くトリガ
-        setState((s) => ({ ...s }));
-      },
-      []
-    );
+          const sameMembers =
+            current.length === childIds.length &&
+            current.every((id) => childIds.includes(id));
+          if (!sameMembers) return { ...prev, [k]: childIds.slice() };
   
-    // 親またぎは禁止
-    const moveAcrossParents = useCallback((_args: {
-      fromPid: number | null;
-      toPid: number | null;
-      movingId: number;
-      afterId: number | null;
-    }) => {
-      /* no-op: 親またぎ不可 */
-    }, []);
-  
-    // children を localOrders に従って並び替え
-    const getOrderedChildren = useCallback(
-      (parentId: number, children: Task[]) => {
-        const k = pidKey(parentId);
-        const order = ensureOrder(parentId, children);
-        const pos = new Map<number, number>();
-        order.forEach((id, i) => pos.set(id, i));
-        // 未登録の子（新規追加など）は末尾に回す
-        return [...children].sort((a, b) => {
-          const ia = pos.has(a.id) ? pos.get(a.id)! : Number.MAX_SAFE_INTEGER;
-          const ib = pos.has(b.id) ? pos.get(b.id)! : Number.MAX_SAFE_INTEGER;
-          return ia - ib;
+          return prev; // 集合が同じ＝ローカル順を維持
         });
       },
-      [ensureOrder]
+      []
     );
+  
+    // 同一親内の並べ替え：movingId を afterId の直後に入れる
+    const reorderWithinParent = useCallback(
+      (parentId: number | null, movingId: number, afterId: number | null) => {
+        const k = keyOf(parentId);
+        setOrderMap((prev) => {
+          const current = prev[k] ?? [];
+          console.log("[REORDER start]", {
+            k,
+            current: current.slice(),
+            movingId,
+            afterId,
+          });
+  
+          // --- フォールバック初期化：未登録でも動く ---
+          let base = current.slice();
+          if (base.length === 0) {
+            console.warn("[REORDER] current is empty. init base with movingId");
+            base = [movingId];
+          } else if (!base.includes(movingId)) {
+            console.warn("[REORDER] movingId not in current. append movingId");
+            base = [...base, movingId];
+          }
+  
+          const next = base.filter((id) => id !== movingId);
+          const idx = afterId == null || afterId < 0 ? -1 : next.indexOf(afterId);
+          const insertAt = Math.max(0, idx + 1);
+          next.splice(insertAt, 0, movingId);
+  
+          console.log("[REORDER next]", { k, next, insertAt });
+          if (eqArray(current, next)) {
+            console.log("[REORDER no-change]", { k });
+            return prev;
+          }
+          const out = { ...prev, [k]: next };
+          console.log("[REORDER commit]", out);
+          return out;
+        });
+      },
+      []
+    );
+  
+    const moveAcrossParents = useCallback((_args: any) => {
+      /* 親またぎ不可なので no-op */
+    }, []);
+  
+    const getOrderedChildren = useCallback(
+        (parentId: number | null, children: Task[]) => {
+          const k = keyOf(parentId);
+          const ord = orderMap[k];
+          if (!ord || ord.length === 0) return children;
+      
+          const pos = new Map<number, number>();
+          ord.forEach((id, i) => pos.set(id, i));
+          const withPos = children.map((c) => ({
+            c,
+            p: pos.get(c.id) ?? Number.MAX_SAFE_INTEGER,
+          }));
+          withPos.sort((a, b) => a.p - b.p);
+          return withPos.map((x) => x.c);
+        },
+        [orderMap]
+      );
+  
+    // （任意）デバッグ用：現在の orderMap を覗けるように
+    useEffect(() => {
+      // @ts-ignore
+      window.__orderMap = orderMap;
+    }, [orderMap]);
   
     const value = useMemo(
       () => ({
@@ -154,6 +224,7 @@ import React, {
         reorderWithinParent,
         moveAcrossParents,
         getOrderedChildren,
+        registerChildren,
       }),
       [
         state,
@@ -163,6 +234,7 @@ import React, {
         reorderWithinParent,
         moveAcrossParents,
         getOrderedChildren,
+        registerChildren,
       ]
     );
   

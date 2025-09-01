@@ -2,80 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 任意：全体余白やフォント調整など */
-html, body, #root {
-  height: 100%;
-  margin: 0;
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+/* 右ペインはドラッグ準備中/ドラッグ中は無効化 */
+body.pre-drag .priority-panel,
+body.is-dragging .priority-panel {
+  pointer-events: none !important;
 }
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* ドラッグ中の見た目 */
+body.is-dragging { cursor: grabbing !important; }
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+/* ここからDnD安定化セット */
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ドラッグ中は行内のボタン等で drop が阻害されないようにする */
+body.is-dragging [data-testid^="task-item-"] button,
+body.is-dragging [data-testid^="task-item-"] input,
+body.is-dragging [data-testid^="task-item-"] select,
+body.is-dragging [data-testid^="task-item-"] a {
+  pointer-events: none !important;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* ドラッグ中は行のテキスト選択を抑止（ハイライト防止） */
+body.is-dragging [data-testid^="task-item-"] {
+  user-select: none;
+  -webkit-user-select: none;
 }
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
-/* ドラッグ中は右ペインの pointer-events を殺して、左カラムへの被りを防ぐ */
-body.is-dragging .priority-panel { pointer-events: none; }
