@@ -1,0 +1,142 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "現場タスク管理アプリ" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]: e2e@example.com さん
+        - generic [ref=e9]: "uid: e2e@example.com"
+        - button "テーマを切り替え" [ref=e10] [cursor=pointer]: 🌞
+        - button "ログアウト" [ref=e11] [cursor=pointer]
+  - generic [ref=e12]:
+    - complementary [ref=e13]:
+      - navigation [ref=e14]:
+        - link "タスク一覧" [ref=e15] [cursor=pointer]:
+          - /url: /tasks
+        - link "設定" [ref=e16] [cursor=pointer]:
+          - /url: /settings
+    - main [ref=e17]:
+      - generic [ref=e18]:
+        - heading "タスク一覧ページ" [level=1] [ref=e19]
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]: "sort: deadline / asc"
+            - generic [ref=e23]: "site: E2E-FILTER-1756730805975"
+            - button "すべて解除" [ref=e24] [cursor=pointer]
+          - generic [ref=e26]:
+            - textbox "現場名" [active] [ref=e28]: E2E-FILTER-1756730805975
+            - group "ステータスで絞り込み" [ref=e30]:
+              - button "未着手" [ref=e31] [cursor=pointer]
+              - button "進行中" [ref=e32] [cursor=pointer]
+              - button "完了" [ref=e33] [cursor=pointer]
+            - generic [ref=e34]:
+              - generic "上位タスク（親）だけを表示" [ref=e35]:
+                - checkbox "上位タスクのみ" [ref=e36]
+                - generic [ref=e37]: 上位タスクのみ
+              - combobox [ref=e38]:
+                - option "期限" [selected]
+                - option "進捗"
+                - option "作成日"
+              - combobox [ref=e39]:
+                - option "昇順" [selected]
+                - option "降順"
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - region "上位タスクを作成" [ref=e42]:
+              - generic [ref=e43]:
+                - heading "上位タスクを作成" [level=2] [ref=e44]
+                - generic [ref=e45]: Enterで作成
+              - generic [ref=e46]:
+                - textbox "タイトル" [ref=e47]
+                - textbox "期限" [ref=e48]
+                - textbox "現場名" [ref=e49]
+                - button "作成" [disabled] [ref=e50]
+            - tree "タスク" [ref=e51]:
+              - 'treeitem "並び替え 完了 早い-1756730805975 上位タスク 期限: 2000-05-02 ステータス: 進行中 site: E2E-FILTER-1756730805975 編集 ＋ サブタスク 削除" [level=1] [ref=e52]':
+                - generic [ref=e53]:
+                  - button "並び替え" [ref=e55]: ⋮⋮
+                  - checkbox "完了" [ref=e56]
+                  - generic [ref=e57]:
+                    - generic [ref=e58]:
+                      - generic [ref=e59]: 早い-1756730805975
+                      - generic [ref=e60]: 上位タスク
+                    - generic [ref=e61]:
+                      - generic [ref=e62]: "期限: 2000-05-02"
+                      - generic [ref=e63]: "ステータス: 進行中"
+                      - generic [ref=e64]: "site: E2E-FILTER-1756730805975"
+                  - generic [ref=e65]:
+                    - button "編集" [ref=e66] [cursor=pointer]
+                    - button "＋ サブタスク" [ref=e67] [cursor=pointer]
+                    - button "削除" [ref=e68] [cursor=pointer]
+              - 'treeitem "並び替え 完了 遅い-1756730805975 上位タスク 期限: 2030-05-02 ステータス: 進行中 site: E2E-FILTER-1756730805975 編集 ＋ サブタスク 削除" [level=1] [ref=e70]':
+                - generic [ref=e71]:
+                  - button "並び替え" [ref=e73]: ⋮⋮
+                  - checkbox "完了" [ref=e74]
+                  - generic [ref=e75]:
+                    - generic [ref=e76]:
+                      - generic [ref=e77]: 遅い-1756730805975
+                      - generic [ref=e78]: 上位タスク
+                    - generic [ref=e79]:
+                      - generic [ref=e80]: "期限: 2030-05-02"
+                      - generic [ref=e81]: "ステータス: 進行中"
+                      - generic [ref=e82]: "site: E2E-FILTER-1756730805975"
+                  - generic [ref=e83]:
+                    - button "編集" [ref=e84] [cursor=pointer]
+                    - button "＋ サブタスク" [ref=e85] [cursor=pointer]
+                    - button "削除" [ref=e86] [cursor=pointer]
+              - 'treeitem "並び替え 完了 期限なし-1756730805975 上位タスク 期限: — ステータス: 進行中 site: E2E-FILTER-1756730805975 編集 ＋ サブタスク 削除" [level=1] [ref=e88]':
+                - generic [ref=e89]:
+                  - button "並び替え" [ref=e91]: ⋮⋮
+                  - checkbox "完了" [ref=e92]
+                  - generic [ref=e93]:
+                    - generic [ref=e94]:
+                      - generic [ref=e95]: 期限なし-1756730805975
+                      - generic [ref=e96]: 上位タスク
+                    - generic [ref=e97]:
+                      - generic [ref=e98]: "期限: —"
+                      - generic [ref=e99]: "ステータス: 進行中"
+                      - generic [ref=e100]: "site: E2E-FILTER-1756730805975"
+                  - generic [ref=e101]:
+                    - button "編集" [ref=e102] [cursor=pointer]
+                    - button "＋ サブタスク" [ref=e103] [cursor=pointer]
+                    - button "削除" [ref=e104] [cursor=pointer]
+          - complementary [ref=e108]:
+            - generic [ref=e109]:
+              - generic [ref=e110]:
+                - heading "優先タスク" [level=2] [ref=e111]
+                - generic [ref=e112]: 5件
+              - list [ref=e113]:
+                - listitem [ref=e114]:
+                  - generic [ref=e115]:
+                    - checkbox "完了" [ref=e116]
+                    - generic [ref=e117]:
+                      - paragraph [ref=e118]: 早い-1756185282940
+                      - paragraph [ref=e119]: 5/2(火)・進捗 0%
+                - listitem [ref=e121]:
+                  - generic [ref=e122]:
+                    - checkbox "完了" [ref=e123]
+                    - generic [ref=e124]:
+                      - paragraph [ref=e125]: 早い-1756186963452
+                      - paragraph [ref=e126]: 5/2(火)・進捗 0%
+                - listitem [ref=e128]:
+                  - generic [ref=e129]:
+                    - checkbox "完了" [ref=e130]
+                    - generic [ref=e131]:
+                      - paragraph [ref=e132]: 早い-1756202407825
+                      - paragraph [ref=e133]: 5/2(火)・進捗 0%
+                - listitem [ref=e135]:
+                  - generic [ref=e136]:
+                    - checkbox "完了" [ref=e137]
+                    - generic [ref=e138]:
+                      - paragraph [ref=e139]: 早い-1756203270310
+                      - paragraph [ref=e140]: 5/2(火)・進捗 0%
+                - listitem [ref=e142]:
+                  - generic [ref=e143]:
+                    - checkbox "完了" [ref=e144]
+                    - generic [ref=e145]:
+                      - paragraph [ref=e146]: 早い-1756204094140
+                      - paragraph [ref=e147]: 5/2(火)・進捗 0%
+```

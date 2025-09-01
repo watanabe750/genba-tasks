@@ -9,16 +9,24 @@
           "value": "light"
         },
         {
+          "name": "expiry",
+          "value": "1757940395"
+        },
+        {
           "name": "uid",
           "value": "e2e@example.com"
         },
         {
           "name": "client",
-          "value": "WUTa35c1yoN6nw0OgfPKag"
+          "value": "eRKHv89mxc3T-vNWaNrWKg"
         },
         {
           "name": "access-token",
-          "value": "WnIz_VpTBZdhlAOORXPNxQ"
+          "value": "nN-BWUt3KQuOrxcuKi4mFg"
+        },
+        {
+          "name": "token-type",
+          "value": "Bearer"
         }
       ]
     }

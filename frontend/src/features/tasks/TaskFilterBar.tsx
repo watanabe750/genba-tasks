@@ -52,26 +52,35 @@ export function TaskFilterBar() {
     return out;
   }, [order_by, dir, status, site, parents_only]);
 
-  // --- 操作ユーティリティ ---
+  // --- URLSearchParams を毎回“新しいインスタンス”で更新するユーティリティ ---
+  const updateSearchParams = (mutate: (draft: URLSearchParams) => void) => {
+    const next = new URLSearchParams(sp);
+    mutate(next);
+    setSp(next, { replace: true });
+  };
+
   const setOrDelete = (key: string, value: string | null) => {
-    if (value == null || value === "") sp.delete(key);
-    else sp.set(key, value);
-    setSp(sp, { replace: true });
+    updateSearchParams((draft) => {
+      if (value == null || value === "") draft.delete(key);
+      else draft.set(key, value);
+    });
   };
 
   const toggleParentsOnly = () => {
-    if (parents_only) sp.delete("parents_only");
-    else sp.set("parents_only", "1");
-    setSp(sp, { replace: true });
+    updateSearchParams((draft) => {
+      if (draft.get("parents_only") === "1") draft.delete("parents_only");
+      else draft.set("parents_only", "1");
+    });
   };
 
   const toggleStatus = (s: Status) => {
-    const cur = new Set(sp.getAll("status"));
-    if (cur.has(s)) cur.delete(s);
-    else cur.add(s);
-    sp.delete("status");
-    [...cur].forEach((v) => sp.append("status", v));
-    setSp(sp, { replace: true });
+    updateSearchParams((draft) => {
+      const cur = new Set(draft.getAll("status"));
+      if (cur.has(s)) cur.delete(s);
+      else cur.add(s);
+      draft.delete("status");
+      for (const v of cur) draft.append("status", v);
+    });
   };
 
   return (
@@ -97,7 +106,7 @@ export function TaskFilterBar() {
       {/* 下段：横幅いっぱい、中央にステータス、右端に上位タスクのみ・並び替え */}
       <div className="w-full rounded-xl border bg-white px-3 py-2">
         <div className="grid grid-cols-12 items-center gap-2">
-          {/* 左：現場名（コンパクト） */}
+          {/* 左：現場名 */}
           <div className="col-span-3">
             <input
               data-testid="filter-site"
@@ -108,7 +117,7 @@ export function TaskFilterBar() {
             />
           </div>
 
-          {/* 中央：ステータス（セグメント三連ボタン） */}
+          {/* 中央：ステータス */}
           <div className="col-span-6 flex justify-center">
             <div
               role="group"
@@ -137,7 +146,7 @@ export function TaskFilterBar() {
             </div>
           </div>
 
-          {/* 右：上位タスクのみ + 並び替え（右寄せ） */}
+          {/* 右：上位タスクのみ + 並び替え */}
           <div className="col-span-3 flex items-center justify-end gap-2 flex-nowrap">
             <label
               className="inline-flex items-center gap-1 text-sm whitespace-nowrap shrink-0"
