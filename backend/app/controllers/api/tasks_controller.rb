@@ -6,10 +6,48 @@ module Api
     SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
 
     def index
-      tasks = Task.filter_sort(filter_params, user: current_user)
-      # ★ 兄弟内の並びは position 昇順
-      tasks = tasks.order(:parent_id, :position)
-      render json: tasks.as_json(only: SELECT_FIELDS)
+      filters = filter_params
+      scope   = Task.filter_sort(filters, user: current_user)
+
+      # ---- 並び順を「明示的に」確定（親を常に先頭 / primary でソート / 兄弟は position）----
+      dir = %w[asc desc].include?(filters[:dir].to_s.downcase) ? filters[:dir].to_s.upcase : "ASC"
+      ob  = (filters[:order_by].presence || "deadline").to_s
+
+      primary =
+        case ob
+        when "progress"   then "progress"
+        when "created_at" then "created_at"
+        else                    "deadline"
+        end
+
+      adapter = ActiveRecord::Base.connection.adapter_name.to_s
+
+      parents_first_sql =
+        if adapter =~ /postgre/i
+          # PostgreSQL: NULLS LAST が素直に使える
+          <<~SQL.squish
+            (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
+            #{primary} #{dir} NULLS LAST,
+            parent_id ASC,
+            position ASC
+          SQL
+        else
+          # SQLite / MySQL: NULLS LAST 相当を CASE で表現
+          <<~SQL.squish
+            (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
+            CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC,
+            #{primary} #{dir},
+            parent_id ASC,
+            position ASC
+          SQL
+        end
+
+      # 重要：reorder で既存 ORDER を丸ごと置き換える
+      scope = scope.reorder(Arel.sql(parents_first_sql))
+
+      Rails.logger.info("[Tasks#index] order=#{parents_first_sql} filters=#{filters.inspect}")
+
+      render json: scope.as_json(only: SELECT_FIELDS)
     end
 
     def priority
@@ -38,18 +76,15 @@ module Api
     end
 
     def update
-      # まずパラメータを確定
       attrs = task_params
-    
-      # ---- 親またぎ禁止の防御（UI壊れてもDBを守る） ----
+
+      # ---- 親またぎ禁止の防御（UI壊れてもDBを守る）----
       if attrs.key?(:parent_id)
-        # 同値（=変更なし）は許容、異なる場合は 422
         if attrs[:parent_id] != @task.parent_id
           render json: { errors: ["親をまたぐ移動は不可です"] }, status: :unprocessable_entity and return
         end
       end
-      # -----------------------------------------------
-    
+
       if @task.update(attrs)
         render json: @task
       else
@@ -81,7 +116,7 @@ module Api
     end
 
     private
-    # ---- ここから下はprivate ----
+
     def _debug_params
       Rails.logger.info("[Params] content_type=#{request.content_type.inspect}")
       Rails.logger.info("[Params] keys=#{params.keys.inspect}")
