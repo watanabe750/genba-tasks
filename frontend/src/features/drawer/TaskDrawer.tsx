@@ -1,3 +1,4 @@
+// src/features/drawer/TaskDrawer.tsx
 import React, { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTaskDrawer } from "./useTaskDrawer";
@@ -9,6 +10,7 @@ import StatusPill from "../../components/StatusPill";
 import ProgressBar from "../../components/ProgressBar";
 import { toYmd } from "../../utils/date";
 import ChildPreviewList from "./ChildPreviewList";
+import ImagePreview from "./ImagePreview";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -59,9 +61,10 @@ export default function TaskDrawer() {
   const descId = "task-drawer-desc";
 
   // --- セーフティ（undefined/null を吸収） ---
-  const prog = Math.max(0, Math.min(100, Math.round((data?.progress_percent ?? 0))));
+  const prog = Math.max(0, Math.min(100, Math.round(data?.progress_percent ?? 0)));
   const preview = data?.children_preview ?? [];
   const grandkids = typeof data?.grandchildren_count === "number" ? data!.grandchildren_count : 0;
+  const imageUrl = data?.image_url ?? null;
 
   return (
     <RootPortal>
@@ -81,7 +84,7 @@ export default function TaskDrawer() {
       >
         {/* ヘッダー（accessible name はタスク名） */}
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 id={titleId} className="text-base font-semibold truncate">
+          <h2 id={titleId} className="truncate text-base font-semibold">
             {data?.title ?? "タスク詳細"}
           </h2>
           <button
@@ -157,7 +160,14 @@ export default function TaskDrawer() {
               {/* 直下の子プレビュー（最大4件）＆孫件数 */}
               <ChildPreviewList items={preview} grandchildrenCount={grandkids} />
 
-              {/* 4行目：監査情報 */}
+              {/* 画像（存在時のみ） */}
+              {imageUrl && (
+                <div className="mt-4">
+                  <ImagePreview url={imageUrl} title={data.title} />
+                </div>
+              )}
+
+              {/* 監査情報 */}
               <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-gray-600">
                 <div>
                   作成者:{" "}
