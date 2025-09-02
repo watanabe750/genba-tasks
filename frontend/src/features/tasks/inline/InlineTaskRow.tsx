@@ -1,3 +1,4 @@
+// src/features/tasks/inline/InlineTaskRow.tsx
 import { useMemo, useState, useLayoutEffect, type DragEvent, useRef } from "react";
 import type { Task } from "../../../types/task";
 import { useUpdateTask } from "../../tasks/useUpdateTask";
@@ -6,6 +7,7 @@ import { useCreateTask } from "../../tasks/useCreateTask";
 import { MAX_CHILDREN_PER_NODE } from "../../tasks/constraints";
 import { useInlineDnd } from "./dndContext";
 import InlineDropZone from "./InlineDropZone";
+import { useTaskDrawer } from "../../drawer/useTaskDrawer"; // ★ 追加
 
 const toDateInputValue = (iso?: string | null) => {
   if (!iso) return "";
@@ -58,6 +60,10 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
 
   const [addingChild, setAddingChild] = useState(false);
   const [childTitle, setChildTitle] = useState("");
+
+  // Drawer: 親タイトル要素（フォーカス復帰用）
+  const { open: openDrawer } = useTaskDrawer();           // ★ 追加
+  const titleRef = useRef<HTMLSpanElement | null>(null);  // ★ 追加
 
   // 直下の子だけで「自動 x/y OK」を算出
   const leafStats = useMemo(() => {
@@ -185,6 +191,22 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     dnd.state.draggingId !== task.id &&
     samePid(dnd.state.draggingParentId, task.parent_id ?? null);
 
+  // 親タイトルクリック/キー押下でドロワーを開く（子孫は従来通り、編集開始）
+  const handleTitleClick = () => {
+    if (isParent) {
+      openDrawer(task.id, titleRef.current || undefined);
+    } else {
+      setEditing(true);
+    }
+  };
+  const handleTitleKeyDown = (e: any) => {
+    if (!isParent) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openDrawer(task.id, titleRef.current || undefined);
+    }
+  };
+
   return (
     <div
       role="treeitem"
@@ -261,11 +283,21 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
         <div className="min-w-0 flex-1">
           {!editing ? (
             <>
-              <div className="flex min-w-0 items-center gap-2" onClick={() => setEditing(true)}>
+              <div
+                className="flex min-w-0 items-center gap-2"
+                onClick={handleTitleClick}
+                onKeyDown={handleTitleKeyDown}
+              >
                 <span
+                  ref={titleRef}  // ★ フォーカス復帰用
                   data-testid={`task-title-${task.id}`}
+                  role={isParent ? "button" : undefined}
+                  tabIndex={isParent ? 0 : undefined}
+                  aria-haspopup={isParent ? "dialog" : undefined}
+                  title={isParent ? "詳細を開く" : undefined}
                   className={[
-                    "truncate cursor-text text-[15px] font-medium hover:underline decoration-dotted",
+                    "truncate text-[15px] font-medium hover:underline decoration-dotted",
+                    isParent ? "cursor-pointer" : "cursor-text",
                     task.status === "completed" ? "text-gray-400 line-through" : "",
                   ].join(" ")}
                 >

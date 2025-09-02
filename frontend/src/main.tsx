@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./index.css";
 import { AppRouter } from "./router/AppRouter";
 import { AuthProvider } from "./providers/AuthContext";
+import { TaskDrawerProvider } from "./features/drawer/useTaskDrawer";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +21,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppRouter />
+        <TaskDrawerProvider>
+          <AppRouter />
+        </TaskDrawerProvider>
       </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>
