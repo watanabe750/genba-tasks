@@ -9,7 +9,6 @@ module Api
       filters = filter_params
       scope   = Task.filter_sort(filters, user: current_user)
 
-      # ---- 並び順を「明示的に」確定（親を常に先頭 / primary でソート / 兄弟は position）----
       dir = %w[asc desc].include?(filters[:dir].to_s.downcase) ? filters[:dir].to_s.upcase : "ASC"
       ob  = (filters[:order_by].presence || "deadline").to_s
 
@@ -21,10 +20,8 @@ module Api
         end
 
       adapter = ActiveRecord::Base.connection.adapter_name.to_s
-
       parents_first_sql =
         if adapter =~ /postgre/i
-          # PostgreSQL: NULLS LAST が素直に使える
           <<~SQL.squish
             (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
             #{primary} #{dir} NULLS LAST,
@@ -32,7 +29,6 @@ module Api
             position ASC
           SQL
         else
-          # SQLite / MySQL: NULLS LAST 相当を CASE で表現
           <<~SQL.squish
             (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
             CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC,
@@ -42,9 +38,7 @@ module Api
           SQL
         end
 
-      # 重要：reorder で既存 ORDER を丸ごと置き換える
       scope = scope.reorder(Arel.sql(parents_first_sql))
-
       Rails.logger.info("[Tasks#index] order=#{parents_first_sql} filters=#{filters.inspect}")
 
       render json: scope.as_json(only: SELECT_FIELDS)
@@ -55,9 +49,60 @@ module Api
       render json: tasks.as_json(only: SELECT_FIELDS)
     end
 
+    # ==== ここを差し替え ====
     def show
-      render json: @task
+      t = @task
+
+      # 直下の子（最大4件）：期限昇順 → 期限なし → id昇順
+      kids_scope = current_user.tasks
+                     .where(parent_id: t.id)
+                     .select(:id, :title, :status, :progress, :deadline, :parent_id)
+                     .order(Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC, deadline ASC, id ASC"))
+                     .limit(4)
+      kids = kids_scope.to_a
+
+      # 直下の子サマリ
+      children_count       = current_user.tasks.where(parent_id: t.id).count
+      children_done_count  = current_user.tasks.where(parent_id: t.id, status: "completed").count
+
+      # 孫の総数
+      grandkids_count =
+        if children_count.zero?
+          0
+        else
+          child_ids = current_user.tasks.where(parent_id: t.id).select(:id)
+          current_user.tasks.where(parent_id: child_ids).count
+        end
+
+      # 進捗％（nilでも0に）
+      progress_percent = (t.respond_to?(:progress_percent) ? t.progress_percent : t.progress).to_i
+
+      render json: {
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        site: t.site,
+        deadline: t.deadline&.iso8601,
+        progress_percent: progress_percent,
+        children_count: children_count,
+        children_done_count: children_done_count,
+        grandchildren_count: grandkids_count,
+        children_preview: kids.map { |c|
+          {
+            id: c.id,
+            title: c.title,
+            status: c.status,
+            progress_percent: c.progress.to_i,
+            deadline: c.deadline&.iso8601
+          }
+        },
+        created_by_name: (t.try(:user)&.try(:name) || t.try(:user)&.try(:email) || "—"),
+        created_at: t.created_at.iso8601,
+        updated_at: t.updated_at.iso8601,
+        image_url: (t.respond_to?(:image_url) ? t.image_url : nil)
+      }
     end
+    # ==== 差し替えここまで ====
 
     def create
       task = current_user.tasks.new(task_params)
@@ -77,8 +122,6 @@ module Api
 
     def update
       attrs = task_params
-
-      # ---- 親またぎ禁止の防御（UI壊れてもDBを守る）----
       if attrs.key?(:parent_id)
         if attrs[:parent_id] != @task.parent_id
           render json: { errors: ["親をまたぐ移動は不可です"] }, status: :unprocessable_entity and return
@@ -94,7 +137,7 @@ module Api
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#update] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
       render json: { errors: [e.message] }, status: :bad_request
-    rescue ArgumentError => e  # ← enum無効値など
+    rescue ArgumentError => e
       Rails.logger.warn("[Task#update] ArgumentError: #{e.message}")
       render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
@@ -104,7 +147,6 @@ module Api
       head :no_content
     end
 
-    # 現場名候補（親タスクからdistinct、null/空白除外）
     def sites
       names = current_user.tasks
                 .where(parent_id: nil)
@@ -120,7 +162,6 @@ module Api
 
       if after_id
         sib = current_user.tasks.find_by(id: after_id)
-        # 親またぎは 422
         if sib && sib.parent_id != @task.parent_id
           return render json: { errors: ["親をまたぐ移動は不可です"] }, status: :unprocessable_entity
         end
@@ -149,7 +190,6 @@ module Api
       render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
     end
 
-    # site/status/progress/deadline/parents_only を受け取る
     def filter_params
       {
         site:          params[:site],
@@ -162,7 +202,6 @@ module Api
       }
     end
 
-    # ネスト / フラット / JSON文字列キー ぜんぶ対応
     def task_params
       raw = request.request_parameters
       src =
@@ -189,12 +228,10 @@ module Api
         .permit(:title, :status, :progress, :deadline, :parent_id, :description, :site)
     end
 
-    # === 並び替え（同一親内）===
     def reorder_within_parent!(task, after_id_param)
       after_id = after_id_param.present? ? after_id_param.to_i : nil
 
       Task.transaction do
-        # after_id が nil のときは先頭に移動
         target_pos =
           if after_id.nil?
             1
@@ -204,20 +241,15 @@ module Api
             (sib.position || 0) + 1
           end
 
-        # 同一親の兄弟を lock して詰め直し
         scope = current_user.tasks.where(parent_id: task.parent_id).order(:position).lock
 
-        # まず対象の行を抜いて隙間を詰める
         removed_pos = task.position
         scope.where("position > ?", removed_pos).update_all("position = position - 1")
 
-        # target_pos 以降を空ける
         scope.reload.where("position >= ?", target_pos).update_all("position = position + 1")
 
-        # 自分を target_pos に
         task.update!(position: target_pos)
 
-        # 念のため 1..N を再採番
         pos = 1
         scope.reload.each do |t|
           t.update_columns(position: pos) unless t.position == pos
