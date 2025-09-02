@@ -49,7 +49,6 @@ module Api
       render json: tasks.as_json(only: SELECT_FIELDS)
     end
 
-    # ==== ここを差し替え ====
     def show
       t = @task
 
