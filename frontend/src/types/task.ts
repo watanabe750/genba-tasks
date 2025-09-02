@@ -1,5 +1,5 @@
 import type { ISODateString, Nullable } from "./shared";
-
+export type { Status as TaskStatus, Task as FlatTask, TaskNode as Task } from "../type";
 export type TaskStatus = "not_started" | "in_progress" | "completed";
 
 export type Task = {
