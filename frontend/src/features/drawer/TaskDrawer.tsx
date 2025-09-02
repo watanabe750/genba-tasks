@@ -1,4 +1,3 @@
-// src/features/drawer/TaskDrawer.tsx
 import React, { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTaskDrawer } from "./useTaskDrawer";
@@ -6,6 +5,9 @@ import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useTaskDetail } from "../tasks/useTaskDetail";
 import TaskDrawerSkeleton from "./TaskDrawerSkeleton";
+import StatusPill from "../../components/StatusPill";
+import ProgressBar from "../../components/ProgressBar";
+import { toYmd } from "../../utils/date";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -22,17 +24,14 @@ export default function TaskDrawer() {
   const { openTaskId, close } = useTaskDrawer();
   const open = openTaskId != null;
 
-  // body scroll lock
   useBodyScrollLock(open);
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  // 詳細データ（open時だけ）
   const { data, isLoading, isError, refetch } = useTaskDetail(openTaskId);
 
-  // Escで閉じる
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -45,14 +44,12 @@ export default function TaskDrawer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
-  // オーバーレイクリックで閉じる（パネル外のみ）
   const onOverlayMouseDown: React.MouseEventHandler<HTMLDivElement> = (e) => {
     if (e.target === overlayRef.current) {
       close();
     }
   };
 
-  // フォーカストラップ（開いている間だけ）
   useFocusTrap(panelRef.current, open);
 
   if (!open) return null;
@@ -76,10 +73,10 @@ export default function TaskDrawer() {
         aria-describedby={descId}
         className="fixed inset-y-0 right-0 z-[1001] w-full max-w-[560px] bg-white shadow-xl outline-none"
       >
-        {/* ヘッダー */}
+        {/* ヘッダー（ダイアログの accessible name はタスク名にする） */}
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 id={titleId} className="text-base font-semibold">
-            タスク詳細
+          <h2 id={titleId} className="text-base font-semibold truncate">
+            {data?.title ?? "タスク詳細"}
           </h2>
           <button
             ref={closeBtnRef}
@@ -100,18 +97,10 @@ export default function TaskDrawer() {
             <div className="p-4 text-sm">
               <p className="mb-2 text-red-700">読み込みに失敗しました。</p>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="rounded border px-3 py-1 text-xs"
-                  onClick={() => refetch()}
-                >
+                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => refetch()}>
                   再試行
                 </button>
-                <button
-                  type="button"
-                  className="rounded border px-3 py-1 text-xs"
-                  onClick={close}
-                >
+                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={close}>
                   閉じる
                 </button>
               </div>
@@ -119,17 +108,46 @@ export default function TaskDrawer() {
           )}
 
           {!isLoading && !isError && data && (
-            <div className="p-4 text-sm text-gray-700">
-              {/* ここは次ブランチ feat/drawer-content-basic で整える */}
-              <div className="mb-3">
-                <div className="text-lg font-semibold">{data.title}</div>
-                <div className="text-xs text-gray-500">
-                  site: {data.site ?? "—"} / 期限: {data.deadline ?? "—"}
+            <div className="p-4 text-sm text-gray-800">
+              {/* 1行目：ステータス + 進捗％ */}
+              <div className="mb-3 flex items-center gap-2">
+                <StatusPill status={data.status} />
+                <span className="text-xs text-gray-600">進捗: {Math.round(data.progress_percent)}%</span>
+              </div>
+
+              {/* 進捗バー（親のみ） */}
+              <div className="mb-4">
+                <ProgressBar value={data.progress_percent} data-testid="drawer-progress" />
+              </div>
+
+              {/* 2行目：site / deadline */}
+              <div className="mb-3 grid grid-cols-2 gap-3 text-[13px]">
+                <div>
+                  <div className="text-gray-500">site</div>
+                  <div className="font-medium">{data.site ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">期限</div>
+                  <div className="font-medium">{toYmd(data.deadline) ?? "未設定"}</div>
                 </div>
               </div>
-              <div className="text-xs text-gray-500">
-                （この表示は仮。次ブランチで正式レイアウトに差し替え）
+
+              {/* 3行目：子サマリ */}
+              <div className="mb-3 text-[13px]">
+                <span className="text-gray-500">子タスク</span>{" "}
+                <span className="font-medium">
+                  完了 {data.children_done_count}/{data.children_count}
+                </span>
               </div>
+
+              {/* 4行目：監査情報 */}
+              <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-gray-600">
+                <div>作成者: <span className="font-medium text-gray-800">{data.created_by_name}</span></div>
+                <div>作成日: <span className="font-medium text-gray-800">{toYmd(data.created_at) ?? "—"}</span></div>
+                <div>更新日: <span className="font-medium text-gray-800">{toYmd(data.updated_at) ?? "—"}</span></div>
+              </div>
+
+              {/* 子プレビューと画像は次のブランチで追加 */}
             </div>
           )}
         </div>
