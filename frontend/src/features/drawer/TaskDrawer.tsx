@@ -8,6 +8,7 @@ import TaskDrawerSkeleton from "./TaskDrawerSkeleton";
 import StatusPill from "../../components/StatusPill";
 import ProgressBar from "../../components/ProgressBar";
 import { toYmd } from "../../utils/date";
+import ChildPreviewList from "./ChildPreviewList";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -57,6 +58,11 @@ export default function TaskDrawer() {
   const titleId = "task-drawer-title";
   const descId = "task-drawer-desc";
 
+  // --- セーフティ（undefined/null を吸収） ---
+  const prog = Math.max(0, Math.min(100, Math.round((data?.progress_percent ?? 0))));
+  const preview = data?.children_preview ?? [];
+  const grandkids = typeof data?.grandchildren_count === "number" ? data!.grandchildren_count : 0;
+
   return (
     <RootPortal>
       <div
@@ -73,7 +79,7 @@ export default function TaskDrawer() {
         aria-describedby={descId}
         className="fixed inset-y-0 right-0 z-[1001] w-full max-w-[560px] bg-white shadow-xl outline-none"
       >
-        {/* ヘッダー（ダイアログの accessible name はタスク名にする） */}
+        {/* ヘッダー（accessible name はタスク名） */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 id={titleId} className="text-base font-semibold truncate">
             {data?.title ?? "タスク詳細"}
@@ -97,10 +103,18 @@ export default function TaskDrawer() {
             <div className="p-4 text-sm">
               <p className="mb-2 text-red-700">読み込みに失敗しました。</p>
               <div className="flex gap-2">
-                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => refetch()}>
+                <button
+                  type="button"
+                  className="rounded border px-3 py-1 text-xs"
+                  onClick={() => refetch()}
+                >
                   再試行
                 </button>
-                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={close}>
+                <button
+                  type="button"
+                  className="rounded border px-3 py-1 text-xs"
+                  onClick={close}
+                >
                   閉じる
                 </button>
               </div>
@@ -112,12 +126,12 @@ export default function TaskDrawer() {
               {/* 1行目：ステータス + 進捗％ */}
               <div className="mb-3 flex items-center gap-2">
                 <StatusPill status={data.status} />
-                <span className="text-xs text-gray-600">進捗: {Math.round(data.progress_percent)}%</span>
+                <span className="text-xs text-gray-600">進捗: {prog}%</span>
               </div>
 
-              {/* 進捗バー（親のみ） */}
+              {/* 進捗バー */}
               <div className="mb-4">
-                <ProgressBar value={data.progress_percent} data-testid="drawer-progress" />
+                <ProgressBar value={prog} data-testid="drawer-progress" />
               </div>
 
               {/* 2行目：site / deadline */}
@@ -140,14 +154,24 @@ export default function TaskDrawer() {
                 </span>
               </div>
 
+              {/* 直下の子プレビュー（最大4件）＆孫件数 */}
+              <ChildPreviewList items={preview} grandchildrenCount={grandkids} />
+
               {/* 4行目：監査情報 */}
               <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-gray-600">
-                <div>作成者: <span className="font-medium text-gray-800">{data.created_by_name}</span></div>
-                <div>作成日: <span className="font-medium text-gray-800">{toYmd(data.created_at) ?? "—"}</span></div>
-                <div>更新日: <span className="font-medium text-gray-800">{toYmd(data.updated_at) ?? "—"}</span></div>
+                <div>
+                  作成者:{" "}
+                  <span className="font-medium text-gray-800">{data.created_by_name}</span>
+                </div>
+                <div>
+                  作成日:{" "}
+                  <span className="font-medium text-gray-800">{toYmd(data.created_at) ?? "—"}</span>
+                </div>
+                <div>
+                  更新日:{" "}
+                  <span className="font-medium text-gray-800">{toYmd(data.updated_at) ?? "—"}</span>
+                </div>
               </div>
-
-              {/* 子プレビューと画像は次のブランチで追加 */}
             </div>
           )}
         </div>
