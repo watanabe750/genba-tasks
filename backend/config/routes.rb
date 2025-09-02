@@ -9,6 +9,9 @@ Rails.application.routes.draw do
         get :priority
         get :sites
       end
+      member do
+        patch :reorder
+      end
     end
   end
 end
