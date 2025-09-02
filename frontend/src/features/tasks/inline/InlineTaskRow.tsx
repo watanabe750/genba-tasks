@@ -1,4 +1,3 @@
-// src/features/tasks/inline/InlineTaskRow.tsx
 import { useMemo, useState, useLayoutEffect, type DragEvent, useRef } from "react";
 import type { Task } from "../../../types/task";
 import { useUpdateTask } from "../../tasks/useUpdateTask";
@@ -60,21 +59,14 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
   const [addingChild, setAddingChild] = useState(false);
   const [childTitle, setChildTitle] = useState("");
 
+  // 直下の子だけで「自動 x/y OK」を算出
   const leafStats = useMemo(() => {
-    if (isLeaf) return null;
-    const countLeaves = (n: Task): { done: number; total: number } => {
-      const kids = n.children ?? [];
-      if (kids.length === 0) return { done: n.status === "completed" ? 1 : 0, total: 1 };
-      return kids.reduce(
-        (acc, c) => {
-          const s = countLeaves(c);
-          return { done: acc.done + s.done, total: acc.total + s.total };
-        },
-        { done: 0, total: 0 }
-      );
-    };
-    return countLeaves(task);
-  }, [task, isLeaf]);
+    const kids = task.children ?? [];
+    if (kids.length === 0) return null;
+    const total = kids.length;
+    const done = kids.filter((c) => c.status === "completed").length;
+    return { done, total };
+  }, [task.children]);
 
   const save = () => {
     const payload: Partial<Pick<Task, "title" | "deadline" | "status" | "progress">> = {
@@ -283,9 +275,12 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">上位タスク</span>
                 )}
                 {!isLeaf && (
-                  <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">
-                    自動 並び固定
-                    {leafStats ? ` ${leafStats.done}/${leafStats.total} OK` : ""}
+                  <span
+                    data-testid={`leafstats-${task.id}`}
+                    className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600"
+                    title="子タスクの完了数 / 子タスク総数"
+                  >
+                    自動 {leafStats?.done ?? 0}/{leafStats?.total ?? 0} OK
                   </span>
                 )}
               </div>
