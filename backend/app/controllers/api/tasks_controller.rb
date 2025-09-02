@@ -1,7 +1,7 @@
 module Api
   class TasksController < Api::BaseController
-    before_action :set_task, only: [:show, :update, :destroy]
-    before_action :_debug_params, only: [:create, :update]
+    before_action :set_task, only: [:show, :update, :destroy, :reorder]
+    before_action :_debug_params, only: [:create, :update, :reorder]
 
     SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
 
@@ -113,6 +113,25 @@ module Api
                 .order(Arel.sql("LOWER(site) ASC"))
                 .pluck(:site)
       render json: names
+    end
+
+    def reorder
+      after_id = params[:after_id].presence
+
+      if after_id
+        sib = current_user.tasks.find_by(id: after_id)
+        # 親またぎは 422
+        if sib && sib.parent_id != @task.parent_id
+          return render json: { errors: ["親をまたぐ移動は不可です"] }, status: :unprocessable_entity
+        end
+      end
+
+      reorder_within_parent!(@task, after_id)
+      head :no_content
+    rescue ActiveRecord::RecordNotFound
+      render json: { errors: ["Task not found"] }, status: :not_found
+    rescue ActiveRecord::RecordInvalid => e
+      render json: { errors: [e.message] }, status: :unprocessable_entity
     end
 
     private
