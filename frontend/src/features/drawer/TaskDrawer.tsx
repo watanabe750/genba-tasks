@@ -1,8 +1,11 @@
+// src/features/drawer/TaskDrawer.tsx
 import React, { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTaskDrawer } from "./useTaskDrawer";
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { useTaskDetail } from "../tasks/useTaskDetail";
+import TaskDrawerSkeleton from "./TaskDrawerSkeleton";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -25,6 +28,9 @@ export default function TaskDrawer() {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // 詳細データ（open時だけ）
+  const { data, isLoading, isError, refetch } = useTaskDetail(openTaskId);
 
   // Escで閉じる
   useEffect(() => {
@@ -51,7 +57,6 @@ export default function TaskDrawer() {
 
   if (!open) return null;
 
-  // A11y id
   const titleId = "task-drawer-title";
   const descId = "task-drawer-desc";
 
@@ -87,9 +92,46 @@ export default function TaskDrawer() {
           </button>
         </div>
 
-        {/* 本文（このブランチではダミー） */}
-        <div id={descId} className="p-4 text-sm text-gray-600">
-          ドロワーの骨組みが動作中です（`feat/drawer-shell-open`）。この後のブランチでデータを流し込みます。
+        {/* 本文 */}
+        <div id={descId} className="min-h-[160px]">
+          {isLoading && <TaskDrawerSkeleton />}
+
+          {!isLoading && isError && (
+            <div className="p-4 text-sm">
+              <p className="mb-2 text-red-700">読み込みに失敗しました。</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded border px-3 py-1 text-xs"
+                  onClick={() => refetch()}
+                >
+                  再試行
+                </button>
+                <button
+                  type="button"
+                  className="rounded border px-3 py-1 text-xs"
+                  onClick={close}
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!isLoading && !isError && data && (
+            <div className="p-4 text-sm text-gray-700">
+              {/* ここは次ブランチ feat/drawer-content-basic で整える */}
+              <div className="mb-3">
+                <div className="text-lg font-semibold">{data.title}</div>
+                <div className="text-xs text-gray-500">
+                  site: {data.site ?? "—"} / 期限: {data.deadline ?? "—"}
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                （この表示は仮。次ブランチで正式レイアウトに差し替え）
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </RootPortal>
