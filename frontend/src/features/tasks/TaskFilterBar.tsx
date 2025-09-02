@@ -14,6 +14,9 @@ export function TaskFilterBar() {
   const dir = (sp.get("dir") as SortDir) ?? "asc";
   const parents_only = sp.get("parents_only") === "1";
   const status = sp.getAll("status") as Status[];
+  // ★ 進捗レンジ（未指定は空文字扱い）
+  const progress_min = sp.get("progress_min") ?? "";
+  const progress_max = sp.get("progress_max") ?? "";
 
   // 表示中のチップ
   const chips = useMemo(() => {
@@ -49,10 +52,17 @@ export function TaskFilterBar() {
         </span>
       );
     }
+    if (progress_min || progress_max) {
+      out.push(
+        <span key="progress" className="px-2 py-1 text-xs rounded-full bg-gray-100">
+          progress: {progress_min || 0}–{progress_max || 100}
+        </span>
+      );
+    }
     return out;
-  }, [order_by, dir, status, site, parents_only]);
+  }, [order_by, dir, status, site, parents_only, progress_min, progress_max]);
 
-  // --- URLSearchParams を毎回“新しいインスタンス”で更新するユーティリティ ---
+  // --- URLSearchParams を毎回“新しいインスタンス”で更新 ---
   const updateSearchParams = (mutate: (draft: URLSearchParams) => void) => {
     const next = new URLSearchParams(sp);
     mutate(next);
@@ -83,6 +93,15 @@ export function TaskFilterBar() {
     });
   };
 
+  // ★ 0..100 クランプしながら set/delete
+  const onChangeProgress = (key: "progress_min" | "progress_max") =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      if (raw === "") return setOrDelete(key, "");
+      const n = Math.max(0, Math.min(100, Number(raw)));
+      setOrDelete(key, String(n));
+    };
+
   return (
     <section className="mb-4" data-testid="filter-bar">
       {/* 上段：チップ + 全解除 */}
@@ -93,6 +112,7 @@ export function TaskFilterBar() {
             <button
               type="button"
               className="ml-2 text-xs text-gray-600 underline decoration-dotted"
+              data-testid="filter-reset"
               onClick={() => setSp({}, { replace: true })}
             >
               すべて解除
@@ -117,8 +137,8 @@ export function TaskFilterBar() {
             />
           </div>
 
-          {/* 中央：ステータス */}
-          <div className="col-span-6 flex justify-center">
+          {/* 中央：ステータス + 進捗レンジ */}
+          <div className="col-span-6 flex flex-col items-center gap-2">
             <div
               role="group"
               aria-label="ステータスで絞り込み"
@@ -143,6 +163,36 @@ export function TaskFilterBar() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* ★ 進捗レンジ UI */}
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <label className="flex items-center gap-1">
+                <span>進捗</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  data-testid="progress-min"
+                  className="w-16 rounded border px-2 py-1"
+                  value={progress_min}
+                  onChange={onChangeProgress("progress_min")}
+                  placeholder="min"
+                />
+                <span>–</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  data-testid="progress-max"
+                  className="w-16 rounded border px-2 py-1"
+                  value={progress_max}
+                  onChange={onChangeProgress("progress_max")}
+                  placeholder="max"
+                />
+              </label>
             </div>
           </div>
 
