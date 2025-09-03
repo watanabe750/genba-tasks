@@ -11,14 +11,13 @@ import ProgressBar from "../../components/ProgressBar";
 import { toYmd } from "../../utils/date";
 import ChildPreviewList from "./ChildPreviewList";
 import ImagePreview from "./ImagePreview";
+import { useToast } from "../../components/ToastProvider";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
   useEffect(() => {
     document.body.appendChild(el);
-    return () => {
-      document.body.removeChild(el);
-    };
+    return () => { document.body.removeChild(el); };
   }, [el]);
   return createPortal(children, el);
 };
@@ -33,34 +32,58 @@ export default function TaskDrawer() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  const { data, isLoading, isError, refetch } = useTaskDetail(openTaskId);
+  const { data, isLoading, isError, error, refetch } = useTaskDetail(openTaskId);
+  const { push: toast } = useToast();
 
+  // Escで閉じる
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        close();
-      }
+      if (e.key === "Escape") { e.stopPropagation(); close(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
+  // 401連動：ログアウト時に閉じる
+  useEffect(() => {
+    const onLogout = () => close();
+    window.addEventListener("auth:logout", onLogout as any);
+    return () => window.removeEventListener("auth:logout", onLogout as any);
+  }, [close]);
+
+  // オーバーレイクリック（外側のみ）
   const onOverlayMouseDown: React.MouseEventHandler<HTMLDivElement> = (e) => {
-    if (e.target === overlayRef.current) {
-      close();
-    }
+    if (e.target === overlayRef.current) close();
   };
 
+  // フォーカストラップ
   useFocusTrap(panelRef.current, open);
+
+  // エラーUX：404→自動クローズ、401→クローズ、5xx→開いたまま再試行
+  useEffect(() => {
+    if (!open || !isError) return;
+    const status = (error as any)?.response?.status ?? (error as any)?.status ?? null;
+
+    if (status === 404) {
+      toast("タスクが見つかりません", "error");
+      close();
+    } else if (status === 401) {
+      toast("セッションが切れました。再ログインしてください", "error");
+      close();
+    } else {
+      toast("サーバーエラー。再試行してください", "error");
+      // ドロワーは開いたまま。下の再試行ボタンで refetch
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isError, error]);
 
   if (!open) return null;
 
   const titleId = "task-drawer-title";
   const descId = "task-drawer-desc";
 
-  // --- セーフティ（undefined/null を吸収） ---
+  // セーフティ
   const prog = Math.max(0, Math.min(100, Math.round(data?.progress_percent ?? 0)));
   const preview = data?.children_preview ?? [];
   const grandkids = typeof data?.grandchildren_count === "number" ? data!.grandchildren_count : 0;
@@ -106,18 +129,10 @@ export default function TaskDrawer() {
             <div className="p-4 text-sm">
               <p className="mb-2 text-red-700">読み込みに失敗しました。</p>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="rounded border px-3 py-1 text-xs"
-                  onClick={() => refetch()}
-                >
+                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => refetch()}>
                   再試行
                 </button>
-                <button
-                  type="button"
-                  className="rounded border px-3 py-1 text-xs"
-                  onClick={close}
-                >
+                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={close}>
                   閉じる
                 </button>
               </div>

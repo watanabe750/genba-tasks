@@ -5,12 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./index.css";
 import { AppRouter } from "./router/AppRouter";
 import { AuthProvider } from "./providers/AuthContext";
+
+// 追加
 import { TaskDrawerProvider } from "./features/drawer/useTaskDrawer";
+import { ToastProvider } from "./components/ToastProvider";
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 30_000, refetchOnWindowFocus: false },
-  },
+  defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
 });
 
 window.addEventListener("auth:logout", () => {
@@ -22,7 +23,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TaskDrawerProvider>
-          <AppRouter />
+          <ToastProvider>
+            <AppRouter />
+          </ToastProvider>
         </TaskDrawerProvider>
       </AuthProvider>
     </QueryClientProvider>
