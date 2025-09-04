@@ -22,17 +22,14 @@ type Ctx = {
   onDragStart: (task: Task, depth: number) => void;
   onDragEnd: () => void;
 
-  // 親またぎ不可（同一親だけ true）
   canAcceptIntoParent: (parentId: number | null) => boolean;
 
-  // 同一親内の並べ替え（UIローカル）
   reorderWithinParent: (
     parentId: number | null,
     movingId: number,
     afterId: number | null
   ) => void;
 
-  // 親またぎ移動は未対応（no-op）
   moveAcrossParents: (args: {
     fromPid: number | null;
     toPid: number | null;
@@ -40,10 +37,8 @@ type Ctx = {
     afterId: number | null;
   }) => void;
 
-  // 表示順の取得（プロバイダが保持する順に並べる）
-  getOrderedChildren: (parentId: number, children: Task[]) => Task[];
+  getOrderedChildren: (parentId: number | null, children: Task[]) => Task[];
 
-  // サーバから受け取った“現在の並び”を登録
   registerChildren: (parentId: number | null, childIds: number[]) => void;
 };
 

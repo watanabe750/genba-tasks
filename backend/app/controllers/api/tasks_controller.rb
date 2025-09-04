@@ -1,48 +1,86 @@
 module Api
   class TasksController < Api::BaseController
     before_action :set_task, only: [:show, :update, :destroy, :reorder]
-    before_action :_debug_params, only: [:create, :update, :reorder]
+    before_action :_debug_params, only: [:create, :update, :reorder], if: -> { ENV["E2E_DEBUG_PARAMS"] == "1" }
 
     SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
 
     def index
       filters = filter_params
       scope   = Task.filter_sort(filters, user: current_user)
-
+    
       dir = %w[asc desc].include?(filters[:dir].to_s.downcase) ? filters[:dir].to_s.upcase : "ASC"
       ob  = (filters[:order_by].presence || "deadline").to_s
-
-      primary =
+    
+      # ----- order_by=site 専用：全体で「期限あり」→「期限なし」 -----
+      if ob == "site"
+        adapter = ActiveRecord::Base.connection.adapter_name.to_s
+        parents_first_sql =
+          if adapter =~ /postgre/i
+            <<~SQL.squish
+              (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
+              (CASE WHEN deadline IS NULL THEN 1 ELSE 0 END) ASC,                          -- 期限ありが先、期限なしは全体の末尾へ
+              LOWER(site) #{dir} NULLS LAST,
+              CASE WHEN deadline IS NULL THEN NULL ELSE deadline END ASC,                  -- 期限ありグループ内は期限昇順
+              parent_id ASC,
+              position ASC,
+              id ASC
+            SQL
+          else
+            <<~SQL.squish
+              (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
+              CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC,                            -- 期限ありが先
+              CASE WHEN LOWER(site) IS NULL THEN 1 ELSE 0 END ASC, LOWER(site) #{dir},    -- site 昇順
+              deadline ASC,                                                                -- 期限ありグループ内は期限昇順
+              parent_id ASC,
+              position ASC,
+              id ASC
+            SQL
+          end
+    
+        scope = scope.reorder(Arel.sql(parents_first_sql))
+        Rails.logger.info("[Tasks#index] order(site)=#{parents_first_sql} filters=#{filters.inspect}")
+        return render json: scope.as_json(only: SELECT_FIELDS)
+      end
+      # ----- ここから下は既存（progress / created_at / title / deadline） -----
+    
+      primary, secondary, secondary_dir =
         case ob
-        when "progress"   then "progress"
-        when "created_at" then "created_at"
-        else                    "deadline"
+        when "progress"   then ["progress",     nil,        nil]
+        when "created_at" then ["created_at",   nil,        nil]
+        when "title"      then ["LOWER(title)", nil,        nil]
+        else                   ["deadline",     nil,        nil]
         end
-
+    
       adapter = ActiveRecord::Base.connection.adapter_name.to_s
-      parents_first_sql =
-        if adapter =~ /postgre/i
-          <<~SQL.squish
-            (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-            #{primary} #{dir} NULLS LAST,
-            parent_id ASC,
-            position ASC
-          SQL
-        else
-          <<~SQL.squish
-            (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-            CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC,
-            #{primary} #{dir},
-            parent_id ASC,
-            position ASC
-          SQL
+      if adapter =~ /postgre/i
+        parts = [
+          "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
+          "#{primary} #{dir} NULLS LAST"
+        ]
+        parts << "#{secondary} #{secondary_dir} NULLS LAST" if secondary
+        parts += ["parent_id ASC", "position ASC", "id ASC"]
+      else
+        parts = [
+          "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
+          "CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC",
+          "#{primary} #{dir}"
+        ]
+        if secondary
+          parts << "CASE WHEN #{secondary} IS NULL THEN 1 ELSE 0 END ASC"
+          parts << "#{secondary} #{secondary_dir}"
         end
-
+        parts += ["parent_id ASC", "position ASC", "id ASC"]
+      end
+    
+      parents_first_sql = parts.join(", ")
       scope = scope.reorder(Arel.sql(parents_first_sql))
       Rails.logger.info("[Tasks#index] order=#{parents_first_sql} filters=#{filters.inspect}")
-
+    
       render json: scope.as_json(only: SELECT_FIELDS)
     end
+    
+    
 
     def priority
       tasks = current_user.tasks.priority_order

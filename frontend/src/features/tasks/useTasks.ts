@@ -1,31 +1,49 @@
+// src/features/tasks/useTasks.ts
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
-import type { Task, TaskFilters } from "../../types";
+import type { Task } from "../../types/task";
 
-function cleanParams(p: TaskFilters) {
-  const q: Record<string, any> = {};
-  if (p.site) q.site = p.site;
-  if (p.status && p.status.length > 0) q.status = p.status;
-  if (typeof p.progress_min === "number") q.progress_min = p.progress_min;
-  if (typeof p.progress_max === "number") q.progress_max = p.progress_max;
-  if (p.order_by) q.order_by = p.order_by;
-  if (p.dir) q.dir = p.dir;
-  if (p.parents_only === "1") q.parents_only = "1";
-  return q;
-}
+// helpers
+const toNum = (v: string | null) => (v != null && v !== "" ? Number(v) : undefined);
+const clean = (o: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== ""));
 
-export function useFilteredTasks(filters: TaskFilters, enabled = true) {
+// URL クエリ同期で /api/tasks を叩くフック
+export function useTasksFromUrl(enabled: boolean = true) {
+  const [sp] = useSearchParams();
+
+  // status は複数指定（?status=a&status=b）。重複排除＋ソートで順序を安定化
+  const statusRaw = sp.getAll("status");
+  const status = statusRaw.length ? Array.from(new Set(statusRaw)).sort() : undefined;
+
+  const params = clean({
+    site: sp.get("site") ?? undefined,
+    status,
+    progress_min: toNum(sp.get("progress_min")),
+    progress_max: toNum(sp.get("progress_max")),
+    order_by: sp.get("order_by") ?? undefined,
+    dir: sp.get("dir") ?? undefined,
+    parents_only: sp.get("parents_only") === "1" ? "1" : undefined,
+  });
+
   return useQuery<Task[]>({
-    queryKey: ["tasks", filters],
+    queryKey: ["tasks", params],        // ← 実際に投げる params をキー化（status も安定済み）
     enabled,
     queryFn: async () => {
-      const params = cleanParams(filters);
       const { data } = await api.get<Task[]>("/tasks", {
         params,
-        paramsSerializer: { indexes: false }, // status[]= を indices なしで
+        paramsSerializer: { indexes: false }, // status[]= の index 付与なし
       });
       return data;
     },
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    keepPreviousData: true,               // 小さな描画ゆらぎを抑えて E2E を安定化
   });
+}
+
+// 既存呼び出し互換ラッパー（filters は無視して URL 同期に委譲）
+export function useFilteredTasks(_filters?: unknown, enabled: boolean = true) {
+  return useTasksFromUrl(enabled);
 }

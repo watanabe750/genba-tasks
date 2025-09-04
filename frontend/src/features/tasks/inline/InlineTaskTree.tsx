@@ -22,7 +22,7 @@ export default function InlineTaskTree({ tree }: Props) {
     orderedRoot.length ? orderedRoot[orderedRoot.length - 1].id : null;
 
   return (
-    <div role="tree" aria-label="タスク">
+    <div role="tree" aria-label="タスク" data-testid="task-tree-root">
       {orderedRoot.map((t) => (
         <InlineTaskRow key={t.id} task={t} depth={1} />
       ))}

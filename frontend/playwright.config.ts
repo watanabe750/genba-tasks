@@ -2,6 +2,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
+  workers: 1,
   testDir: "tests",
   timeout: 30_000,
   retries: 0,
@@ -17,6 +18,7 @@ export default defineConfig({
       name: "setup",
       testMatch: /tests\/\.auth\/setup\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
+      workers: 1,
     },
 
     // 2) 認証前提のテスト群（ほぼ全部がこちら）

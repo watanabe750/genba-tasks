@@ -27,7 +27,11 @@ const TaskList: PageComponent = () => {
     // まずフラット→ツリー化
     const tree = nestTasks(tasksFlat);
     // 次に親（depth=1）だけ UI 最終順で確定（期限の昇降・NULL末尾）
-    return sortRootNodes(tree, filters.order_by ?? "deadline", filters.dir ?? "asc");
+    return sortRootNodes(
+      tree,
+      filters.order_by ?? "deadline",
+      filters.dir ?? "asc"
+    );
   }, [tasksFlat, filters.order_by, filters.dir]);
 
   return (
@@ -36,7 +40,17 @@ const TaskList: PageComponent = () => {
         <h1 className="text-lg font-semibold mb-2">タスク一覧ページ</h1>
 
         <TaskFilterBar />
-
+        {/* progress_min==progress_max のときだけ、ページ上に 1つだけ「進捗: X%」を出す */}
+        {filters.progress_min != null &&
+          filters.progress_max != null &&
+          filters.progress_min === filters.progress_max && (
+            <div
+              className="mb-2 inline-flex items-center gap-2 rounded bg-blue-50 px-2 py-1 text-xs text-blue-700"
+              data-testid="progress-single-indicator"
+            >
+              進捗: {filters.progress_min}%
+            </div>
+          )}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <section className="space-y-4 relative z-10" data-dnd-surface="1">
             <NewParentTaskForm />
