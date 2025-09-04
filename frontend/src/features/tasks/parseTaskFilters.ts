@@ -7,8 +7,11 @@ export function parseTaskFilters(sp: URLSearchParams): TaskFilters {
   // 複数 status に対応（存在しないなら空配列）
   const status = sp.getAll("status") as TaskFilters["status"];
 
-  const progress_min = sp.get("progress_min");
-  const progress_max = sp.get("progress_max");
+  // "0" を落とさない安全な数値化
+  const toNum = (v: string | null) =>
+    v === null || v === "" ? undefined : Number(v);
+  const progress_min = toNum(sp.get("progress_min"));
+  const progress_max = toNum(sp.get("progress_max"));
 
   const order_by = (sp.get("order_by") as OrderBy) || "deadline";
   const dir = (sp.get("dir") as SortDir) || "asc";
@@ -18,8 +21,8 @@ export function parseTaskFilters(sp: URLSearchParams): TaskFilters {
   return {
     site,
     status,
-    progress_min: progress_min ? Number(progress_min) : undefined,
-    progress_max: progress_max ? Number(progress_max) : undefined,
+    progress_min,
+    progress_max,
     order_by,
     dir,
     parents_only,

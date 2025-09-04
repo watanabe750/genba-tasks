@@ -4,7 +4,7 @@ import type { TaskDetail } from "../../type";
 
 /** 同一親内の並び替えをサーバ永続化 */
 export async function reorderWithinParentApi(taskId: number, afterId: number | null) {
-  await api.patch(`/tasks/${taskId}/reorder`, {}, { params: { after_id: afterId } });
+  await api.patch(`/tasks/${taskId}`, { after_id: afterId ?? null });
 }
 
 /** 親タスクの詳細を取得（ドロワー用） */

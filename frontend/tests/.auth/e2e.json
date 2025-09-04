@@ -2,7 +2,7 @@
   "cookies": [
     {
       "name": "_backend_session",
-      "value": "5dzk1kMtijxtHm1cWGEziDQLbW7Zu1lsikjDqe2rkcqm%2BNvgTwqcXR%2BRqpkRGK6ISfbvYmdzrRqhKmKqtfy7ZBOR2ku6piHSa1BaLAVU02QXog8bdTFmeVTnRzxO3USPDGDF0Va8iXFdGdnX%2BGW5h7hKglDK4rk4zEuVDCAxBnQPEaP1HHQ2J928m4FKQlSSS584aSDsyB1SmIeJ2tJn%2FuSjxxyk0R6CGCKBTzSr8U3pxahfFKzwXUTja98pBeCMkSbnG8HPqOQKtvU3Jx5R7VsMu%2BWk56g%2BlXim%2FpJJGNL2JAcL%2BU%2FZ8d658zqiNVIszCLb6RPCETl6E6Ysg4b2xNJUR9rvaLs50nS4O34DBxEAC36TMspadH00sWQ%2FhdgrXSRGuOcZ%2BiOr9EYoWdqUdUMF05e4qMiMO1NpduWzv2stcaCiCfkwxkpbZcpNsbG%2BpKEh5DTRlhct4Ttyx8obljO6HK9nsOF7x3jZ8%2FtF89CP%2F%2Brzxn5N7r8I30dQHcl4poVRlXHrB%2FM%3D--FVVaCZASqfO4yXLr--H6cZV%2FK8d7eDnB%2BeX7lRmA%3D%3D",
+      "value": "ADiB4Nhug%2B463kolO1fftscrIpKk6FCXFS9Wp%2Fn9pWc%2BiOEwi%2FTp%2Ba6Mmfxfa9J8Tm4N3CPG%2FcLf8YvxzlwlPfGJ201yV8jgeIIHhJ9dRJBxYEaVU8XmZD2zsy49rwMfQCtqP3uHFtg9L4rSpXlZTcTEtXCOeI9PfYynQpLYOd%2BNFYzsL%2BCSD1Kl1svlwGfNzV%2BvKGtkZqm6IWvp8Az3Sc1UkIXtaNw7CKyzypgLy7W1M47xG5yVpbg54fo22JnxOeE2VQFnerfR1%2BaT%2Bc5MN8KZgYrzPPxzmIEEdyx7IIr7WwO6VXhJ%2FbwZlR%2Bp6GouXq5%2FO76wpOBPT6bAXQ7LaTztAWFFovaWMrZ6XXQtDSuft7%2FlFQRzlTI8w%2BK0hN8TxqXNuE%2Buj%2B34E2piVV5BF4kv4PvdLjmNgak3akmrzzUeO6g0DeLiNeXsOZFOj%2Bf1kni%2FfUTLfIuKmZvueir8KOit86xuO2lj5AeStycWBaVC0oNZO1tnXi0IBqiRH2Dw400oypVcU10%3D--L1vsZ5hNjIKTsZDw--S4cAgDwxGVqxGl082ET%2F2Q%3D%3D",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -20,16 +20,24 @@
           "value": "light"
         },
         {
+          "name": "expiry",
+          "value": "1758199166"
+        },
+        {
           "name": "uid",
           "value": "e2e@example.com"
         },
         {
           "name": "client",
-          "value": "VbpjT0mHmMw43c3i7q6uhg"
+          "value": "0cgP4uWhHndUcCy9597RRQ"
         },
         {
           "name": "access-token",
-          "value": "buvDMWG40ZMLuB9DvGd1ug"
+          "value": "su9DXB_1XI2K4WDyU_V-hA"
+        },
+        {
+          "name": "token-type",
+          "value": "Bearer"
         }
       ]
     }

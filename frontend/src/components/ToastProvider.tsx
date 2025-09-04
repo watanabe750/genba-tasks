@@ -1,12 +1,11 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+// src/components/ToastProvider.tsx
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 type ToastType = "info" | "success" | "error";
 type ToastItem = { id: number; message: string; type: ToastType };
 
-type Ctx = {
-  push: (message: string, type?: ToastType) => void;
-};
+type Ctx = { push: (message: string, type?: ToastType) => void };
 
 const ToastCtx = createContext<Ctx | null>(null);
 
@@ -16,11 +15,22 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const push = useCallback((message: string, type: ToastType = "info") => {
     const id = Date.now() + Math.random();
     setItems((prev) => [...prev, { id, message, type }]);
-    // 3秒で自動消滅
     window.setTimeout(() => {
       setItems((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
   }, []);
+
+  // ← ここで 401 系のイベントにフック（E2E でこの文言を探します）
+  useEffect(() => {
+    const onAuthExpired = () => push("セッションが切れました。再ログインしてください", "error");
+    const onAuthLogout  = () => push("セッションが切れました。再ログインしてください", "error");
+    window.addEventListener("auth:expired", onAuthExpired);
+    window.addEventListener("auth:logout", onAuthLogout);
+    return () => {
+      window.removeEventListener("auth:expired", onAuthExpired);
+      window.removeEventListener("auth:logout", onAuthLogout);
+    };
+  }, [push]);
 
   const value = useMemo<Ctx>(() => ({ push }), [push]);
 

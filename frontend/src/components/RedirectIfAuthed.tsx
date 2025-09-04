@@ -1,3 +1,4 @@
+// src/components/RedirectIfAuthed.tsx
 import type React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import useAuth from "../providers/useAuth";
