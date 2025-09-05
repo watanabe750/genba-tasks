@@ -1,19 +1,17 @@
 import React, { useState } from "react";
 
 type Props = {
-  /** 原寸URL（リンク先） */
-  url: string;
-  /** alt用タイトル */
+  url: string;        // 原寸URL
   title: string;
-  /** 省略可：指定時は <img> にこちらを使う（サムネ優先表示） */
-  thumbUrl?: string;
+  thumbUrl?: string;  // 追加: サムネURL（あれば優先）
 };
 
 export default function ImagePreview({ url, title, thumbUrl }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState<Error | null>(null);
 
-  // エラー時は簡易プレースホルダにフォールバック
+  const display = thumbUrl || url;
+
   if (err) {
     return (
       <figure className="rounded-md border bg-gray-50">
@@ -36,9 +34,8 @@ export default function ImagePreview({ url, title, thumbUrl }: Props) {
         className="block"
         aria-label="画像を新しいタブで開く"
       >
-        {/* 画像本体（thumb優先） */}
         <img
-          src={thumbUrl && typeof thumbUrl === "string" ? thumbUrl : url}
+          src={display}
           alt={`${title} の画像`}
           className={`block h-44 w-full object-cover ${loaded ? "" : "hidden"}`}
           onLoad={() => setLoaded(true)}
@@ -47,10 +44,7 @@ export default function ImagePreview({ url, title, thumbUrl }: Props) {
           decoding="async"
           referrerPolicy="no-referrer"
         />
-        {/* ローディング中のプレースホルダ */}
-        {!loaded && (
-          <div className="h-44 w-full animate-pulse bg-gray-200" aria-hidden />
-        )}
+        {!loaded && <div className="h-44 w-full animate-pulse bg-gray-200" aria-hidden />}
       </a>
       <figcaption className="border-t px-3 py-2 text-[11px] text-gray-600">
         画像プレビュー（クリックで原寸表示）
