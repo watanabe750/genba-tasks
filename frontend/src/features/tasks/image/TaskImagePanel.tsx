@@ -4,13 +4,19 @@ import api from "../../../lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
 
 type Props = { taskId: number };
-type ShowResponse = { image_url: string | null; image_thumb_url: string | null };
+type ShowResponse = {
+  image_url: string | null;
+  image_thumb_url: string | null;
+};
 
 const MAX_MB = 5;
 const ACCEPT = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export default function TaskImagePanel({ taskId }: Props) {
-  const [data, setData] = useState<ShowResponse>({ image_url: null, image_thumb_url: null });
+  const [data, setData] = useState<ShowResponse>({
+    image_url: null,
+    image_thumb_url: null,
+  });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -29,6 +35,17 @@ export default function TaskImagePanel({ taskId }: Props) {
         image_url: json.image_url ?? null,
         image_thumb_url: json.image_thumb_url ?? null,
       });
+      // ✨ 取得結果をその場でキャッシュに反映（一覧のサムネが即時更新される）
+      qc.setQueryData(qk as unknown as readonly unknown[], (old: any) =>
+        old
+          ? {
+              ...old,
+              image_url: json.image_url ?? null,
+              image_thumb_url: json.image_thumb_url ?? null,
+            }
+          : old
+      );
+      return json;
     } catch (e: any) {
       setErr(e?.message || "読み込みに失敗しました");
     } finally {
@@ -71,7 +88,9 @@ export default function TaskImagePanel({ taskId }: Props) {
       await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: any) {
       const msg =
-        e?.response?.data?.errors?.join?.("、") || e?.message || "アップロードに失敗しました";
+        e?.response?.data?.errors?.join?.("、") ||
+        e?.message ||
+        "アップロードに失敗しました";
       setErr(msg);
     } finally {
       setUploading(false);
@@ -88,7 +107,9 @@ export default function TaskImagePanel({ taskId }: Props) {
       await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: any) {
       const msg =
-        e?.response?.data?.errors?.join?.("、") || e?.message || "削除に失敗しました";
+        e?.response?.data?.errors?.join?.("、") ||
+        e?.message ||
+        "削除に失敗しました";
       setErr(msg);
     } finally {
       setUploading(false);
@@ -98,11 +119,15 @@ export default function TaskImagePanel({ taskId }: Props) {
   const hasImage = !!data.image_url;
 
   return (
-    <div className="mt-2 rounded-md border p-3 bg-white">
+    <div
+      className="mt-2 rounded-md border p-3 bg-white"
+      data-testid={`image-panel-${taskId}`}
+    >
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="text-sm font-medium">画像</h3>
         <div className="space-x-2">
           <button
+            data-testid="btn-pick"
             type="button"
             className="rounded bg-gray-900 px-2 py-1 text-xs text-white disabled:opacity-60"
             onClick={onPick}
@@ -113,6 +138,7 @@ export default function TaskImagePanel({ taskId }: Props) {
           </button>
           {hasImage && (
             <button
+              data-testid="btn-delete"
               type="button"
               className="rounded border px-2 py-1 text-xs disabled:opacity-60"
               onClick={onDelete}
@@ -122,6 +148,7 @@ export default function TaskImagePanel({ taskId }: Props) {
             </button>
           )}
           <input
+            data-testid="image-file"
             ref={fileRef}
             type="file"
             accept={ACCEPT.join(",")}
@@ -132,7 +159,9 @@ export default function TaskImagePanel({ taskId }: Props) {
       </div>
 
       {err && (
-        <div className="mb-2 rounded bg-red-50 px-2 py-1 text-xs text-red-700">{err}</div>
+        <div data-testid="img-error" className="mb-2 rounded bg-red-50 px-2 py-1 text-xs text-red-700">
+          {err}
+        </div>
       )}
 
       {loading ? (

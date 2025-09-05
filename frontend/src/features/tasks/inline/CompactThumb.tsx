@@ -20,13 +20,14 @@ export default function CompactThumb({ taskId }: Props) {
   return (
     <button
       type="button"
+      data-testid={`task-thumb-${taskId}`}
       aria-label={hasImage ? "画像を表示" : "画像は未設定"}
       title={hasImage ? "画像を表示" : "画像は未設定"}
       draggable={false}
       onMouseDown={(e) => e.stopPropagation()} // DnD 干渉防止
       onClick={onClick}
       className={[
-        // ⬇️ さらに 2 回り拡大: sm=80px, md=112px
+        // sm=80px, md=112px
         "inline-flex h-20 w-20 md:h-28 md:w-28 items-center justify-center overflow-hidden",
         "rounded ring-1 ring-gray-200 bg-white hover:ring-gray-300 shrink-0",
       ].join(" ")}

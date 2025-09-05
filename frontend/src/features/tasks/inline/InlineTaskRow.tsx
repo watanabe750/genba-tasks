@@ -490,6 +490,7 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
             {/* 親のみ：画像パネル */}
             {isParent && (
               <button
+                data-testid={`btn-image-${task.id}`}
                 type="button"
                 className="rounded border px-2 py-1 text-xs hover:bg-gray-50"
                 onClick={() => setShowImagePanel((v) => !v)}
