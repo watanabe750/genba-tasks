@@ -4,7 +4,8 @@ import Login from "../pages/Login";
 import TaskList from "../pages/TaskList";
 import Layout from "../components/Layout";
 import RequireAuth from "../components/RequireAuth";
-import Settings from "../pages/Settings";
+import Account from "../pages/Account";
+import Help from "../pages/Help";
 
 export const AppRouter = () => {
   return (
@@ -16,7 +17,8 @@ export const AppRouter = () => {
         <Route element={<RequireAuth />}>
           <Route element={<Layout />}>
             <Route path="/tasks" element={<TaskList />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/help" element={<Help />} />
           </Route>
         </Route>
 
