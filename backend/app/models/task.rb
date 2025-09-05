@@ -23,7 +23,9 @@ class Task < ApplicationRecord
             allow_nil: true
   # 並び順
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
-
+  
+  has_one_attached :image
+  
   # depth/position は作成時に自動計算・更新時の親変更でも末尾へ
   before_validation :set_depth, on: :create
   before_validation :set_position_at_end, on: :create
