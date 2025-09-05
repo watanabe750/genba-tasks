@@ -116,6 +116,7 @@ function TaskDrawerInner({
         aria-hidden="true"
       />
       <aside
+        data-testid="task-drawer"
         ref={panelRef}
         role="dialog"
         aria-modal="true"
@@ -195,7 +196,7 @@ function TaskDrawerInner({
 
               {/* 画像（存在時のみ / サムネ優先表示） */}
               {imageUrl && (
-                <div className="mt-4" id="drawer-image-section">
+                <div className="mt-4" id="drawer-image-section" data-testid="drawer-image-section">
                   <ImagePreview url={imageUrl} thumbUrl={imageThumbUrl ?? undefined} title={data.title} />
                 </div>
               )}

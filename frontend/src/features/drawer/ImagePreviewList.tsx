@@ -1,27 +1,18 @@
-import React, { useState } from "react";
+// src/features/drawer/ImagePreviewList.tsx
+import { useState } from "react";
 
-type Props = {
-  url: string;        // 原寸URL
-  title: string;
-  thumbUrl?: string;  // 追加: サムネURL（あれば優先）
-};
+type Props = { url: string; title?: string; thumbUrl?: string };
 
-export default function ImagePreview({ url, title, thumbUrl }: Props) {
-  const [loaded, setLoaded] = useState(false);
-  const [err, setErr] = useState<Error | null>(null);
+/** Drawerの画像プレビュー（hiddenにせず常時描画 / data-testid 付与） */
+export default function ImagePreview({ url, title = "", thumbUrl }: Props) {
+  const [failed, setFailed] = useState(false);
+  const src = thumbUrl || url;
 
-  const display = thumbUrl || url;
-
-  if (err) {
+  if (failed) {
     return (
-      <figure className="rounded-md border bg-gray-50">
-        <div className="flex h-44 items-center justify-center text-xs text-gray-500">
-          画像を読み込めませんでした
-        </div>
-        <figcaption className="border-t px-3 py-2 text-[11px] text-gray-600">
-          画像プレビュー（クリックで原寸表示）
-        </figcaption>
-      </figure>
+      <div className="rounded border bg-red-50 p-3 text-xs text-red-700">
+        画像の読み込みに失敗しました
+      </div>
     );
   }
 
@@ -35,16 +26,15 @@ export default function ImagePreview({ url, title, thumbUrl }: Props) {
         aria-label="画像を新しいタブで開く"
       >
         <img
-          src={display}
-          alt={`${title} の画像`}
-          className={`block h-44 w-full object-cover ${loaded ? "" : "hidden"}`}
-          onLoad={() => setLoaded(true)}
-          onError={() => setErr(new Error("image load failed"))}
+          data-testid="drawer-image"
+          src={src}
+          alt={title ? `${title} の画像` : "画像"}
+          className="block h-44 w-full object-contain"
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
         />
-        {!loaded && <div className="h-44 w-full animate-pulse bg-gray-200" aria-hidden />}
       </a>
       <figcaption className="border-t px-3 py-2 text-[11px] text-gray-600">
         画像プレビュー（クリックで原寸表示）
