@@ -12,6 +12,8 @@ Rails.application.routes.draw do
       end
       member do
         patch :reorder
+        post   :image, to: "task_images#create"
+        delete :image, to: "task_images#destroy"
       end
     end
   end

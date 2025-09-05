@@ -89,6 +89,22 @@ module Api
 
     def show
       t = @task
+      # 画像URL（存在すれば）
+      img_urls =
+        if t.respond_to?(:image) && t.image.attached?
+          begin
+                        {
+                          image_url: url_for(t.image),
+                          # 遅延生成（.processed を付けない）
+                          image_thumb_url: url_for(t.image.variant(resize_to_fill: [200, 200]))
+                        }
+                      rescue => e
+                        Rails.logger.warn("[Tasks#show] variant url build failed: #{e.class}: #{e.message}")
+                        { image_url: url_for(t.image), image_thumb_url: nil }
+                      end
+        else
+          { image_url: nil, image_thumb_url: nil }
+        end
 
       # 直下の子（最大4件）：期限昇順 → 期限なし → id昇順
       kids_scope = current_user.tasks
@@ -136,8 +152,7 @@ module Api
         created_by_name: (t.try(:user)&.try(:name) || t.try(:user)&.try(:email) || "—"),
         created_at: t.created_at.iso8601,
         updated_at: t.updated_at.iso8601,
-        image_url: (t.respond_to?(:image_url) ? t.image_url : nil)
-      }
+      }.merge(img_urls)
     end
     # ==== 差し替えここまで ====
 
