@@ -50,6 +50,7 @@ group :development, :test do
 end
 
 gem "devise", "~> 4.9"
+gem "mini_magick", "~> 4.12"
 
 group :development, :test do
   gem 'rspec-rails'

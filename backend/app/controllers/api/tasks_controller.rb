@@ -92,10 +92,16 @@ module Api
       # 画像URL（存在すれば）
       img_urls =
         if t.respond_to?(:image) && t.image.attached?
-          {
-            image_url: url_for(t.image),
-            image_thumb_url: url_for(t.image.variant(resize_to_fill: [200, 200]).processed)
-          }
+          begin
+                        {
+                          image_url: url_for(t.image),
+                          # 遅延生成（.processed を付けない）
+                          image_thumb_url: url_for(t.image.variant(resize_to_fill: [200, 200]))
+                        }
+                      rescue => e
+                        Rails.logger.warn("[Tasks#show] variant url build failed: #{e.class}: #{e.message}")
+                        { image_url: url_for(t.image), image_thumb_url: nil }
+                      end
         else
           { image_url: nil, image_thumb_url: nil }
         end

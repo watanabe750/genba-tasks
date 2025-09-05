@@ -5,8 +5,17 @@ module Api
   
       # POST /api/tasks/:id/image
       def create
-        file = params[:image]
-        return render(json: { errors: ["画像ファイルを指定してください"] }, status: :bad_request) unless file.respond_to?(:tempfile)
+        file = params[:image] || params[:file] || params.dig(:task, :image)
+      return render(json: { errors: ["画像ファイルを指定してください"] }, status: :bad_request) if file.nil?
+
+      # Tempfile実体の取り出し（複数型に対応）
+      tempfile =
+        if file.respond_to?(:tempfile) then file.tempfile
+        elsif file.is_a?(Tempfile)    then file
+        elsif file.respond_to?(:path) && File.exist?(file.path) then file
+        else nil
+        end
+      return render(json: { errors: ["画像ファイルを指定してください"] }, status: :bad_request) if tempfile.nil?
   
         # 上位のみ許可
         unless @task.parent_id.nil?
@@ -19,7 +28,8 @@ module Api
         end
   
         # コンテンツタイプ厳格判定
-        content_type = Marcel::MimeType.for(file.tempfile, name: file.original_filename)
+        orig_name = (file.respond_to?(:original_filename) && file.original_filename.present?) ? file.original_filename : "upload"
+        content_type = Marcel::MimeType.for(tempfile, name: orig_name)
         allowed = %w[image/jpeg image/png image/webp image/gif]
         unless allowed.include?(content_type)
           return render(json: { errors: ["無効なファイル形式（許可: jpeg/png/webp/gif）"] }, status: :unprocessable_entity)
@@ -27,8 +37,8 @@ module Api
   
         # 置換（has_one_attached のため同名 attach で入れ替わる）
         @task.image.attach(
-          io: file.tempfile.open,
-          filename: file.original_filename,
+            io: tempfile,
+            filename: orig_name,
           content_type: content_type
         )
   
@@ -50,10 +60,16 @@ module Api
   
       def image_payload(task)
         return { image_url: nil, image_thumb_url: nil } unless task.image.attached?
-        {
-          image_url: url_for(task.image),
-          image_thumb_url: url_for(task.image.variant(resize_to_fill: [200, 200]).processed)
-        }
+        begin
+                    {
+                      image_url: url_for(task.image),
+                      # 遅延生成（.processed は付けない）
+                      image_thumb_url: url_for(task.image.variant(resize_to_fill: [200, 200]))
+                    }
+                  rescue => e
+                    Rails.logger.warn("[TaskImages#image_payload] variant url build failed: #{e.class}: #{e.message}")
+                    { image_url: url_for(task.image), image_thumb_url: nil }
+                  end
       end
     end
   end
