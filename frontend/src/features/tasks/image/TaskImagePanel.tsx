@@ -1,6 +1,7 @@
 // src/features/tasks/image/TaskImagePanel.tsx
 import { useEffect, useRef, useState } from "react";
 import api from "../../../lib/apiClient";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = { taskId: number };
 type ShowResponse = { image_url: string | null; image_thumb_url: string | null };
@@ -14,6 +15,9 @@ export default function TaskImagePanel({ taskId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const qc = useQueryClient();
+
+  const qk = ["taskDetail", taskId] as const;
 
   const fetchShow = async () => {
     setLoading(true);
@@ -21,7 +25,10 @@ export default function TaskImagePanel({ taskId }: Props) {
     try {
       const res = await api.get(`/tasks/${taskId}`);
       const json = res.data;
-      setData({ image_url: json.image_url ?? null, image_thumb_url: json.image_thumb_url ?? null });
+      setData({
+        image_url: json.image_url ?? null,
+        image_thumb_url: json.image_thumb_url ?? null,
+      });
     } catch (e: any) {
       setErr(e?.message || "読み込みに失敗しました");
     } finally {
@@ -29,7 +36,13 @@ export default function TaskImagePanel({ taskId }: Props) {
     }
   };
 
-  useEffect(() => { fetchShow(); }, [taskId]);
+  useEffect(() => {
+    fetchShow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId]);
+
+  const invalidateDetail = () =>
+    qc.invalidateQueries({ queryKey: qk as unknown as readonly unknown[] });
 
   const onPick = () => fileRef.current?.click();
 
@@ -53,10 +66,12 @@ export default function TaskImagePanel({ taskId }: Props) {
     try {
       const fd = new FormData();
       fd.append("image", f, f.name);
-      await api.post(`/tasks/${taskId}/image`, fd); // ← ヘッダ指定なし
-      await fetchShow();
+      // apiClient 側インターセプタで multipart の Content-Type 自動付与
+      await api.post(`/tasks/${taskId}/image`, fd);
+      await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: any) {
-      const msg = e?.response?.data?.errors?.join?.("、") || e?.message || "アップロードに失敗しました";
+      const msg =
+        e?.response?.data?.errors?.join?.("、") || e?.message || "アップロードに失敗しました";
       setErr(msg);
     } finally {
       setUploading(false);
@@ -70,9 +85,10 @@ export default function TaskImagePanel({ taskId }: Props) {
     setErr(null);
     try {
       await api.delete(`/tasks/${taskId}/image`);
-      await fetchShow();
+      await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: any) {
-      const msg = e?.response?.data?.errors?.join?.("、") || e?.message || "削除に失敗しました";
+      const msg =
+        e?.response?.data?.errors?.join?.("、") || e?.message || "削除に失敗しました";
       setErr(msg);
     } finally {
       setUploading(false);
@@ -115,7 +131,9 @@ export default function TaskImagePanel({ taskId }: Props) {
         </div>
       </div>
 
-      {err && <div className="mb-2 rounded bg-red-50 px-2 py-1 text-xs text-red-700">{err}</div>}
+      {err && (
+        <div className="mb-2 rounded bg-red-50 px-2 py-1 text-xs text-red-700">{err}</div>
+      )}
 
       {loading ? (
         <div className="text-xs text-gray-500">読み込み中…</div>
@@ -126,7 +144,12 @@ export default function TaskImagePanel({ taskId }: Props) {
             alt="サムネイル"
             className="h-24 w-24 rounded object-cover ring-1 ring-gray-200"
           />
-          <a href={data.image_url!} target="_blank" rel="noreferrer" className="text-xs text-blue-700 underline">
+          <a
+            href={data.image_url!}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-blue-700 underline"
+          >
             元画像を開く
           </a>
         </div>
@@ -134,7 +157,9 @@ export default function TaskImagePanel({ taskId }: Props) {
         <div className="text-xs text-gray-600">画像は未設定です。</div>
       )}
 
-      <p className="mt-2 text-[11px] text-gray-500">許可形式: jpeg/png/webp/gif、サイズ: {MAX_MB}MB以下</p>
+      <p className="mt-2 text-[11px] text-gray-500">
+        許可形式: jpeg/png/webp/gif、サイズ: {MAX_MB}MB以下
+      </p>
     </div>
   );
 }

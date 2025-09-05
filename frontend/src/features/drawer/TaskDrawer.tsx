@@ -22,28 +22,39 @@ const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return createPortal(children, el);
 };
 
+/** ラッパー：開いてないときは本体をマウントしない（フック順が安定） */
 export default function TaskDrawer() {
-  const { openTaskId, close } = useTaskDrawer();
+  const { openTaskId, openSection, close } = useTaskDrawer();
   const open = openTaskId != null;
 
+  // スクロールロックは開いているときだけ効かせる
   useBodyScrollLock(open);
 
+  if (!open) return null;
+  return <TaskDrawerInner taskId={openTaskId!} openSection={openSection} close={close} />;
+}
+
+/** 本体（ここにフックを集約） */
+function TaskDrawerInner({
+  taskId,
+  openSection,
+  close,
+}: { taskId: number; openSection: "image" | null; close: () => void }) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  const { data, isLoading, isError, error, refetch } = useTaskDetail(openTaskId);
+  const { data, isLoading, isError, error, refetch } = useTaskDetail(taskId);
   const { push: toast } = useToast();
 
   // Escで閉じる
   useEffect(() => {
-    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { e.stopPropagation(); close(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
+  }, [close]);
 
   // 401連動：ログアウト時に閉じる
   useEffect(() => {
@@ -58,11 +69,11 @@ export default function TaskDrawer() {
   };
 
   // フォーカストラップ
-  useFocusTrap(panelRef.current, open);
+  useFocusTrap(panelRef.current, true);
 
   // エラーUX：404→自動クローズ、401→クローズ、5xx→開いたまま再試行
   useEffect(() => {
-    if (!open || !isError) return;
+    if (!isError) return;
     const status = (error as any)?.response?.status ?? (error as any)?.status ?? null;
 
     if (status === 404) {
@@ -73,12 +84,9 @@ export default function TaskDrawer() {
       close();
     } else {
       toast("サーバーエラー。再試行してください", "error");
-      // ドロワーは開いたまま。下の再試行ボタンで refetch
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isError, error]);
-
-  if (!open) return null;
+  }, [isError, error]);
 
   const titleId = "task-drawer-title";
   const descId = "task-drawer-desc";
@@ -91,6 +99,13 @@ export default function TaskDrawer() {
   // 画像関連
   const imageUrl = data?.image_url ?? null;
   const imageThumbUrl = data?.image_thumb_url ?? null;
+
+  // 画像セクションを要求されたらスクロール
+  useEffect(() => {
+    if (openSection !== "image") return;
+    const el = document.getElementById("drawer-image-section");
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+  }, [openSection, imageUrl]);
 
   return (
     <RootPortal>
@@ -108,7 +123,7 @@ export default function TaskDrawer() {
         aria-describedby={descId}
         className="fixed inset-y-0 right-0 z-[1001] w-full max-w-[560px] bg-white shadow-xl outline-none"
       >
-        {/* ヘッダー（accessible name はタスク名） */}
+        {/* ヘッダー */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 id={titleId} className="truncate text-base font-semibold">
             {data?.title ?? "タスク詳細"}
@@ -158,8 +173,8 @@ export default function TaskDrawer() {
               {/* 2行目：site / deadline */}
               <div className="mb-3 grid grid-cols-2 gap-3 text-[13px]">
                 <div>
-                  <div className="text-gray-500">site</div>
-                  <div className="font-medium">{data.site ?? "—"}</div>
+                <div className="text-gray-500">現場名</div>
+                <div className="font-medium">{data.site ?? "—"}</div>
                 </div>
                 <div>
                   <div className="text-gray-500">期限</div>
@@ -178,27 +193,18 @@ export default function TaskDrawer() {
               {/* 直下の子プレビュー（最大4件）＆孫件数 */}
               <ChildPreviewList items={preview} grandchildrenCount={grandkids} />
 
-              {/* 画像（存在時のみ / サムネがあればサムネを表示し、クリックで原寸を開く） */}
+              {/* 画像（存在時のみ / サムネ優先表示） */}
               {imageUrl && (
-                <div className="mt-4">
+                <div className="mt-4" id="drawer-image-section">
                   <ImagePreview url={imageUrl} thumbUrl={imageThumbUrl ?? undefined} title={data.title} />
                 </div>
               )}
 
               {/* 監査情報 */}
               <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-gray-600">
-                <div>
-                  作成者:{" "}
-                  <span className="font-medium text-gray-800">{data.created_by_name}</span>
-                </div>
-                <div>
-                  作成日:{" "}
-                  <span className="font-medium text-gray-800">{toYmd(data.created_at) ?? "—"}</span>
-                </div>
-                <div>
-                  更新日:{" "}
-                  <span className="font-medium text-gray-800">{toYmd(data.updated_at) ?? "—"}</span>
-                </div>
+                <div>作成者: <span className="font-medium text-gray-800">{data.created_by_name}</span></div>
+                <div>作成日: <span className="font-medium text-gray-800">{toYmd(data.created_at) ?? "—"}</span></div>
+                <div>更新日: <span className="font-medium text-gray-800">{toYmd(data.updated_at) ?? "—"}</span></div>
               </div>
             </div>
           )}
