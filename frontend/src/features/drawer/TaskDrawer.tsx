@@ -10,7 +10,7 @@ import StatusPill from "../../components/StatusPill";
 import ProgressBar from "../../components/ProgressBar";
 import { toYmd } from "../../utils/date";
 import ChildPreviewList from "./ChildPreviewList";
-import ImagePreview from "./ImagePreview";
+import ImagePreview from "./ImagePreviewList";
 import { useToast } from "../../components/ToastProvider";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -87,7 +87,10 @@ export default function TaskDrawer() {
   const prog = Math.max(0, Math.min(100, Math.round(data?.progress_percent ?? 0)));
   const preview = data?.children_preview ?? [];
   const grandkids = typeof data?.grandchildren_count === "number" ? data!.grandchildren_count : 0;
+
+  // 画像関連
   const imageUrl = data?.image_url ?? null;
+  const imageThumbUrl = data?.image_thumb_url ?? null;
 
   return (
     <RootPortal>
@@ -175,10 +178,10 @@ export default function TaskDrawer() {
               {/* 直下の子プレビュー（最大4件）＆孫件数 */}
               <ChildPreviewList items={preview} grandchildrenCount={grandkids} />
 
-              {/* 画像（存在時のみ） */}
+              {/* 画像（存在時のみ / サムネがあればサムネを表示し、クリックで原寸を開く） */}
               {imageUrl && (
                 <div className="mt-4">
-                  <ImagePreview url={imageUrl} title={data.title} />
+                  <ImagePreview url={imageUrl} thumbUrl={imageThumbUrl ?? undefined} title={data.title} />
                 </div>
               )}
 

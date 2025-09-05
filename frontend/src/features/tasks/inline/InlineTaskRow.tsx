@@ -1,4 +1,3 @@
-// src/features/tasks/inline/inlineTaskRow.tsx
 import { useMemo, useState, useLayoutEffect, type DragEvent, useRef } from "react";
 import type { Task } from "../../../types/task";
 import { useUpdateTask } from "../../tasks/useUpdateTask";
@@ -7,6 +6,7 @@ import { useCreateTask } from "../../tasks/useCreateTask";
 import { MAX_CHILDREN_PER_NODE } from "../../tasks/constraints";
 import { useInlineDnd } from "./dndContext";
 import { useTaskDrawer } from "../../drawer/useTaskDrawer";
+import TaskImagePanel from "../image/TaskImagePanel";
 
 const toDateInputValue = (iso?: string | null) => {
   if (!iso) return "";
@@ -60,6 +60,7 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
 
   const [addingChild, setAddingChild] = useState(false);
   const [childTitle, setChildTitle] = useState("");
+  const [showImagePanel, setShowImagePanel] = useState(false);
 
   const { open: openDrawer } = useTaskDrawer();
   const titleRef = useRef<HTMLSpanElement | null>(null);
@@ -372,6 +373,18 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
               編集
             </button>
 
+            {/* 親のみ：画像パネル */}
+            {isParent && (
+              <button
+                type="button"
+                className="rounded border px-2 py-1 text-xs"
+                onClick={() => setShowImagePanel((v) => !v)}
+                title="画像の表示・アップロード・削除"
+              >
+                画像
+              </button>
+            )}
+
             <button
               type="button"
               data-testid={`task-add-child-${task.id}`}
@@ -460,6 +473,8 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
       aria-expanded={children.length ? expanded : undefined}
     >
       {Row}
+      {/* 親タスク専用：インライン画像パネル */}
+      {isParent && showImagePanel && <TaskImagePanel taskId={task.id} />}
       {Children}
     </div>
   );
