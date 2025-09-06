@@ -1,4 +1,3 @@
-// src/pages/Login.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../providers/useAuth";
@@ -68,6 +67,13 @@ export default function Login() {
     setSubmitting(true);
     try {
       await signIn(email.trim(), pw);
+
+      // ★ 通常ログインはデモフラグを解除
+      try {
+        sessionStorage.removeItem("auth:demo");
+        window.dispatchEvent(new Event("auth:refresh"));
+      } catch { /* ignore */ }
+
       const dest = takeAuthFrom() || "/tasks";
       nav(dest, { replace: true });
     } catch (err: any) {
@@ -93,6 +99,13 @@ export default function Login() {
     setSubmitting(true);
     try {
       await signIn(demoEmail, demoPass);
+
+      // ★ デモログインフラグを立てる
+      try {
+        sessionStorage.setItem("auth:demo", "1");
+        window.dispatchEvent(new Event("auth:refresh"));
+      } catch { /* ignore */ }
+
       const dest = takeAuthFrom() || "/tasks";
       nav(dest, { replace: true });
     } catch (err: any) {
