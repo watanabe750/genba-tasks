@@ -1,11 +1,10 @@
-// src/components/Header.tsx
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import useAuth from "../providers/useAuth";
 
 const HEADER_H = "h-14"; // 3.5rem
 
-const Header = () => {
+export default function Header() {
   const qc = useQueryClient();
   const { authed, uid, name, signOut } = useAuth();
 
@@ -14,22 +13,27 @@ const Header = () => {
     await signOut();
   };
 
-  // 表示名（なければ uid の @前）
-  const display =
-    (name && name.trim()) ||
-    (uid ? String(uid).split("@")[0] : "");
+  const display = (name?.trim()) || (uid ? String(uid).split("@")[0] : "");
 
   return (
-    <header className={`fixed inset-x-0 top-0 z-50 bg-blue-600 text-white ${HEADER_H}`}>
-      <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
-        <Link to="/" className="text-white text-xl font-bold tracking-wide drop-shadow-sm">
-          現場タスク管理アプリ
+    <header
+  className={`fixed inset-x-0 top-0 z-50 bg-blue-600 text-white ${HEADER_H}
+  border-b border-white/10
+  shadow-[0_10px_30px_-6px_rgba(0,0,0,0.35)]`}
+>
+      {/* 左寄せ：max-wを使わずpxのみ */}
+      <div className="flex h-full items-center justify-between px-4">
+        <Link
+          to="/"
+          className="text-white font-semibold tracking-wide drop-shadow text-lg md:text-xl"
+          title="ホーム"
+        >
+          Genba Tasks
         </Link>
 
         <div className="flex items-center gap-3 text-sm">
           {authed ? (
             <>
-              {/* ← 名前をクリックで /account へ遷移 */}
               <Link
                 to="/account"
                 className="opacity-90 hover:underline underline-offset-2"
@@ -56,6 +60,4 @@ const Header = () => {
       </div>
     </header>
   );
-};
-
-export default Header;
+}

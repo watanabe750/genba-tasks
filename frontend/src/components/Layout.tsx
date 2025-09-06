@@ -4,21 +4,20 @@ import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
 import TaskDrawer from "../features/drawer/TaskDrawer";
 
-export default function Layout() {
+const Layout = () => {
   return (
-    <div className="min-h-screen bg-white">
-      {/* 固定ヘッダー（Header 側で fixed h-14） */}
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
-      {/* 固定サイドバー（Sidebar 側で fixed left-0 top-14 w-56 lg:w-64） */}
-      <Sidebar />
-
-      {/* コンテンツ領域：固定要素ぶんの余白を確保 */}
-      <main className="pt-14 pl-56 lg:pl-64 pr-4 pb-8">
-        <Outlet />
-      </main>
-
-      {/* ドロワーはポータル描画。コンテキスト配下で常時マウント */}
+      {/* fixed ヘッダー分の余白を上に、fixed サイドバー分を左に */}
+      <div className="flex flex-1 pt-14">
+        <Sidebar />
+        <main className="flex-1 p-6 pl-56 lg:pl-64">
+          <Outlet />
+        </main>
+      </div>
       <TaskDrawer />
     </div>
   );
-}
+};
+
+export default Layout;

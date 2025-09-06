@@ -1,15 +1,14 @@
-// src/components/Sidebar.tsx
 import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
   return (
     <aside
       className={[
-        "fixed left-0 top-14",          // ヘッダー高さぶん下げる（h-14）
+        "fixed left-0 top-14",
         "w-56 lg:w-64",
-        "h-[calc(100vh-3.5rem)]",       // 100vh - header(3.5rem)
+        "h-[calc(100vh-3.5rem)]",
         "bg-gray-100/80 backdrop-blur-0",
-        "border-r",
+        "border-r shadow-md",          // ← 影を追加
         "overflow-y-auto",
         "p-4",
         "z-40",

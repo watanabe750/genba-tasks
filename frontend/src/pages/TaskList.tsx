@@ -1,4 +1,3 @@
-// src/pages/TaskList.tsx
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
@@ -43,12 +42,9 @@ const TaskList: PageComponent = () => {
   return (
     <InlineDndProvider>
       <div className="max-w-6xl mx-auto p-4" data-testid="task-list-root">
-        <h1 className="text-2xl font-semibold">タスク</h1>
-        <p className="mt-1 mb-3 text-sm text-gray-500">
-          全 {tasksFlat.length} 件・並び順: {orderLabel} / {dirLabel}
-        </p>
+        {/* H1は非表示。右肩要約は TaskFilterBar に渡す */}
+        <TaskFilterBar summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`} />
 
-        <TaskFilterBar />
         {/* 進捗単一値のインジケータ（既存） */}
         {filters.progress_min != null &&
           filters.progress_max != null &&
@@ -67,6 +63,7 @@ const TaskList: PageComponent = () => {
             <InlineTaskTree tree={tasks} />
           </section>
 
+          {/* 優先タスクは sticky。ヘッダー分の余白 top-20 は維持 */}
           <aside className="priority-panel self-start lg:sticky lg:top-20 border-l pl-4 z-0">
             <PriorityTasksPanel />
           </aside>
