@@ -1,4 +1,3 @@
-// src/features/priority/PriorityTasksPanel.tsx
 import { usePriorityTasks } from "./usePriorityTasks";
 import useAuth from "../../providers/useAuth";
 import { useUpdateTask } from "../tasks/useUpdateTask";
@@ -26,14 +25,23 @@ export default function PriorityTasksPanel() {
     <div
       data-testid="priority-panel"
       className="
-        rounded-xl border border-blue-200 bg-blue-50/60 p-3 shadow-sm
+        rounded-xl border border-blue-200 bg-blue-50/60 p-3 shadow-lg
         dark:border-blue-900 dark:bg-blue-950/30
       "
     >
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-semibold text-blue-700 dark:text-blue-300">
-          優先タスク
-        </h2>
+        <div className="flex items-center gap-1">
+          <h2 className="font-semibold text-blue-700 dark:text-blue-300">
+            期限が近いタスク
+          </h2>
+          <span
+            className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]"
+            title="期限の近い順に表示します"
+            aria-label="説明"
+          >
+            i
+          </span>
+        </div>
         <span className="text-xs text-blue-700/70 dark:text-blue-300/70">
           {tasks.length}件
         </span>

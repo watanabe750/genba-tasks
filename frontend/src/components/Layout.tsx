@@ -2,23 +2,19 @@
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
-
-// ★ 追加: ドロワー本体をグローバルにマウント
 import TaskDrawer from "../features/drawer/TaskDrawer";
 
 const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
-      <div className="flex flex-1">
+      {/* fixed ヘッダー分の余白を上に、fixed サイドバー分を左に */}
+      <div className="flex flex-1 pt-14">
         <Sidebar />
-        <main className="p-6 flex-1">
+        <main className="flex-1 p-6 pl-56 lg:pl-64">
           <Outlet />
         </main>
       </div>
-
-      {/* ドロワーはポータルで body に描画されるが、コンテキスト配下で
-         常時マウントしておく必要がある */}
       <TaskDrawer />
     </div>
   );

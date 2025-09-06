@@ -1,56 +1,47 @@
-// src/components/Header.tsx
-import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import useAuth from "../providers/useAuth";
 
-const Header = () => {
+const HEADER_H = "h-14"; // 3.5rem
+
+export default function Header() {
   const qc = useQueryClient();
   const { authed, uid, name, signOut } = useAuth();
-
-  const [theme, setTheme] = useState<"light" | "dark">(
-    (localStorage.getItem("theme") as "light" | "dark") || "light"
-  );
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   const handleLogout = async () => {
     qc.clear();
     await signOut();
   };
 
+  const display = (name?.trim()) || (uid ? String(uid).split("@")[0] : "");
+
   return (
-    <header className="bg-blue-600 text-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between p-4">
-        {/* ← 完全な白＆うっすら影で視認性UP */}
+    <header
+  className={`fixed inset-x-0 top-0 z-50 bg-blue-600 text-white ${HEADER_H}
+  border-b border-white/10
+  shadow-[0_10px_30px_-6px_rgba(0,0,0,0.35)]`}
+>
+      {/* 左寄せ：max-wを使わずpxのみ */}
+      <div className="flex h-full items-center justify-between px-4">
         <Link
           to="/"
-          className="text-white text-xl font-bold tracking-wide drop-shadow-sm"
+          className="text-white font-semibold tracking-wide drop-shadow text-lg md:text-xl"
+          title="ホーム"
         >
-          現場タスク管理アプリ
+          Genba Tasks
         </Link>
 
         <div className="flex items-center gap-3 text-sm">
           {authed ? (
             <>
-              <span className="opacity-90">{(name ?? uid) ?? ""} さん</span>
-              {uid && <span className="text-xs opacity-90">uid: {uid}</span>}
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="rounded px-2 py-1 bg-white/10 hover:bg-white/20"
-                aria-label="テーマを切り替え"
-                title="テーマを切り替え"
+              <Link
+                to="/account"
+                className="opacity-90 hover:underline underline-offset-2"
+                data-testid="header-user"
+                title="アカウント"
               >
-                {theme === "dark" ? "🌙" : "🌞"}
-              </button>
+                {display} さん
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -69,6 +60,4 @@ const Header = () => {
       </div>
     </header>
   );
-};
-
-export default Header;
+}
