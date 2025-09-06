@@ -1,31 +1,68 @@
-export default function Help() {
-    return (
-      <div className="max-w-4xl mx-auto p-4">
-        <h1 className="text-2xl font-semibold mb-4">ヘルプ</h1>
-  
-        <div className="space-y-4 text-sm">
-          <section className="border rounded-xl p-4 bg-white">
-            <h2 className="font-semibold mb-2">概要</h2>
-            <p className="text-gray-700">
-              タスクの作成・階層管理・画像添付に対応しています。親行のサムネをクリックで詳細ドロワーを開けます。
-            </p>
-          </section>
-  
-          <section className="border rounded-xl p-4 bg-white">
-            <h2 className="font-semibold mb-2">よくある操作</h2>
-            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-              <li>新規タスク作成：一覧上部のフォームから作成</li>
-              <li>並び替え：フィルター &amp; 並び替えバーの右端で変更</li>
-              <li>画像：親行の「画像」ボタンから追加／変更／削除</li>
-            </ul>
-          </section>
-  
-          <section className="border rounded-xl p-4 bg-white">
-            <h2 className="font-semibold mb-2">問い合わせ</h2>
-            <p className="text-gray-700">example@example.com（ダミー）</p>
-          </section>
-        </div>
-      </div>
-    );
-  }
-  
+import type { PageComponent } from "../types";
+
+const Help: PageComponent = () => {
+  return (
+    <div className="max-w-3xl mx-auto p-4 space-y-8">
+      <header>
+        <h1 className="text-xl font-semibold">ヘルプ</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          よく使う機能だけを短くまとめました。
+        </p>
+      </header>
+
+      {/* 優先タスク */}
+      <section id="priority" className="space-y-2">
+        <h2 className="text-lg font-medium flex items-center gap-2">
+          優先タスク
+          <span
+            aria-label="優先タスクの説明"
+            title="優先タスク＝期限が近い順で表示されます。"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[11px]"
+          >
+            i
+          </span>
+        </h2>
+        <p className="text-sm text-gray-700">
+          <strong>優先タスク＝期限が近い順</strong>で表示します。近日のタスクほど上に来ます。
+        </p>
+      </section>
+
+      {/* 画像アップロード */}
+      <section id="images" className="space-y-2">
+        <h2 className="text-lg font-medium">画像の扱い</h2>
+        <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+          <li>1ファイル <strong>5MBまで</strong>（<code>jpg</code>/<code>png</code>/<code>webp</code>）</li>
+          <li>画像はタスクから<strong>置換</strong>・<strong>削除</strong>できます</li>
+        </ul>
+      </section>
+
+      {/* 操作TIPS */}
+      <section id="tips" className="space-y-2">
+        <h2 className="text-lg font-medium">操作TIPS</h2>
+        <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+          <li><kbd className="px-1 py-0.5 rounded border">Enter</kbd> で親タスク作成</li>
+          <li>ドラッグ&ドロップで階層の入れ替え</li>
+          <li>検索・絞り込みは画面上部のバーから</li>
+        </ul>
+      </section>
+
+      {/* 問い合わせ */}
+      <section id="contact" className="space-y-2">
+        <h2 className="text-lg font-medium">問い合わせ</h2>
+        <p className="text-sm text-gray-700">
+          不具合や要望は GitHub リポジトリへどうぞ：{" "}
+          <a
+            href={import.meta.env.VITE_REPO_URL || "https://github.com/"}
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-600 underline underline-offset-2"
+          >
+            GitHub Repository
+          </a>
+        </p>
+      </section>
+    </div>
+  );
+};
+
+export default Help;

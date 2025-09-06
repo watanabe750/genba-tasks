@@ -32,10 +32,14 @@ export default function Login() {
   useEffect(() => {
     try {
       if (sessionStorage.getItem("auth:expired") === "1") {
-        setErrTop("セッションの有効期限が切れました。もう一度ログインしてください。");
+        setErrTop(
+          "セッションの有効期限が切れました。もう一度ログインしてください。"
+        );
         sessionStorage.removeItem("auth:expired");
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   // 既ログインなら /tasks
@@ -72,7 +76,9 @@ export default function Login() {
       try {
         sessionStorage.removeItem("auth:demo");
         window.dispatchEvent(new Event("auth:refresh"));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       const dest = takeAuthFrom() || "/tasks";
       nav(dest, { replace: true });
@@ -90,29 +96,28 @@ export default function Login() {
   async function handleDemo() {
     setErrTop(null);
     const demoEmail = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
-    const demoPass  = import.meta.env.VITE_DEMO_PASS  as string | undefined;
+    const demoPass = import.meta.env.VITE_DEMO_PASS as string | undefined;
 
     if (!demoEmail || !demoPass) {
-      setErrTop("デモユーザーが未設定です（VITE_DEMO_EMAIL / VITE_DEMO_PASS）。");
+      setErrTop(
+        "ゲストユーザーが未設定です（VITE_DEMO_EMAIL / VITE_DEMO_PASS）。"
+      );
       return;
     }
     setSubmitting(true);
     try {
       await signIn(demoEmail, demoPass);
-
-      // ★ デモログインフラグを立てる
       try {
         sessionStorage.setItem("auth:demo", "1");
         window.dispatchEvent(new Event("auth:refresh"));
-      } catch { /* ignore */ }
-
+      } catch {}
       const dest = takeAuthFrom() || "/tasks";
       nav(dest, { replace: true });
     } catch (err: any) {
       const msg =
         err?.response?.data?.errors?.[0] ??
         err?.message ??
-        "デモログインに失敗しました。しばらくしてからお試しください。";
+        "ゲストログインに失敗しました。しばらくしてからお試しください。";
       setErrTop(String(msg));
     } finally {
       setSubmitting(false);
@@ -124,8 +129,12 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="bg-white shadow rounded-2xl p-6">
           {/* タイトル／説明 */}
-          <h1 className="text-2xl font-bold text-gray-900 text-center">Genba Tasks</h1>
-          <p className="text-sm text-gray-600 text-center mt-1">現場タスクを“見える化”</p>
+          <h1 className="text-2xl font-bold text-gray-900 text-center">
+            Genba Tasks
+          </h1>
+          <p className="text-sm text-gray-600 text-center mt-1">
+            現場タスクを“見える化”
+          </p>
 
           {/* エラーバナー */}
           {errTop && (
@@ -142,7 +151,10 @@ export default function Login() {
           <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 メールアドレス
               </label>
               <input
@@ -151,7 +163,11 @@ export default function Login() {
                 type="email"
                 autoComplete="email"
                 className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none
-                  ${errEmail ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                  ${
+                    errEmail
+                      ? "border-red-300 focus:ring-red-200"
+                      : "border-gray-300 focus:ring-blue-200"
+                  }`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 aria-invalid={!!errEmail}
@@ -169,7 +185,10 @@ export default function Login() {
 
             {/* Password + 表示切替 */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 パスワード
               </label>
               <div className="mt-1 relative">
@@ -179,7 +198,11 @@ export default function Login() {
                   type={showPw ? "text" : "password"}
                   autoComplete="current-password"
                   className={`block w-full rounded-md border px-3 py-2 pr-20 text-sm outline-none
-                    ${errPw ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                    ${
+                      errPw
+                        ? "border-red-300 focus:ring-red-200"
+                        : "border-gray-300 focus:ring-blue-200"
+                    }`}
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
                   aria-invalid={!!errPw}
@@ -211,9 +234,26 @@ export default function Login() {
                 className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white text-sm font-medium disabled:opacity-60"
               >
                 {submitting && (
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="4" opacity="0.25" />
-                    <path d="M22 12a10 10 0 0 1-10 10" fill="none" stroke="currentColor" strokeWidth="4" />
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      opacity="0.25"
+                    />
+                    <path
+                      d="M22 12a10 10 0 0 1-10 10"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
                   </svg>
                 )}
                 ログイン
@@ -224,9 +264,9 @@ export default function Login() {
                 onClick={handleDemo}
                 disabled={submitting}
                 className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
-                data-testid="login-demo-button"
+                data-testid="login-guest-button"
               >
-                デモで試す
+                ゲストユーザーで試す
               </button>
             </div>
           </form>
