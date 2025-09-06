@@ -7,15 +7,12 @@ export default function RequireAuth() {
   const loc = useLocation();
 
   if (!authed) {
-    // 復帰用の from をセッションに保存（AuthProvider 側でも保存するが念のため）
     try {
       const p = loc.pathname + loc.search + loc.hash;
-      if (p.startsWith("/") && !p.startsWith("//")) {
+      if (p.startsWith("/") && !p.startsWith("//") && p !== "/login") {
         sessionStorage.setItem("auth:from", p);
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
     return <Navigate to="/login" replace />;
   }
   return <Outlet />;
