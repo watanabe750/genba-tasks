@@ -6,14 +6,18 @@ import Layout from "../components/Layout";
 import RequireAuth from "../components/RequireAuth";
 import Account from "../pages/Account";
 import Help from "../pages/Help";
+import Home from "../pages/Home"; // ★ 追加
 
 export const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* 非ログイン時も見えるページ */}
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signin" element={<Navigate to="/login" replace />} />
 
+        {/* 認証ガード配下 */}
         <Route element={<RequireAuth />}>
           <Route element={<Layout />}>
             <Route path="/tasks" element={<TaskList />} />
@@ -22,7 +26,7 @@ export const AppRouter = () => {
           </Route>
         </Route>
 
-        <Route path="/" element={<Navigate to="/tasks" replace />} />
+        {/* その他は tasks へ */}
         <Route path="*" element={<Navigate to="/tasks" replace />} />
       </Routes>
     </BrowserRouter>

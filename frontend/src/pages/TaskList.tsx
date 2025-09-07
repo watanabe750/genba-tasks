@@ -1,3 +1,4 @@
+// src/pages/TaskList.tsx
 import { useMemo, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
@@ -17,11 +18,15 @@ const TaskList: PageComponent = () => {
   const { authed } = useAuth();
   usePriorityTasks(authed);
 
-  // デモフラグ
-  const [isDemo, setIsDemo] = useState(false);
+  // ゲスト（旧デモ）フラグ
+  const [isGuest, setIsGuest] = useState(false);
   useEffect(() => {
     const read = () => {
-      try { setIsDemo(sessionStorage.getItem("auth:demo") === "1"); } catch { /* ignore */ }
+      try {
+        setIsGuest(sessionStorage.getItem("auth:demo") === "1");
+      } catch {
+        /* ignore */
+      }
     };
     read();
     window.addEventListener("auth:refresh", read);
@@ -57,14 +62,14 @@ const TaskList: PageComponent = () => {
   return (
     <InlineDndProvider>
       <div className="max-w-6xl mx-auto p-4" data-testid="task-list-root">
-        {/* ★ いちばん上に注意書き */}
-        {isDemo && (
+        {/* ★ いちばん上に注意書き（ゲスト環境） */}
+        {isGuest && (
           <div
             className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
             role="note"
-            data-testid="demo-notice"
+            data-testid="guest-notice"
           >
-            これは<strong>デモ環境</strong>です。データは定期的に初期化される場合があります。個人情報の入力は避けてください。
+            これは<strong className="mx-1">ゲスト環境</strong>です。データは定期的に初期化される場合があります。個人情報の入力はお控えください。
           </div>
         )}
 
