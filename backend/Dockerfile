@@ -67,3 +67,11 @@ ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 # Start server via Thruster by default, this can be overwritten at runtime
 EXPOSE 80
 CMD ["./bin/thrust", "./bin/rails", "server"]
+
+# ビルド時に短SHAを埋め込めるように
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
+
+# コンテナのヘルスチェック（ECS/Fargate でもそのまま有効）
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD curl -fsS http://localhost:3000/up || exit 1
