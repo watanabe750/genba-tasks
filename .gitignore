@@ -1,0 +1,7 @@
+
+# --- frontend local envs (do not commit secrets) ---
+/frontend/.env*.local
+/frontend/.env.local
+/frontend/.env.development.local
+# keep examples
+!/frontend/.env.example
