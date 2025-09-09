@@ -1,0 +1,65 @@
+
+services:
+  db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: app_development
+      MYSQL_USER: app
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+      TZ: Asia/Tokyo
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev        # ← dev用Dockerfileを明示
+    environment:
+      RAILS_ENV: development
+      DB_HOST: db
+      DB_NAME: app_development
+      DB_USERNAME: app
+      DB_PASSWORD: secret
+      TZ: Asia/Tokyo
+      RAILS_LOG_TO_STDOUT: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/rails
+      - bundle-cache:/usr/local/bundle
+    command: ["bash", "-lc", "./bin/compose-entrypoint.sh"]
+
+  front:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:3000
+      VITE_DEMO_EMAIL: demo@example.com
+      VITE_DEMO_PASS: password
+      TZ: Asia/Tokyo
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["sh","-lc","pnpm config set store-dir /root/.local/share/pnpm/store --global && pnpm install --no-frozen-lockfile && pnpm dev --host 0.0.0.0"]
+
+
+
+volumes:
+  db-data:
+  bundle-cache:
+

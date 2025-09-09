@@ -5,8 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./index.css";
 import { AppRouter } from "./router/AppRouter";
 import { AuthProvider } from "./providers/AuthContext";
-
-// 追加
 import { TaskDrawerProvider } from "./features/drawer/useTaskDrawer";
 import { ToastProvider } from "./components/ToastProvider";
 

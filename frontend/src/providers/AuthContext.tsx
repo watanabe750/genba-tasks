@@ -5,8 +5,8 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useState,
   useRef,
+  useState,
 } from "react";
 import api from "../lib/apiClient";
 import {
@@ -25,13 +25,14 @@ export type AuthContextValue = {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** リクエスト開始時刻（並行競合回避用） */
+/** リクエスト開始時刻（並行競合対策） */
 const REQ_TIME_HEADER = "x-auth-start";
 
 /** E2E 実行中かどうか（Playwright/Headless を検知） */
 const IS_E2E =
   typeof navigator !== "undefined" &&
-  (((navigator as any).webdriver ?? false) || /Playwright|Headless/i.test(navigator.userAgent));
+  (((navigator as any).webdriver ?? false) ||
+    /Playwright|Headless/i.test(navigator.userAgent));
 
 type TokenBundle = {
   at?: string;
@@ -51,6 +52,7 @@ function getHeaderString(h: unknown, key: string): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
+/** レスポンスヘッダからトークン抽出→保存＆適用（startedAt で競合勝者を決める） */
 function saveTokensFromHeaders(
   headers: AxiosResponseHeaders | RawAxiosResponseHeaders,
   startedAtMs: number,
@@ -58,11 +60,11 @@ function saveTokensFromHeaders(
   apply: (t: TokenBundle) => void,
   save: (t: TokenBundle) => void
 ) {
-  const at        = getHeaderString(headers, "access-token");
-  const client    = getHeaderString(headers, "client");
-  const uid       = getHeaderString(headers, "uid");
+  const at = getHeaderString(headers, "access-token");
+  const client = getHeaderString(headers, "client");
+  const uid = getHeaderString(headers, "uid");
   const tokenType = getHeaderString(headers, "token-type");
-  const expiry    = getHeaderString(headers, "expiry");
+  const expiry = getHeaderString(headers, "expiry");
 
   if (!at || !client || !uid) return;
   if (startedAtMs < lastSavedAtRef.current) return;
@@ -73,15 +75,16 @@ function saveTokensFromHeaders(
   lastSavedAtRef.current = startedAtMs;
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  // ---- 初期トークン読み込み ----
   const initialTokens: TokenBundle = (() => {
     try {
       return {
-        at:        localStorage.getItem("access-token") ?? undefined,
-        client:    localStorage.getItem("client") ?? undefined,
-        uid:       localStorage.getItem("uid") ?? undefined,
+        at: localStorage.getItem("access-token") ?? undefined,
+        client: localStorage.getItem("client") ?? undefined,
+        uid: localStorage.getItem("uid") ?? undefined,
         tokenType: localStorage.getItem("token-type") ?? undefined,
-        expiry:    localStorage.getItem("expiry") ?? undefined,
+        expiry: localStorage.getItem("expiry") ?? undefined,
       };
     } catch {
       return {};
@@ -91,30 +94,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState<boolean>(
     !!(initialTokens.at && initialTokens.client && initialTokens.uid)
   );
-  const [uid, setUid]   = useState<string | null>(initialTokens.uid ?? null);
+  const [uid, setUid] = useState<string | null>(initialTokens.uid ?? null);
   const [name, setName] = useState<string | null>(null);
 
   const lastSavedAtRef = useRef(0);
 
+  // ---- ユーティリティ ----
   const applyTokensToAxios = useCallback((tokens: TokenBundle) => {
     const { at, client, uid, tokenType } = tokens;
     const type = tokenType || localStorage.getItem("token-type") || "Bearer";
 
     if (at) {
-      api.defaults.headers.common["access-token"] = at;
-      api.defaults.headers.common["Authorization"] = `${type} ${at}`;
-      api.defaults.headers.common["token-type"] = type;
+      (api.defaults.headers.common as any)["access-token"] = at;
+      (api.defaults.headers.common as any)["Authorization"] = `${type} ${at}`;
+      (api.defaults.headers.common as any)["token-type"] = type;
     } else {
-      delete api.defaults.headers.common["access-token"];
-      delete api.defaults.headers.common["Authorization"];
-      delete api.defaults.headers.common["token-type"];
+      delete (api.defaults.headers.common as any)["access-token"];
+      delete (api.defaults.headers.common as any)["Authorization"];
+      delete (api.defaults.headers.common as any)["token-type"];
     }
 
-    if (client) api.defaults.headers.common["client"] = client;
-    else delete api.defaults.headers.common["client"];
+    if (client) (api.defaults.headers.common as any)["client"] = client;
+    else delete (api.defaults.headers.common as any)["client"];
 
-    if (uid) api.defaults.headers.common["uid"] = uid;
-    else delete api.defaults.headers.common["uid"];
+    if (uid) (api.defaults.headers.common as any)["uid"] = uid;
+    else delete (api.defaults.headers.common as any)["uid"];
   }, []);
 
   const saveTokens = useCallback((tokens: TokenBundle) => {
@@ -136,11 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadTokens = useCallback((): TokenBundle => {
     return {
-      at:        localStorage.getItem("access-token") ?? undefined,
-      client:    localStorage.getItem("client") ?? undefined,
-      uid:       localStorage.getItem("uid") ?? undefined,
+      at: localStorage.getItem("access-token") ?? undefined,
+      client: localStorage.getItem("client") ?? undefined,
+      uid: localStorage.getItem("uid") ?? undefined,
       tokenType: localStorage.getItem("token-type") ?? undefined,
-      expiry:    localStorage.getItem("expiry") ?? undefined,
+      expiry: localStorage.getItem("expiry") ?? undefined,
     };
   }, []);
 
@@ -152,18 +156,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setName(null);
   }, [saveTokens, applyTokensToAxios]);
 
-  if (initialTokens.at && initialTokens.client && initialTokens.uid) {
-    applyTokensToAxios(initialTokens);
-  }
+  // 初期トークンを axios に適用
+  useEffect(() => {
+    if (initialTokens.at && initialTokens.client && initialTokens.uid) {
+      applyTokensToAxios(initialTokens);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchMe = useCallback(async () => {
     try {
       const res = await api.get("/me");
       setName(res.data?.name ?? null);
-      if (typeof res.data?.email === "string" && !uid) {
-        setUid(res.data.email);
-      }
-    } catch { /* ignore */ }
+      if (typeof res.data?.email === "string" && !uid) setUid(res.data.email);
+    } catch {
+      /* ignore */
+    }
   }, [uid]);
 
   const signIn = useCallback(
@@ -172,14 +180,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.post("/auth/sign_in", { email, password });
 
       saveTokensFromHeaders(
-        res.headers as AxiosResponseHeaders & RawAxiosResponseHeaders,
+        (res.headers as AxiosResponseHeaders) ||
+          (res.headers as RawAxiosResponseHeaders),
         startedAt,
         lastSavedAtRef,
         applyTokensToAxios,
         saveTokens
       );
 
-      const headerUid = typeof res.headers["uid"] === "string" ? res.headers["uid"] : undefined;
+      const headerUid =
+        typeof (res.headers as any)["uid"] === "string"
+          ? (res.headers as any)["uid"]
+          : undefined;
+
       setAuthed(true);
       setUid(headerUid ?? email);
       fetchMe();
@@ -189,30 +202,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(
     async (silent = false) => {
-      try { await api.delete("/auth/sign_out"); } catch { /* ignore */ }
-      finally {
+      try {
+        await api.delete("/auth/sign_out");
+      } catch {
+        /* ignore */
+      } finally {
         if (!silent) {
           try {
-            const p = window.location.pathname + window.location.search + window.location.hash;
-            if (p.startsWith("/") && !p.startsWith("//")) sessionStorage.setItem("auth:from", p);
-          } catch { /* ignore */ }
+            const p =
+              window.location.pathname +
+              window.location.search +
+              window.location.hash;
+            if (p.startsWith("/") && !p.startsWith("//"))
+              sessionStorage.setItem("auth:from", p);
+          } catch {
+            /* ignore */
+          }
         }
         clearTokens();
-        try { window.dispatchEvent(new Event("auth:logout")); } catch { /* ignore */ }
-        // ★ E2E中はページを殺さない
+        try {
+          window.dispatchEvent(new Event("auth:logout"));
+        } catch {
+          /* ignore */
+        }
         if (!silent && !IS_E2E) window.location.replace("/login");
       }
     },
     [clearTokens]
   );
 
+  // ---- Axios インターセプタ（送信前付与 / 受信後保存 / 401ワンショット再送）----
   useEffect(() => {
     const reqId = api.interceptors.request.use((config) => {
       const headers = AxiosHeaders.from(config.headers);
 
-      const at        = localStorage.getItem("access-token");
-      const client    = localStorage.getItem("client");
-      const luid      = localStorage.getItem("uid");
+      const at = localStorage.getItem("access-token");
+      const client = localStorage.getItem("client");
+      const luid = localStorage.getItem("uid");
       const tokenType = localStorage.getItem("token-type") || "Bearer";
 
       if (at && client && luid) {
@@ -230,11 +256,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const resId = api.interceptors.response.use(
       (res) => {
-        const startedAtStr = getHeaderString(res.config.headers as unknown, REQ_TIME_HEADER);
+        const startedAtStr = getHeaderString(
+          res.config.headers as unknown,
+          REQ_TIME_HEADER
+        );
         const startedAtMs = startedAtStr ? Number(startedAtStr) : Date.now();
 
         saveTokensFromHeaders(
-          res.headers as AxiosResponseHeaders & RawAxiosResponseHeaders,
+          (res.headers as AxiosResponseHeaders) ||
+            (res.headers as RawAxiosResponseHeaders),
           startedAtMs,
           lastSavedAtRef,
           applyTokensToAxios,
@@ -243,17 +273,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return res;
       },
       async (error) => {
-        if (error?.response?.status === 401) {
+        // 401 → 最新トークンで 1 回だけ再送（devise_token_auth のトークンローテ対策）
+        const status = error?.response?.status;
+        const cfg = error?.config as any;
+
+        if (status === 401 && cfg && !cfg._retry) {
+          cfg._retry = true;
+          const t = loadTokens();
+          if (t.at && t.client && t.uid) {
+            if (cfg.headers?.set) {
+              cfg.headers.set("access-token", t.at);
+              cfg.headers.set("client", t.client);
+              cfg.headers.set("uid", t.uid);
+              cfg.headers.set("token-type", t.tokenType || "Bearer");
+              cfg.headers.set(
+                "Authorization",
+                `${t.tokenType || "Bearer"} ${t.at}`
+              );
+            } else {
+              cfg.headers = {
+                ...(cfg.headers || {}),
+                "access-token": t.at,
+                client: t.client,
+                uid: t.uid,
+                "token-type": t.tokenType || "Bearer",
+                Authorization: `${t.tokenType || "Bearer"} ${t.at}`,
+              };
+            }
+            try {
+              return await api.request(cfg);
+            } catch {
+              /* fall through */
+            }
+          }
+        }
+
+        if (status === 401) {
           try {
-            const p = window.location.pathname + window.location.search + window.location.hash;
-            if (p.startsWith("/") && !p.startsWith("//")) sessionStorage.setItem("auth:from", p);
+            const p =
+              window.location.pathname +
+              window.location.search +
+              window.location.hash;
+            if (p.startsWith("/") && !p.startsWith("//"))
+              sessionStorage.setItem("auth:from", p);
             sessionStorage.setItem("auth:expired", "1");
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
           clearTokens();
-          try { window.dispatchEvent(new Event("auth:logout")); } catch { /* ignore */ }
-          // ★ E2E中は即リダイレクトしない（ページを維持）
+          try {
+            window.dispatchEvent(new Event("auth:logout"));
+          } catch {
+            /* ignore */
+          }
           if (!IS_E2E) window.location.replace("/login");
-          return Promise.reject(error);
         }
         return Promise.reject(error);
       }
@@ -263,8 +336,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api.interceptors.request.eject(reqId);
       api.interceptors.response.eject(resId);
     };
-  }, [applyTokensToAxios, saveTokens, clearTokens]);
+  }, [applyTokensToAxios, saveTokens, clearTokens, loadTokens]);
 
+  // ---- 別タブ更新などの同期 ----
   useEffect(() => {
     const onStorage = () => {
       const t = loadTokens();
@@ -282,10 +356,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, [applyTokensToAxios, clearTokens, loadTokens, fetchMe]);
 
+  // ---- authed になったら /me を取得 ----
   useEffect(() => {
     if (authed) fetchMe();
   }, [authed, fetchMe]);
 
+  // ---- 明示的リフレッシュ（ゲストログイン/復帰など）----
   useEffect(() => {
     const onRefresh = () => {
       const t = loadTokens();
@@ -315,4 +391,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export { AuthProvider as default };
+// —— export（default は 1 回だけ）——
+export { AuthProvider };
+export default AuthProvider;
