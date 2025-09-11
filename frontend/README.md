@@ -67,3 +67,9 @@ export default tseslint.config([
   },
 ])
 ```
+docs/deploy-notes.md
+├─ ECR push 手順
+├─ IAM Role 作成
+├─ Task 定義
+├─ ALB/TargetGroup 設定
+└─ DoD (/up healthy)
