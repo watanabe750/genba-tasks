@@ -23,4 +23,3 @@ class HealthController < ApplicationController
       false
     end
   end
-  
