@@ -252,7 +252,7 @@ export default function Home() {
               onClick={() => nav("/login")}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-white font-medium shadow hover:bg-emerald-700 active:scale-[0.99] transition"
             >
-              始める
+              開始
             </button>
           </div>
         </section>
