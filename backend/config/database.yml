@@ -1,11 +1,12 @@
 default: &default
   adapter: mysql2
   encoding: utf8mb4
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  username: <%= ENV.fetch("DB_USERNAME", "root") %>
-  password: <%= ENV.fetch("DB_PASSWORD", "") %>
-  host: <%= ENV.fetch("DB_HOST", "127.0.0.1") %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
+  host: <%= ENV["DB_HOST"] %>
   port: <%= ENV.fetch("DB_PORT", 3306) %>
+  username: <%= ENV["DB_USER"] %>        
+  password: <%= ENV["DB_PASSWORD"] %>
+  ssl_mode: required                 
 
 development:
   <<: *default
@@ -15,7 +16,7 @@ test:
   <<: *default
   database: genba_task_test
 
-# 本番は DATABASE_URL を優先利用
+# 本番は ENV を読む。DATABASE_URL が設定されていれば Rails が自動で優先する。
 production:
   <<: *default
-  database: <%= ENV.fetch("DB_NAME", "genba_task_prod") %>
+  database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>
