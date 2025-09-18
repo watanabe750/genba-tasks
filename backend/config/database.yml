@@ -1,12 +1,14 @@
+# config/database.yml
+
 default: &default
   adapter: mysql2
   encoding: utf8mb4
   pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
   host: <%= ENV["DB_HOST"] %>
   port: <%= ENV.fetch("DB_PORT", 3306) %>
-  username: <%= ENV["DB_USER"] %>        
+  username: <%= ENV["DB_USER"] %>
   password: <%= ENV["DB_PASSWORD"] %>
-  ssl_mode: required                 
+  ssl_mode: required
 
 development:
   <<: *default
@@ -16,7 +18,9 @@ test:
   <<: *default
   database: genba_task_test
 
-# 本番は ENV を読む。DATABASE_URL が設定されていれば Rails が自動で優先する。
+# 本番は単一DB（primary/cable/queue は定義しない）
+# ※ DATABASE_URL があれば Rails が自動的に優先します
 production:
   <<: *default
   database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>
+  url: <%= ENV["DATABASE_URL"] %>
