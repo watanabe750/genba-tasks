@@ -18,9 +18,21 @@ test:
   <<: *default
   database: genba_task_test
 
-# 本番は単一DB（primary/cable/queue は定義しない）
-# ※ DATABASE_URL があれば Rails が自動的に優先します
+# 本番：Solid 系の参照が残っていても落ちないように multi-DB 形式で定義
 production:
-  <<: *default
-  database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>
-  url: <%= ENV["DATABASE_URL"] %>
+  primary:
+    <<: *default
+    database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>
+    # DATABASE_URL があれば優先（ない場合は上の個別値で接続）
+    url: <%= ENV["DATABASE_URL"] %>
+
+  # 使わない場合でも primary と同じ先に向けておけばエラーにならない
+  cable:
+    <<: *default
+    database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>
+    url: <%= ENV.fetch("DATABASE_URL_CABLE", ENV["DATABASE_URL"]) %>
+
+  queue:
+    <<: *default
+    database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>
+    url: <%= ENV.fetch("DATABASE_URL_QUEUE", ENV["DATABASE_URL"]) %>

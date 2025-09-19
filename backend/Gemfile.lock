@@ -121,7 +121,6 @@ GEM
     factory_bot_rails (6.5.0)
       factory_bot (~> 6.5)
       railties (>= 6.1.0)
-    ffi (1.17.2)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-aarch64-linux-musl)
     ffi (1.17.2-arm-linux-gnu)
@@ -338,10 +337,6 @@ GEM
       activejob (>= 7.2)
       activerecord (>= 7.2)
       railties (>= 7.2)
-    solid_cache (1.0.7)
-      activejob (>= 7.2)
-      activerecord (>= 7.2)
-      railties (>= 7.2)
     solid_queue (1.2.1)
       activejob (>= 7.1)
       activerecord (>= 7.1)
@@ -410,7 +405,6 @@ DEPENDENCIES
   rspec-rails
   rubocop-rails-omakase
   solid_cable
-  solid_cache
   solid_queue
   thruster
   tzinfo-data
