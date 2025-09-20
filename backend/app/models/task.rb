@@ -3,6 +3,7 @@ class Task < ApplicationRecord
   belongs_to :user
   belongs_to :parent, class_name: "Task", optional: true
   has_many   :children, class_name: "Task", foreign_key: "parent_id", dependent: :destroy
+  has_one_attached :image
 
   # 子タスク上限
   MAX_CHILDREN_PER_NODE = 4
@@ -158,6 +159,13 @@ class Task < ApplicationRecord
     end
 
     parent.update_parent_progress if parent.parent.present?
+  end
+
+  # S3の署名付きURL（期限付き）を返す。未添付なら nil。
+  def image_url(expires_in: 15.minutes)
+    return nil unless image.attached?
+    image.blob.url(expires_in: expires_in)
+
   end
 
   private

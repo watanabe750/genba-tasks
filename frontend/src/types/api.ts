@@ -1,3 +1,4 @@
+// src/types/api.ts
 import type { Task } from "./task";
 
 export type ApiListResponse<T> = { data: T[] };
