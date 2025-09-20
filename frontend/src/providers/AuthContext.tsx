@@ -43,14 +43,14 @@ type TokenBundle = {
 };
 
 function getHeaderString(h: unknown, key: string): string | undefined {
-  if (h instanceof AxiosHeaders) {
-    const v = h.get(key);
-    return typeof v === "string" ? v : undefined;
-  }
-  const rec = h as Record<string, unknown> | undefined;
-  const v = rec?.[key];
-  return typeof v === "string" ? v : undefined;
-}
+     if (h instanceof AxiosHeaders) {
+       const v = h.get(key) ?? h.get(key.toLowerCase());
+       return typeof v === "string" ? v : undefined;
+     }
+     const rec = h as Record<string, unknown> | undefined;
+     const v = rec?.[key] ?? rec?.[key.toLowerCase()];
+     return typeof v === "string" ? v : undefined;
+   }
 
 /** レスポンスヘッダからトークン抽出→保存＆適用（startedAt で競合勝者を決める） */
 function saveTokensFromHeaders(
@@ -166,7 +166,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchMe = useCallback(async () => {
     try {
-      const res = await api.get("/me");
+      const res = await api.get("me");
       setName(res.data?.name ?? null);
       if (typeof res.data?.email === "string" && !uid) setUid(res.data.email);
     } catch {
@@ -177,7 +177,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string) => {
       const startedAt = Date.now();
-      const res = await api.post("/auth/sign_in", { email, password });
+      const res = await api.post("auth/sign_in", { email, password });
 
       saveTokensFromHeaders(
         (res.headers as AxiosResponseHeaders) ||
@@ -203,7 +203,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(
     async (silent = false) => {
       try {
-        await api.delete("/auth/sign_out");
+        await api.delete("auth/sign_out");
       } catch {
         /* ignore */
       } finally {

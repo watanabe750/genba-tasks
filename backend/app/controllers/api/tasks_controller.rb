@@ -40,7 +40,8 @@ module Api
     
         scope = scope.reorder(Arel.sql(parents_first_sql))
         Rails.logger.info("[Tasks#index] order(site)=#{parents_first_sql} filters=#{filters.inspect}")
-        return render json: scope.as_json(only: SELECT_FIELDS)
+        return render json: scope.with_attached_image
+   .as_json(only: SELECT_FIELDS, methods: [:image_url])
       end
       # ----- ここから下は既存（progress / created_at / title / deadline） -----
     
@@ -77,7 +78,8 @@ module Api
       scope = scope.reorder(Arel.sql(parents_first_sql))
       Rails.logger.info("[Tasks#index] order=#{parents_first_sql} filters=#{filters.inspect}")
     
-      render json: scope.as_json(only: SELECT_FIELDS)
+      render json: scope.with_attached_image
+   .as_json(only: SELECT_FIELDS, methods: [:image_url])
     end
     
     
@@ -90,21 +92,10 @@ module Api
     def show
       t = @task
       # 画像URL（存在すれば）
-      img_urls =
-        if t.respond_to?(:image) && t.image.attached?
-          begin
-                        {
-                          image_url: url_for(t.image),
-                          # 遅延生成（.processed を付けない）
-                          image_thumb_url: url_for(t.image.variant(resize_to_fill: [200, 200]))
-                        }
-                      rescue => e
-                        Rails.logger.warn("[Tasks#show] variant url build failed: #{e.class}: #{e.message}")
-                        { image_url: url_for(t.image), image_thumb_url: nil }
-                      end
-        else
-          { image_url: nil, image_thumb_url: nil }
-        end
+      img_urls = {
+        image_url: t.image_url,     # ← S3の署名付きURL（未添付ならnil）
+        image_thumb_url: nil        # ← 最小構成：サムネは後続ブランチで
+      }
 
       # 直下の子（最大4件）：期限昇順 → 期限なし → id昇順
       kids_scope = current_user.tasks
@@ -238,8 +229,8 @@ module Api
     end
 
     def set_task
-      @task = current_user.tasks.find_by(id: params[:id])
-      render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
+      @task = current_user.tasks.with_attached_image.find_by(id: params[:id])
+            render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
     end
 
     def filter_params
