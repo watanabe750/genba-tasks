@@ -5,3 +5,6 @@
 /frontend/.env.development.local
 # keep examples
 !/frontend/.env.example
+
+# local ECS task-def snapshots
+backend/td-*.json
