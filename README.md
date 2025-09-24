@@ -1,269 +1,149 @@
-いいね、そのREADMEを“ほぼ踏襲”しつつ、あなたの現在構成（Rails 8 / React+Vite / ECS+ALB / CF / 独自ドメイン / CORS）に合わせて**完成版の README.md**を書き起こしました。下の全文をコピーして `README.md` に貼り付けてください。（画像やGIFはあとで差し替えできるようプレースホルダ名を入れてあります）
+# Genba Tasks (SPA) – ポートフォリオ
+
+> 現場向けの **カンバン型タスク管理アプリ**。  
+> フロント：**TypeScript / React (Vite)**、バックエンド：**Ruby on Rails 8 (API mode)**、  
+> インフラ：**AWS（ECS Fargate / ALB / CloudFront / Route53 / RDS / S3）**。
+
+- アプリ: https://app.genba-tasks.com/
+- API ヘルスチェック: https://api.genba-tasks.com/up
+- 体験方法: **ゲストログイン** ボタンでワンクリック入場（アカウント情報の記載は不要です）
 
 ---
 
-````markdown
-# Genba Task (SPA) – ポートフォリオ
-
-> 主にスキル向上を目的に、カンバン型のタスク管理アプリ **Genba Task** を作成しました。  
-> フロントは **TypeScript / React (Vite)**、バックエンドは **Ruby on Rails 8**、インフラは **AWS (ECS Fargate / ALB / CloudFront / Route53 / RDS / S3)** で構築しています。
-
-- アプリケーション: https://app.genba-tasks.com/
-- API: https://api.genba-tasks.com/
-- デモユーザー: `demo@example.com / demo-password`  
-  （※必要に応じて変更・無効化します）
-
 ## 目次
-- [機能](#機能)
-- [開発環境 (フロントエンド)](#開発環境-フロントエンド)
-- [開発環境 (バックエンド)](#開発環境-バックエンド)
-- [本番環境](#本番環境)
-- [インフラ構成図](#インフラ構成図)
-- [ER図](#er図)
-- [画面 (スクリーンショット/GIF)](#画面-スクリーンショットgif)
-- [ローカル開発手順](#ローカル開発手順)
-- [最短デプロイ手順 (要AWS権限)](#最短デプロイ手順-要aws権限)
-- [環境変数](#環境変数)
-- [運用・監視](#運用監視)
-- [トラブルシュート](#トラブルシュート)
-- [使用技術](#使用技術)
-- [各種リンク](#各種リンク)
-- [ライセンス](#ライセンス)
+- [Genba Tasks (SPA) – ポートフォリオ](#genba-tasks-spa--ポートフォリオ)
+  - [目次](#目次)
+  - [機能](#機能)
+    - [認証](#認証)
+    - [タスク管理](#タスク管理)
+  - [スクリーンショット / GIF](#スクリーンショット--gif)
+  - [技術スタック](#技術スタック)
+  - [アーキテクチャの要点](#アーキテクチャの要点)
+  - [使い方（デモ手順）](#使い方デモ手順)
+  - [リポジトリ構成](#リポジトリ構成)
+  - [ローカル実行（簡易）](#ローカル実行簡易)
+- [.env.local に API 先を指定（例）](#envlocal-に-api-先を指定例)
+- [VITE\_API\_BASE\_URL=http://localhost:3000](#vite_api_base_urlhttplocalhost3000)
 
 ---
 
 ## 機能
+
 ### 認証
-- ログイン / ログアウト（トークン認証: `devise_token_auth`）
+- ログイン / ログアウト（`devise_token_auth` によるトークン認証）
 - ユーザー登録 / 表示 / 更新 / 削除
-- パスワードリセット（メール送信は本番ではSES/Smtp等に切替可能）
-- ゲストログイン（デモユーザー）
+- パスワード再設定（メール送信は本番では SES/SMTP 等に切替可能）
+- **ゲストログイン（ワンクリック）**
 
 ### タスク管理
-- カード（タスク）CRUD
-- リスト（タスクのグルーピング）CRUD
-- ボード（リストのグルーピング）CRUD
-- 絞り込み / 並び替え（昇順・降順 / ドラッグ&ドロップ）
-- 検索 / ページネーション
-- 画像添付（Active Storage + S3）
+- **上位タスク / タスクの CRUD**
+- 画像添付（**Active Storage + S3**）
+- **ドラッグ＆ドロップ**で並び替え
+- 期限が近いタスクのサイド表示
+- フィルター / 検索 / 並び替え（昇順・降順）
+- レスポンシブ対応
 
 ---
 
-## 開発環境 (フロントエンド)
-- TypeScript
-- React
-- Vite
-- React Router
-- Axios
-- UI（任意）：Radix / shadcn/ui / MUI ほか
+## スクリーンショット / GIF
 
-ローカルでの実行は `pnpm dev` で、API先は `.env` で切り替えます（後述）。
+> GIF はこの順で短尺（各 8〜12 秒）を予定
+> 1) **ゲストログイン → 上位タスク作成**  
+> 2) **カード編集 → 画像添付（サムネ表示）**  
+> 3) **カードのドラッグ＆ドロップ並び替え**
 
----
+配置予定:
+- `assets/01_signin.gif`
+- `assets/02_edit_upload.gif`
+- `assets/03_drag_and_drop.gif`
 
-## 開発環境 (バックエンド)
-- Ruby 3.2 / Rails 8
-- Puma
-- devise / devise_token_auth
-- rack-cors
-- Active Storage（S3）
-- RSpec / factory_bot_rails（任意）
-
-ローカルは `bin/rails s`（または `docker compose up` を整備予定）で起動。DBは MySQL を想定。
+*撮影 Tips（macOS）*: QuickTime で画面収録 → **Gifski** で GIF 化（幅 ~900px / 10–12fps / ループ）
 
 ---
 
-## 本番環境
-- **フロント**: CloudFront（`app.genba-tasks.com`）
-- **API**: ALB＋ECS Fargate（`api.genba-tasks.com`）
-- **DB**: Amazon RDS (MySQL)
-- **オブジェクトストレージ**: Amazon S3（Active Storage）
-- **DNS**: Route53
-- **証明書**: ACM（CF用は us-east-1 / ALB用は ap-northeast-1）
+## 技術スタック
 
-### CORS
-- 許可オリジン: `https://app.genba-tasks.com`（および CFのドメイン）
-- `rack-cors` で `Access-Control-Allow-Origin` / `Expose-Headers`（`access-token, client, uid, expiry`）を設定。
+**Frontend**
+- React, TypeScript, Vite
+- React Router, Axios
+- （UI は最小構成。必要に応じて MUI / shadcn/ui / Radix を採用可能）
 
----
+**Backend (API)**
+- Ruby on Rails 8, Puma
+- Devise / Devise Token Auth, rack-cors
+- Active Storage + Amazon S3
+- RSpec（最低限）
 
-## インフラ構成図
-ユーザー → **CloudFront(app)** → SPA  
-SPA → **ALB(api)** → ECS(Fargate, Rails) → **RDS(MySQL)** / **S3(Active Storage)**  
-DNSは Route53、証明書は ACM。  
-（※図は `docs/infra.png` へ後日差し替え）
+**Infra / Ops**
+- **AWS**: ECS Fargate（Rails コンテナ）, ALB（HTTPS/ACM）, CloudFront（SPA 配信）, Route53, RDS(MySQL), S3
+- CloudWatch Logs（**Live Tail** でのリアルタイム追跡）
+- 独自ドメイン: `app.genba-tasks.com` / `api.genba-tasks.com`
 
 ---
 
-## ER図
-- `users` と `task_boards` / `task_lists` / `task_cards` のリレーション。  
-（※ER図は `docs/er.png` へ後日差し替え）
+## アーキテクチャの要点
+
+- **独自ドメイン & HTTPS 完備**
+  - `app.genba-tasks.com` … CloudFront（証明書は us-east-1）
+  - `api.genba-tasks.com` … ALB（証明書は ap-northeast-1、80→443 リダイレクト）
+- **CORS 最小許可**  
+  - 許可オリジンは `https://app.genba-tasks.com`（＋CloudFront ドメイン）  
+  - `access-token, client, uid, expiry` を `Access-Control-Expose-Headers` に明示
+- **可観測性**  
+  - `x-request-id` を CloudWatch **Live Tail** で追跡し、curl/ブラウザの失敗要因を即時特定
+- **ヘルスチェック**  
+  - `GET /up` を ALB/LB 監視と手動確認の双方で利用
 
 ---
 
-## 画面 (スクリーンショット/GIF)
-- `assets/signin.gif`（サインイン）
-- `assets/tasks.gif`（CRUD）
-- `assets/upload.gif`（画像添付）
-> GIFは後追いで追加予定。撮影は macOSなら **QuickTime Player** で画面収録 → **Gifski** 等でGIF化が手軽。
+## 使い方（デモ手順）
+
+1. https://app.genba-tasks.com を開く  
+2. 右上の **「ゲスト環境」**（またはゲストログイン）で入場  
+3. 上部フォームから **上位タスクを作成**  
+4. タスク編集で **画像を添付**（S3 に保存 → サムネ表示）  
+5. ボード上で **ドラッグ＆ドロップ** して順序変更
 
 ---
 
-## ローカル開発手順
+## リポジトリ構成
 
-### 1) Backend (Rails)
+/frontend # SPA (React + Vite)
+/backend # Rails API (Active Storage, Devise Token Auth)
+/infra # IaC/運用スクリプト（最小）
+/assets # README 用の画像・GIF（後述の3本を配置）
+
+yaml
+コードをコピーする
+
+---
+
+## ローカル実行（簡易）
+
+> 学習用の最短手順だけを記載（本番運用手順は省略）
+
+**Backend**
 ```bash
 cd backend
-cp .env.example .env # 必要に応じて編集（DB, S3など）
 bundle install
 bin/rails db:setup
-bin/rails s # http://localhost:3000
-````
+bin/rails s   # http://localhost:3000
+Frontend
 
-### 2) Frontend (Vite+React)
-
-```bash
 cd frontend
-cp .env.local.example .env.local
-# 例: VITE_API_BASE_URL=http://localhost:3000
 pnpm install
-pnpm dev # http://localhost:5173
-```
+# .env.local に API 先を指定（例）
+# VITE_API_BASE_URL=http://localhost:3000
+pnpm dev      # http://localhost:5173
+今後の改善（加点ポイント）
+画像 CDN 化（CloudFront + OAC）
+S3 直アクセス遮断 & キャッシュ最適化で表示体験を改善
 
----
+E2E テスト（Playwright） / パフォーマンス計測（Lighthouse CI）
 
-## 最短デプロイ手順 (要AWS権限)
+通知（期日リマインド、メール/Push）
 
-### 0) 前提
+組織・権限（複数ユーザー、ボード共有）
 
-* ECRリポジトリ（例: `genba-task-api`）
-* ECS クラスター/サービス（例: `genba-task-cluster` / `genba-task-svc`）
-* ALB + TargetGroup（ヘルスチェック `/up`）
-* Route53 で `app.genba-tasks.com`（CFへ）/ `api.genba-tasks.com`（ALBへ）設定済み
-
-### 1) API（Rails）ビルド & プッシュ
-
-```bash
-# 例: イメージタグ発行
-NEW_TAG=fix-$(date +%Y%m%d-%H%M%S)
-REGION=ap-northeast-1
-REPO=genba-task-api
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-REPO_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO"
-
-docker build -t "$REPO:$NEW_TAG" ./backend
-aws ecr get-login-password --region "$REGION" | \
-  docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
-docker tag "$REPO:$NEW_TAG" "$REPO_URI:$NEW_TAG"
-docker push "$REPO_URI:$NEW_TAG"
-```
-
-### 2) タスク定義を新イメージに更新 → サービス反映
-
-```bash
-CLUSTER=genba-task-cluster
-SERVICE=genba-task-svc
-
-NEW_DIGEST=$(aws ecr describe-images \
-  --repository-name "$REPO" --region "$REGION" \
-  --image-ids imageTag="$NEW_TAG" \
-  --query 'imageDetails[0].imageDigest' --output text)
-
-NEW_IMAGE="$REPO_URI@$NEW_DIGEST"
-# td-full.json をベースに image を NEW_IMAGE へ更新して register
-# register後の TD ARN をサービスに適用
-aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
-  --task-definition arn:aws:ecs:ap-northeast-1:...:task-definition/genba-task-td:<NEW>
-aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
-```
-
-### 3) 動作確認
-
-```bash
-# CORSプリフライト
-curl -i -X OPTIONS 'https://api.genba-tasks.com/api/auth/sign_in' \
-  -H 'Origin: https://app.genba-tasks.com' \
-  -H 'Access-Control-Request-Method: POST' \
-  -H 'Access-Control-Request-Headers: content-type'
-
-# ヘルスチェック
-curl -i 'https://api.genba-tasks.com/up'
-
-# ブラウザから https://app.genba-tasks.com ログイン～CRUD
-```
-
----
-
-## 環境変数
-
-### Frontend (`frontend/.env.production`)
-
-```
-VITE_API_BASE_URL=https://api.genba-tasks.com
-```
-
-### Backend（代表例）
-
-```
-RAILS_ENV=production
-DATABASE_URL=...
-S3_BUCKET=...
-AWS_REGION=ap-northeast-1
-DEVISE_TOKEN_AUTH_CHANGE_HEADERS_ON_EACH_REQUEST=true
-CORS_ALLOWED_ORIGINS=https://app.genba-tasks.com,https://*.cloudfront.net
-```
-
-> 本番の秘匿値は SSM Parameter Store / Secrets Manager / タスク定義の環境変数 などで安全に注入。
-
----
-
-## 運用・監視
-
-* **CloudWatch Logs**
-  `/aws/ecs/genba-task-cluster/genba-task-svc` → 最新 Log stream を開き **Start tailing**
-  時間範囲は右上で `Last 5 minutes/1 hour` に変更可能
-* **ALB ターゲットヘルス**
-  `aws elbv2 describe-target-health --target-group-arn <TG_ARN>`
-* **ヘルスチェック**
-  `GET https://api.genba-tasks.com/up` が `200`
-
----
-
-## 使用技術
-
-### フロントエンド
-
-* TypeScript / React / Vite
-* React Router
-* Axios
-* （任意）UI: MUI / shadcn/ui / Radix
-
-### バックエンド
-
-* Ruby on Rails 8 / Puma
-* devise / devise\_token\_auth / rack-cors
-* Active Storage（S3）
-* RSpec / factory\_bot\_rails
-
-### インフラ・その他
-
-* AWS: ECS Fargate / ALB / RDS(MySQL) / S3 / CloudFront / Route53 / ACM / CloudWatch
-* Docker / ECR
-* GitHub Actions（CI/CD 検討）
-
-> （任意・品質UP）**画像配信のCloudFront+OAC化**
-> S3直アクセス遮断＆キャッシュ最適化のため、将来的に OAC 構成を導入予定。
-
----
-
-## 各種リンク
-
-* アプリケーション: [https://app.genba-tasks.com/](https://app.genba-tasks.com/)
-* API: [https://api.genba-tasks.com/](https://api.genba-tasks.com/)
-* CloudWatch Logs: `/aws/ecs/genba-task-cluster/genba-task-svc`
-
----
-
-## ライセンス
-
-このリポジトリのコードは、特記無き場合は MIT ライセンスのもとで公開します。
+ライセンス
+MIT
