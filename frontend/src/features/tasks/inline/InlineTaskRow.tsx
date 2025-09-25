@@ -71,6 +71,7 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
 
   const [addingChild, setAddingChild] = useState(false);
   const [childTitle, setChildTitle] = useState("");
+  const [childDue, setChildDue] = useState<string>(""); // YYYY-MM-DD で保持
   const [showImagePanel, setShowImagePanel] = useState(false);
 
   const { open: openDrawer } = useTaskDrawer();
@@ -132,10 +133,16 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     const t = childTitle.trim();
     if (!t) return;
     createTask(
-      { title: t, parentId: task.id, deadline: null },
+      {
+        title: t,
+        parentId: task.id,
+        // フロントは YYYY-MM-DD のまま送ればOK（バックは :deadline を permit 済）
+        deadline: childDue || undefined,
+      },
       {
         onSuccess: () => {
           setChildTitle("");
+          setChildDue("");
           setAddingChild(false);
           setExpanded(true);
         },
@@ -537,7 +544,7 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
       {/* 子追加フォーム（行の末尾） */}
       {!editing && addingChild && (
         <form
-          className="mt-2 flex gap-2"
+          className="mt-2 flex flex-wrap items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             submitChild();
@@ -550,6 +557,13 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
             value={childTitle}
             onChange={(e) => setChildTitle(e.target.value)}
             autoFocus
+          />
+          <input
+            type="date"
+            aria-label="期限"
+            className="w-[160px] rounded border p-2"
+            value={childDue}
+            onChange={(e) => setChildDue(e.target.value)}
           />
           <button
             type="submit"
