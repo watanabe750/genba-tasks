@@ -8,7 +8,6 @@ import IllustrationSubtasks from "../components/illustrations/IllustrationSubtas
 import IllustrationDnd from "../components/illustrations/IllustrationDnd";
 import IllustrationSearch from "../components/illustrations/IllustrationSearch";
 
-
 function setOrUpdateMeta(name: string, content: string, isProperty = false) {
   const sel = isProperty ? `meta[property="${name}"]` : `meta[name="${name}"]`;
   let el = document.head.querySelector<HTMLMetaElement>(sel);
@@ -110,16 +109,29 @@ export default function Home() {
       <main className="relative pt-14">
         {/* ヒーロー */}
         <section className="relative">
-          <div className="mx-auto max-w-6xl px-4 pt-16 pb-14 md:pt-20 md:pb-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* 画面高 – ヘッダー(56px相当) に揃える。svhはブラウザUIの影響を受けにくい */}
+          <div
+            className="mx-auto max-w-6xl px-4
+                  min-h-[calc(100svh-56px)]
+                  flex items-center"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center w-full">
+              {/* 左カラム */}
               <div>
-                <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-900 leading-tight">
+                <h1
+                  className="font-extrabold tracking-tight text-gray-900 leading-tight
+                     text-[clamp(28px,4vw,48px)]"
+                >
                   現場タスクを
                   <span className="bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
                     “見える化”
                   </span>
                 </h1>
-                <p className="mt-4 text-gray-600 text-base md:text-lg">
+
+                <p
+                  className="mt-3 text-gray-600
+                      text-[clamp(14px,1.3vw,18px)] leading-snug"
+                >
                   階層タスク / 期限 &amp; 進捗 / 画像添付 / 優先表示。
                   <br className="hidden md:block" />
                   チームの“今”を素早く把握し、現場の意思決定を加速します。
@@ -128,13 +140,13 @@ export default function Home() {
                 {err && (
                   <div
                     role="alert"
-                    className="mt-4 max-w-lg rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                    className="mt-3 max-w-lg rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
                   >
                     {err}
                   </div>
                 )}
 
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="mt-5 flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => nav("/login")}
                     className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-white font-medium shadow-sm hover:bg-blue-700 active:scale-[0.99] transition"
@@ -150,7 +162,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className="mt-6 flex flex-wrap gap-2 text-xs text-gray-700">
+                <div className="mt-5 flex flex-wrap gap-2 text-xs text-gray-700">
                   {[
                     "親タスク並び替え",
                     "進捗/期限で絞り込み",
@@ -167,35 +179,138 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 右：UI風SVG */}
+              {/* 右カラム：UI風SVG（幅の上限を画面幅割合で制御） */}
               <div className="order-first md:order-last">
-                <div className="relative mx-auto max-w-[520px]">
+                <div
+                  className="relative mx-auto
+                        max-w-[min(520px,45vw)]
+                        aspect-[17/10]"
+                >
                   <div
                     className="absolute -inset-4 rounded-3xl bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur"
                     aria-hidden
                   />
                   <svg
-                    className="relative w-full h-auto drop-shadow-sm"
+                    className="relative w-full h-full drop-shadow-sm"
                     viewBox="0 0 680 420"
+                    preserveAspectRatio="xMidYMid meet"
                     role="img"
                     aria-label="タスク一覧のイラスト"
                   >
-                    <rect x="20" y="20" width="640" height="380" rx="18" fill="#fff" />
-                    <rect x="40" y="48" width="140" height="16" rx="8" fill="#e5e7eb" />
-                    <rect x="200" y="44" width="320" height="24" rx="12" fill="#dbeafe" />
-                    <rect x="40" y="100" width="600" height="64" rx="12" fill="#f8fafc" />
-                    <rect x="56" y="118" width="260" height="14" rx="7" fill="#94a3b8" />
-                    <rect x="56" y="140" width="180" height="10" rx="5" fill="#cbd5e1" />
-                    <rect x="40" y="184" width="600" height="64" rx="12" fill="#f8fafc" />
-                    <rect x="56" y="202" width="300" height="14" rx="7" fill="#94a3b8" />
-                    <rect x="56" y="224" width="220" height="10" rx="5" fill="#cbd5e1" />
-                    <rect x="40" y="268" width="600" height="64" rx="12" fill="#f8fafc" />
-                    <rect x="56" y="286" width="240" height="14" rx="7" fill="#94a3b8" />
-                    <rect x="56" y="308" width="200" height="10" rx="5" fill="#cbd5e1" />
+                    <rect
+                      x="20"
+                      y="20"
+                      width="640"
+                      height="380"
+                      rx="18"
+                      fill="#fff"
+                    />
+                    <rect
+                      x="40"
+                      y="48"
+                      width="140"
+                      height="16"
+                      rx="8"
+                      fill="#e5e7eb"
+                    />
+                    <rect
+                      x="200"
+                      y="44"
+                      width="320"
+                      height="24"
+                      rx="12"
+                      fill="#dbeafe"
+                    />
+                    <rect
+                      x="40"
+                      y="100"
+                      width="600"
+                      height="64"
+                      rx="12"
+                      fill="#f8fafc"
+                    />
+                    <rect
+                      x="56"
+                      y="118"
+                      width="260"
+                      height="14"
+                      rx="7"
+                      fill="#94a3b8"
+                    />
+                    <rect
+                      x="56"
+                      y="140"
+                      width="180"
+                      height="10"
+                      rx="5"
+                      fill="#cbd5e1"
+                    />
+                    <rect
+                      x="40"
+                      y="184"
+                      width="600"
+                      height="64"
+                      rx="12"
+                      fill="#f8fafc"
+                    />
+                    <rect
+                      x="56"
+                      y="202"
+                      width="300"
+                      height="14"
+                      rx="7"
+                      fill="#94a3b8"
+                    />
+                    <rect
+                      x="56"
+                      y="224"
+                      width="220"
+                      height="10"
+                      rx="5"
+                      fill="#cbd5e1"
+                    />
+                    <rect
+                      x="40"
+                      y="268"
+                      width="600"
+                      height="64"
+                      rx="12"
+                      fill="#f8fafc"
+                    />
+                    <rect
+                      x="56"
+                      y="286"
+                      width="240"
+                      height="14"
+                      rx="7"
+                      fill="#94a3b8"
+                    />
+                    <rect
+                      x="56"
+                      y="308"
+                      width="200"
+                      height="10"
+                      rx="5"
+                      fill="#cbd5e1"
+                    />
                     {[110, 194, 278].map((y, i) => (
                       <g key={i}>
-                        <rect x="560" y={y} width="62" height="12" rx="6" fill="#e5e7eb" />
-                        <rect x="560" y={y} width={26 + 12 * i} height="12" rx="6" fill="#60a5fa" />
+                        <rect
+                          x="560"
+                          y={y}
+                          width="62"
+                          height="12"
+                          rx="6"
+                          fill="#e5e7eb"
+                        />
+                        <rect
+                          x="560"
+                          y={y}
+                          width={26 + 12 * i}
+                          height="12"
+                          rx="6"
+                          fill="#60a5fa"
+                        />
                       </g>
                     ))}
                   </svg>
@@ -215,7 +330,8 @@ export default function Home() {
               </div>
               <h3 className="mt-1 text-2xl font-bold">サブタスク管理</h3>
               <p className="mt-2 text-sm text-gray-600 leading-6">
-                タスクを親子関係で階層化。<br />
+                タスクを親子関係で階層化。
+                <br />
                 大きな作業を小さな実行単位へ分割し、担当割りや進捗確認を分かりやすくします。
               </p>
             </article>
@@ -227,8 +343,10 @@ export default function Home() {
               </div>
               <h3 className="mt-1 text-2xl font-bold">ドラッグ&ドロップ</h3>
               <p className="mt-2 text-sm text-gray-600 leading-6">
-                並び替えは<strong>親タスク同士のみ</strong>対応。<br />
-                子タスクの並び替えや階層移動は対象外です。<br />
+                並び替えは<strong>親タスク同士のみ</strong>対応。
+                <br />
+                子タスクの並び替えや階層移動は対象外です。
+                <br />
                 直感操作で上位の順序を素早く整えられます。
               </p>
             </article>
@@ -240,8 +358,11 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-bold">タスク検索</h3>
               <p className="mt-2 text-sm text-gray-600 leading-6">
-                検索は<strong>現場名</strong>を対象。<br />
-                絞り込みは<strong>進捗%</strong>と<strong>期限</strong>に対応し、<br />
+                検索は<strong>現場名</strong>を対象。
+                <br />
+                絞り込みは<strong>進捗%</strong>と<strong>期限</strong>
+                に対応し、
+                <br />
                 並び替えも<strong>進捗 / 期限</strong>から選べます。
               </p>
             </article>

@@ -1,32 +1,30 @@
 # config/database.yml
-
 default: &default
   adapter: mysql2
   encoding: utf8mb4
+  collation: utf8mb4_0900_ai_ci
   pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
-  host: <%= ENV["DB_HOST"] %>
-  port: <%= ENV.fetch("DB_PORT", 3306) %>
-  username: <%= ENV["DB_USER"] %>
-  password: <%= ENV["DB_PASSWORD"] %>
-  ssl_mode: required
+  host:     <%= ENV.fetch("DB_HOST", "db") %>
+  port:     <%= ENV.fetch("DB_PORT", 3306) %>
+  username: <%= ENV.fetch("DB_USERNAME", "root") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "") %>
+  # ローカルではSSL不要。本番のみ使うなら production だけに記載する
+  # ssl_mode: required
 
 development:
   <<: *default
-  database: genba_task_dev
+  database: <%= ENV.fetch("DB_NAME", "app_development") %>
 
 test:
   <<: *default
-  database: genba_task_test
+  database: <%= ENV.fetch("DB_NAME_TEST", "app_test") %>
 
-# 本番：Solid 系の参照が残っていても落ちないように multi-DB 形式で定義
 production:
   primary:
     <<: *default
     database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>
-    # DATABASE_URL があれば優先（ない場合は上の個別値で接続）
-    url: <%= ENV["DATABASE_URL"] %>
+    url: <%= ENV["DATABASE_URL"] %> # あれば優先
 
-  # 使わない場合でも primary と同じ先に向けておけばエラーにならない
   cable:
     <<: *default
     database: <%= ENV.fetch("DB_NAME", "genba_task_production") %>

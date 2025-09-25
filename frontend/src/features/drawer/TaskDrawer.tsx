@@ -1,5 +1,5 @@
 // src/features/drawer/TaskDrawer.tsx
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTaskDrawer } from "./useTaskDrawer";
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
@@ -12,12 +12,15 @@ import { toYmd } from "../../utils/date";
 import ChildPreviewList from "./ChildPreviewList";
 import ImagePreview from "./ImagePreviewList";
 import { useToast } from "../../components/ToastProvider";
+import { useCreateTask } from "../tasks/useCreateTask";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
   useEffect(() => {
     document.body.appendChild(el);
-    return () => { document.body.removeChild(el); };
+    return () => {
+      document.body.removeChild(el);
+    };
   }, [el]);
   return createPortal(children, el);
 };
@@ -31,7 +34,13 @@ export default function TaskDrawer() {
   useBodyScrollLock(open);
 
   if (!open) return null;
-  return <TaskDrawerInner taskId={openTaskId!} openSection={openSection} close={close} />;
+  return (
+    <TaskDrawerInner
+      taskId={openTaskId!}
+      openSection={openSection}
+      close={close}
+    />
+  );
 }
 
 /** 本体（ここにフックを集約） */
@@ -39,18 +48,29 @@ function TaskDrawerInner({
   taskId,
   openSection,
   close,
-}: { taskId: number; openSection: "image" | null; close: () => void }) {
+}: {
+  taskId: number;
+  openSection: "image" | null;
+  close: () => void;
+}) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useTaskDetail(taskId);
   const { push: toast } = useToast();
+  // 子タスク作成用のローカル状態
+  const [childTitle, setChildTitle] = useState("");
+  const [childDue, setChildDue] = useState<string>(""); // YYYY-MM-DD
+  const { mutateAsync: createTask, isPending: creating } = useCreateTask();
 
   // Escで閉じる
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.stopPropagation(); close(); }
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        close();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -74,7 +94,8 @@ function TaskDrawerInner({
   // エラーUX：404→自動クローズ、401→クローズ、5xx→開いたまま再試行
   useEffect(() => {
     if (!isError) return;
-    const status = (error as any)?.response?.status ?? (error as any)?.status ?? null;
+    const status =
+      (error as any)?.response?.status ?? (error as any)?.status ?? null;
 
     if (status === 404) {
       toast("タスクが見つかりません", "error");
@@ -92,9 +113,15 @@ function TaskDrawerInner({
   const descId = "task-drawer-desc";
 
   // セーフティ
-  const prog = Math.max(0, Math.min(100, Math.round(data?.progress_percent ?? 0)));
+  const prog = Math.max(
+    0,
+    Math.min(100, Math.round(data?.progress_percent ?? 0))
+  );
   const preview = data?.children_preview ?? [];
-  const grandkids = typeof data?.grandchildren_count === "number" ? data!.grandchildren_count : 0;
+  const grandkids =
+    typeof data?.grandchildren_count === "number"
+      ? data!.grandchildren_count
+      : 0;
 
   // 画像関連
   const imageUrl = data?.image_url ?? null;
@@ -104,7 +131,11 @@ function TaskDrawerInner({
   useEffect(() => {
     if (openSection !== "image") return;
     const el = document.getElementById("drawer-image-section");
-    if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    if (el)
+      setTimeout(
+        () => el.scrollIntoView({ behavior: "smooth", block: "center" }),
+        0
+      );
   }, [openSection, imageUrl]);
 
   return (
@@ -148,10 +179,18 @@ function TaskDrawerInner({
             <div className="p-4 text-sm">
               <p className="mb-2 text-red-700">読み込みに失敗しました。</p>
               <div className="flex gap-2">
-                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => refetch()}>
+                <button
+                  type="button"
+                  className="rounded border px-3 py-1 text-xs"
+                  onClick={() => refetch()}
+                >
                   再試行
                 </button>
-                <button type="button" className="rounded border px-3 py-1 text-xs" onClick={close}>
+                <button
+                  type="button"
+                  className="rounded border px-3 py-1 text-xs"
+                  onClick={close}
+                >
                   閉じる
                 </button>
               </div>
@@ -174,12 +213,14 @@ function TaskDrawerInner({
               {/* 2行目：site / deadline */}
               <div className="mb-3 grid grid-cols-2 gap-3 text-[13px]">
                 <div>
-                <div className="text-gray-500">現場名</div>
-                <div className="font-medium">{data.site ?? "—"}</div>
+                  <div className="text-gray-500">現場名</div>
+                  <div className="font-medium">{data.site ?? "—"}</div>
                 </div>
                 <div>
                   <div className="text-gray-500">期限</div>
-                  <div className="font-medium">{toYmd(data.deadline) ?? "未設定"}</div>
+                  <div className="font-medium">
+                    {toYmd(data.deadline) ?? "未設定"}
+                  </div>
                 </div>
               </div>
 
@@ -192,20 +233,107 @@ function TaskDrawerInner({
               </div>
 
               {/* 直下の子プレビュー（最大4件）＆孫件数 */}
-              <ChildPreviewList items={preview} grandchildrenCount={grandkids} />
+              <ChildPreviewList
+                items={preview}
+                grandchildrenCount={grandkids}
+              />
+
+              {/* 子タスク作成（タイトル＋期限） */}
+              <div className="mt-3 rounded-md border p-3">
+                <div className="mb-2 text-[13px] text-gray-500">
+                  子タスクを作成
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="input input-bordered flex-1"
+                    placeholder="子タスク名（必須）"
+                    value={childTitle}
+                    onChange={(e) => setChildTitle(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && childTitle.trim()) {
+                        try {
+                          await createTask({
+                            title: childTitle.trim(),
+                            parentId: taskId,
+                            deadline: childDue || undefined, // APIは deadline を受け付ける
+                          });
+                          setChildTitle("");
+                          setChildDue("");
+                          // ドロワー内の情報を更新（子プレビュー/カウント）
+                          refetch();
+                        } catch (err: any) {
+                          toast(err?.message ?? "作成に失敗しました", "error");
+                        }
+                      }
+                    }}
+                    aria-label="子タスク名"
+                  />
+                  <input
+                    type="date"
+                    className="input input-bordered w-40"
+                    value={childDue}
+                    onChange={(e) => setChildDue(e.target.value)}
+                    aria-label="期限"
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={async () => {
+                      if (!childTitle.trim()) return;
+                      try {
+                        await createTask({
+                          title: childTitle.trim(),
+                          parentId: taskId,
+                          deadline: childDue || undefined,
+                        });
+                        setChildTitle("");
+                        setChildDue("");
+                        refetch();
+                      } catch (err: any) {
+                        toast(err?.message ?? "作成に失敗しました", "error");
+                      }
+                    }}
+                    disabled={!childTitle.trim() || creating}
+                  >
+                    作成
+                  </button>
+                </div>
+              </div>
 
               {/* 画像（存在時のみ / サムネ優先表示） */}
               {imageUrl && (
-                <div className="mt-4" id="drawer-image-section" data-testid="drawer-image-section">
-                  <ImagePreview url={imageUrl} thumbUrl={imageThumbUrl ?? undefined} title={data.title} />
+                <div
+                  className="mt-4"
+                  id="drawer-image-section"
+                  data-testid="drawer-image-section"
+                >
+                  <ImagePreview
+                    url={imageUrl}
+                    thumbUrl={imageThumbUrl ?? undefined}
+                    title={data.title}
+                  />
                 </div>
               )}
 
               {/* 監査情報 */}
               <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-gray-600">
-                <div>作成者: <span className="font-medium text-gray-800">{data.created_by_name}</span></div>
-                <div>作成日: <span className="font-medium text-gray-800">{toYmd(data.created_at) ?? "—"}</span></div>
-                <div>更新日: <span className="font-medium text-gray-800">{toYmd(data.updated_at) ?? "—"}</span></div>
+                <div>
+                  作成者:{" "}
+                  <span className="font-medium text-gray-800">
+                    {data.created_by_name}
+                  </span>
+                </div>
+                <div>
+                  作成日:{" "}
+                  <span className="font-medium text-gray-800">
+                    {toYmd(data.created_at) ?? "—"}
+                  </span>
+                </div>
+                <div>
+                  更新日:{" "}
+                  <span className="font-medium text-gray-800">
+                    {toYmd(data.updated_at) ?? "—"}
+                  </span>
+                </div>
               </div>
             </div>
           )}

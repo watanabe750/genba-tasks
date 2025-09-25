@@ -35,6 +35,6 @@ local:
 
 amazon:
   service: S3
-  bucket: <%= ENV.fetch("S3_BUCKET") %>
+  bucket: <%= ENV.fetch("S3_BUCKET", "dummy") %>   
   region: <%= ENV.fetch("AWS_REGION", "ap-northeast-1") %>
   # 認証情報はECSのTaskRoleを自動使用。access_key等は書かない。
