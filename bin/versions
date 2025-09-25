@@ -1,0 +1,66 @@
+
+set -euo pipefail
+
+# ===== 設定（必要に応じて上書き可） =====
+FRONT_DIR="${FRONT_DIR:-frontend}"   # React/TS の package.json 位置
+BACK_DIR="${BACK_DIR:-api}"          # Rails の位置（bin/rails, Gemfile がある）
+WEB_SVC="${WEB_SVC:-api}"            # docker compose の Rails サービス名
+DB_SVC="${DB_SVC:-db}"               # docker compose の DB サービス名
+DOCKER_FLAG="${1:-}"                 # --docker で compose 経由実行
+MYSQL_HOST="${MYSQL_HOST:-}"         # RDS 等に直で聞くなら指定
+MYSQL_USER="${MYSQL_USER:-root}"
+MYSQL_PWD="${MYSQL_PWD:-}"
+
+run_web() {
+  if [ "$DOCKER_FLAG" = "--docker" ]; then
+    docker compose exec -T "$WEB_SVC" "$@"
+  else
+    (cd "$BACK_DIR" && "$@")
+  fi
+}
+
+run_db() {
+  if [ "$DOCKER_FLAG" = "--docker" ]; then
+    docker compose exec -T "$DB_SVC" "$@"
+  else
+    "$@"
+  fi
+}
+
+node_read_dep() {
+  local dep="$1"
+  node -e "try{const p=require('./$FRONT_DIR/package.json');console.log((p.dependencies&&p.dependencies['$dep'])||(p.devDependencies&&p.devDependencies['$dep'])||'N/A')}catch(e){console.log('N/A')}"
+}
+
+echo "## 技術スタック / バージョン"
+echo
+echo "- Node: $(node -v 2>/dev/null || echo N/A)"
+echo "- pnpm: $(pnpm -v 2>/dev/null || echo N/A)"
+echo "- React: $(node_read_dep react)"
+echo "- TypeScript: $(node_read_dep typescript)"
+
+ruby_ver="$(run_web ruby -v 2>/dev/null | awk '{print $2}' || true)"
+[ -z "$ruby_ver" ] && ruby_ver="N/A"
+echo "- Ruby: $ruby_ver"
+
+if run_web test -x bin/rails 2>/dev/null; then
+  rails_ver="$(run_web bin/rails -v 2>/dev/null || true)"
+else
+  rails_ver="$(run_web bundle exec rails -v 2>/dev/null || true)"
+fi
+[ -z "$rails_ver" ] && rails_ver="N/A"
+echo "- Rails: $rails_ver"
+
+mysql_client="$(mysql --version 2>/dev/null || true)"
+echo "- MySQL (client): ${mysql_client:-N/A}"
+
+mysql_server="N/A"
+if [ "$DOCKER_FLAG" = "--docker" ]; then
+  mysql_server="$(run_db mysql -Nse 'SELECT VERSION();' 2>/dev/null || true)"
+elif [ -n "$MYSQL_HOST" ]; then
+  mysql_server="$(MYSQL_PWD="$MYSQL_PWD" mysql -h "$MYSQL_HOST" -P 3306 -u "$MYSQL_USER" -Nse 'SELECT VERSION();' 2>/dev/null || true)"
+else
+  mysql_server="$(mysql -Nse 'SELECT VERSION();' 2>/dev/null || true)"
+fi
+[ -z "$mysql_server" ] && mysql_server="N/A"
+echo "- MySQL (server): $mysql_server"
