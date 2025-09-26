@@ -30,8 +30,16 @@ export function nestTasks(flat: Task[]): TaskNode[] {
 }
 
 /* 親ノード（depth=1）だけを UI 最終順に並べ替え
- * - order_by: "deadline" | "site" | "site,deadline" | "deadline,site"
- * - dir は主キーのみ反転、期限なしは常に末尾（dir に関わらず）
+ * ルール（優先度の高い順）:
+ *  1) completed は常に末尾へ（order_by/dir に関わらず）
+ *  2) 期限なし（deadline null/空）は常に末尾へ
+ *  3) 主キーでソート（order_by）
+ *     - "site" 指定時: site（dir 反映）→ deadline 昇順
+ *     - "deadline" 指定時: deadline（dir 反映）→ site 昇順
+ *  4) タイブレーク: id 昇順
+ *
+ * order_by: "deadline" | "site" | "site,deadline" | "deadline,site"
+ * dir は主キーのみに適用
  */
 const toDateInput = (iso?: string | null) => {
   if (!iso) return "";
@@ -42,85 +50,89 @@ const toDateInput = (iso?: string | null) => {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${mm}-${dd}`;
 };
-const isNullDeadline = (t: TaskNode) => !toDateInput(t.deadline);
-const cmpStr = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-const cmpId = (a: number, b: number) => (a < b ? -1 : a > b ? 1 : 0);
-const siteKey = (t: TaskNode) => (t.site ?? "").toLowerCase();
+const isNullDeadline = (t: { deadline?: string | null }) => !toDateInput(t.deadline);
 
-/** 期限: 昇順（null は常に末尾） */
-const cmpDeadlineAsc = (a: TaskNode, b: TaskNode) => {
-  const na = isNullDeadline(a), nb = isNullDeadline(b);
-  if (na && nb) return 0;
-  if (na) return 1;   // null は末尾
-  if (nb) return -1;
-  return cmpStr(toDateInput(a.deadline), toDateInput(b.deadline));
-};
-/** 期限: 降順（null は常に末尾） */
-const cmpDeadlineDesc = (a: TaskNode, b: TaskNode) => {
-  const na = isNullDeadline(a), nb = isNullDeadline(b);
-  if (na && nb) return 0;
-  if (na) return 1;
-  if (nb) return -1;
-  // 降順
-  return cmpStr(toDateInput(b.deadline), toDateInput(a.deadline));
+const cmpSite = (a?: string | null, b?: string | null) => {
+  const aa = (a ?? "").trim().toLowerCase();
+  const bb = (b ?? "").trim().toLowerCase();
+  const ae = aa === "";
+  const be = bb === "";
+  if (ae !== be) return ae ? 1 : -1; // 空 site は末尾
+  return aa < bb ? -1 : aa > bb ? 1 : 0;
 };
 
+/** ★ UI最終順：TaskNode[]（ルート）を並び替え */
 export function sortRootNodes(
   tree: TaskNode[],
   order_by: string = "deadline",
   dir: "asc" | "desc" = "asc"
 ): TaskNode[] {
-  const raw = (order_by || "deadline")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean) as Array<"site" | "deadline">;
-
-  // 重複除去し、deadline なければセカンダリとして追加
+  const raw = (order_by || "deadline").split(",").map((s) => s.trim()).filter(Boolean) as Array<"site" | "deadline">;
   const keys: Array<"site" | "deadline"> = [];
   for (const k of raw) if (!keys.includes(k)) keys.push(k);
   if (!keys.includes("deadline")) keys.push("deadline");
 
-  const cmpSite = (a: string | null | undefined, b: string | null | undefined) => {
-    const aa = (a ?? "").trim().toLowerCase();
-    const bb = (b ?? "").trim().toLowerCase();
-    const ae = aa === "";
-    const be = bb === "";
-    if (ae !== be) return ae ? 1 : -1; // 空 site は常に末尾
-    return aa < bb ? -1 : aa > bb ? 1 : 0;
-  };
+  const primary = keys[0];
 
-  const cmp = (a: TaskNode, b: TaskNode) => {
-    // ❶ グローバルルール：期限なしは常に全体の末尾（dir や site に関わらず）
-    const an = isNullDeadline(a);
-    const bn = isNullDeadline(b);
+  return tree.slice().sort((a, b) => {
+    // 1) completed 末尾
+    const ac = a.status === "completed", bc = b.status === "completed";
+    if (ac !== bc) return ac ? 1 : -1;
+
+    // 2) 期限なし末尾
+    const an = isNullDeadline(a), bn = isNullDeadline(b);
     if (an !== bn) return an ? 1 : -1;
 
-    const primary = keys[0];
-
+    // 3) 主キー
     if (primary === "site") {
-      // ❷ 主キー: site（dir 反転は主キーのみ）
       const ds = cmpSite(a.site, b.site);
       if (ds !== 0) return dir === "desc" ? -ds : ds;
-
-      // ❸ セカンダリ: deadline（常に昇順。null は ❶ で弾いている）
-      const da = toDateInput(a.deadline);
-      const db = toDateInput(b.deadline);
+      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
       if (da !== db) return da < db ? -1 : 1;
     } else {
-      // primary === "deadline"
-      // ❷ 主キー: deadline（dir を適用。null は ❶ で弾いている）
-      const da = toDateInput(a.deadline);
-      const db = toDateInput(b.deadline);
-      if (da !== db) return dir === "desc" ? (db < da ? -1 : 1) : (da < db ? -1 : 1);
-
-      // ❸ セカンダリ: site（常に昇順）
+      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
+      if (da !== db) {
+        const asc = da < db ? -1 : 1;
+        return dir === "desc" ? -asc : asc;
+      }
       const ds = cmpSite(a.site, b.site);
       if (ds !== 0) return ds;
     }
 
-    // ❹ タイブレーク（安定性担保）
+    // 4) tie-break
     return Number(a.id) - Number(b.id);
-  };
+  });
+}
 
-  return tree.slice().sort(cmp);
+/** ★ UI最終順：フラット Task[] を並び替え（楽観更新用） */
+export function sortFlatForUI(
+  arr: Task[],
+  order_by: string = "deadline",
+  dir: "asc" | "desc" = "asc"
+): Task[] {
+  // ルート/子の区別は不要（一覧は親のみを表示している前提）。規則は sortRootNodes と同じ。
+  return arr.slice().sort((a, b) => {
+    const ac = a.status === "completed", bc = b.status === "completed";
+    if (ac !== bc) return ac ? 1 : -1;
+
+    const an = isNullDeadline(a), bn = isNullDeadline(b);
+    if (an !== bn) return an ? 1 : -1;
+
+    const ob = (order_by || "deadline").split(",")[0]?.trim();
+    if (ob === "site") {
+      const ds = cmpSite(a.site, b.site);
+      if (ds !== 0) return dir === "desc" ? -ds : ds;
+      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
+      if (da !== db) return da < db ? -1 : 1;
+    } else {
+      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
+      if (da !== db) {
+        const asc = da < db ? -1 : 1;
+        return dir === "desc" ? -asc : asc;
+      }
+      const ds = cmpSite(a.site, b.site);
+      if (ds !== 0) return ds;
+    }
+    return Number(a.id) - Number(b.id);
+  });
 }

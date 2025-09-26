@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
 import type { Task, UpdateTaskPayload } from "../../types";
+import { sortFlatForUI } from "../tasks/nest";
 
 type UpdateInput = {
   id: number;
@@ -65,23 +66,35 @@ export function useUpdateTask() {
         qc.cancelQueries({ queryKey: ["priorityTasks"] }),
         qc.cancelQueries({ queryKey: ["tasks"] }),
       ]);
-
+    
       const prevPriority = qc.getQueryData<Task[]>(["priorityTasks"]);
       const prevTasksEntries = qc.getQueriesData<Task[]>({ queryKey: ["tasks"] });
-
-      // 並び替え（after_id）のときは楽観更新しない（サーバ順をソースオブトゥルースに）
+    
       if ("after_id" in data) {
         return { prevPriority, prevTasksEntries };
       }
-
+    
       const n = normalize(data);
       const patch = (arr?: Task[]) => arr?.map((t) => (t.id === id ? { ...t, ...n } : t));
-
-      if (prevPriority) qc.setQueryData<Task[]>(["priorityTasks"], patch(prevPriority));
+    
+      // 優先タスク（右パネル）
+      if (prevPriority) {
+        const next = patch(prevPriority) ?? prevPriority;
+        // 右パネルは completed を非表示にしているならそのままでもOK。今回は一応UI順に。
+        qc.setQueryData<Task[]>(["priorityTasks"], sortFlatForUI(next));
+      }
+    
+      // 一覧（クエリごとに order_by/dir が違う可能性がある）
       prevTasksEntries.forEach(([key, arr]) => {
-        if (arr) qc.setQueryData<Task[]>(key as any, patch(arr));
+        if (!arr) return;
+        const next = patch(arr) ?? arr;
+        const k = key as any[];
+        const params = (k?.[1] ?? {}) as { order_by?: string; dir?: "asc" | "desc" };
+        const order_by = params.order_by ?? "deadline";
+        const dir = (params.dir as "asc" | "desc") ?? "asc";
+        qc.setQueryData<Task[]>(key as any, sortFlatForUI(next, order_by, dir));
       });
-
+    
       return { prevPriority, prevTasksEntries };
     },
 
