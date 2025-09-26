@@ -1,7 +1,9 @@
+// PriorityTasksPanel.tsx
 import { usePriorityTasks } from "./usePriorityTasks";
 import useAuth from "../../providers/useAuth";
 import { useUpdateTask } from "../tasks/useUpdateTask";
 import type { Task } from "../../types/task";
+import { useQueryClient } from "@tanstack/react-query"; // ← 追加
 
 const clamp = (n: number, min = 0, max = 100) =>
   Math.min(Math.max(n ?? 0, min), max);
@@ -20,6 +22,39 @@ export default function PriorityTasksPanel() {
   const { authed } = useAuth();
   const { data: tasks = [], isLoading, error } = usePriorityTasks(authed);
   const { mutate: update } = useUpdateTask();
+  const qc = useQueryClient();
+  const queryKey = ["priorityTasks", authed]; // ← このキーは usePriorityTasks 側と合わせて
+
+  // 完了チェック時に即非表示（楽観更新）
+  const handleToggle = (t: Task) => {
+    const next = t.status === "completed" ? "in_progress" : "completed";
+    update(
+      { id: t.id, data: { status: next } },
+      {
+        onMutate: async () => {
+          await qc.cancelQueries({ queryKey });
+          const prev = (qc.getQueryData<Task[]>(queryKey) ?? []).slice();
+
+          // 先にローカル反映：ステータス更新→completed は消す
+          const nextList = prev
+            .map((it) => (it.id === t.id ? { ...it, status: next } : it))
+            .filter((it) => it.status !== "completed");
+
+          qc.setQueryData(queryKey, nextList);
+          return { prev };
+        },
+        onError: (_err, _vars, ctx) => {
+          if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev); // 失敗時ロールバック
+        },
+        onSettled: () => {
+          qc.invalidateQueries({ queryKey }); // 最終的に正データで同期
+        },
+      }
+    );
+  };
+
+  // 画面表示は未完了のみ（サーバ側が返していてもガード）
+  const visible = tasks.filter((t) => t.status !== "completed");
 
   return (
     <div
@@ -43,15 +78,19 @@ export default function PriorityTasksPanel() {
           </span>
         </div>
         <span className="text-xs text-blue-700/70 dark:text-blue-300/70">
-          {tasks.length}件
+          {visible.length}件
         </span>
       </div>
 
-      {isLoading && <p className="text-sm text-blue-700/70 dark:text-blue-300/70">読み込み中…</p>}
+      {isLoading && (
+        <p className="text-sm text-blue-700/70 dark:text-blue-300/70">
+          読み込み中…
+        </p>
+      )}
       {error && <p className="text-sm text-red-600">読み込みに失敗しました</p>}
 
       <ul className="space-y-2">
-        {tasks.map((t: Task) => (
+        {visible.map((t: Task) => (
           <li
             key={t.id}
             data-testid="priority-item"
@@ -65,15 +104,7 @@ export default function PriorityTasksPanel() {
                 data-testid="priority-done"
                 type="checkbox"
                 checked={t.status === "completed"}
-                onChange={() =>
-                  update({
-                    id: t.id,
-                    data: {
-                      status:
-                        t.status === "completed" ? "in_progress" : "completed",
-                    },
-                  })
-                }
+                onChange={() => handleToggle(t)}   // ← ここだけに集約
                 aria-label="完了"
                 className="accent-blue-600"
               />
@@ -99,7 +130,7 @@ export default function PriorityTasksPanel() {
         ))}
       </ul>
 
-      {!isLoading && tasks.length === 0 && (
+      {!isLoading && visible.length === 0 && (
         <p className="text-sm text-blue-700/70 dark:text-blue-300/70">
           未完了の優先タスクはありません
         </p>
