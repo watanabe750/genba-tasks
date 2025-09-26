@@ -127,12 +127,11 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
         const current = prev[k];
         if (!current) return { ...prev, [k]: childIds.slice() };
 
-        const sameMembers =
-          current.length === childIds.length &&
-          current.every((id) => childIds.includes(id));
-        if (!sameMembers) return { ...prev, [k]: childIds.slice() };
-
-        return prev; // 集合が同じ＝ローカル順を維持
+        // ★ 順序まで一致しているか（順序が違えば外部順で上書き）
+        if (!eqArray(current, childIds)) {
+            return { ...prev, [k]: childIds.slice() };
+          }
+          return prev;
       });
     },
     []
