@@ -16,7 +16,9 @@ import { InlineDndProvider } from "../features/tasks/inline/dndContext";
 
 const TaskList: PageComponent = () => {
   const { authed } = useAuth();
-  usePriorityTasks(authed);
+  const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
+  const enabled = authed || DEMO;
+  usePriorityTasks(enabled);
 
   // ゲスト（旧デモ）フラグ
   const [isGuest, setIsGuest] = useState(false);
@@ -40,7 +42,7 @@ const TaskList: PageComponent = () => {
   const [sp] = useSearchParams();
   const rawFilters = parseTaskFilters(sp);
   const filters = useDebouncedValue(rawFilters, 300);
-  const { data: tasksFlat = [] } = useFilteredTasks(filters, authed);
+  const { data: tasksFlat = [] } = useFilteredTasks(filters, enabled);
 
   const tasks = useMemo(() => {
     const tree = nestTasks(tasksFlat);

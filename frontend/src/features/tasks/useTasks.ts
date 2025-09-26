@@ -1,13 +1,19 @@
 // src/features/tasks/useTasks.ts
+// frontend/src/features/tasks/useTasks.ts
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
 import type { Task } from "../../types/task";
 
 // helpers
-const toNum = (v: string | null) => (v != null && v !== "" ? Number(v) : undefined);
+const toNum = (v: string | null) =>
+  v != null && v !== "" ? Number(v) : undefined;
 const clean = (o: Record<string, unknown>) =>
-  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== ""));
+  Object.fromEntries(
+    Object.entries(o).filter(
+      ([, v]) => v !== undefined && v !== null && v !== "",
+    ),
+  );
 
 // URL クエリ同期で /api/tasks を叩くフック
 export function useTasksFromUrl(enabled: boolean = true) {
@@ -15,7 +21,8 @@ export function useTasksFromUrl(enabled: boolean = true) {
 
   // status は複数指定（?status=a&status=b）。重複排除＋ソートで順序を安定化
   const statusRaw = sp.getAll("status");
-  const status = statusRaw.length ? Array.from(new Set(statusRaw)).sort() : undefined;
+  const status =
+    statusRaw.length ? Array.from(new Set(statusRaw)).sort() : undefined;
 
   const params = clean({
     site: sp.get("site") ?? undefined,
@@ -28,7 +35,7 @@ export function useTasksFromUrl(enabled: boolean = true) {
   });
 
   return useQuery<Task[]>({
-    queryKey: ["tasks", params],        // ← 実際に投げる params をキー化（status も安定済み）
+    queryKey: ["tasks", params],
     enabled,
     queryFn: async () => {
       const { data } = await api.get<Task[]>("/tasks", {
@@ -39,7 +46,7 @@ export function useTasksFromUrl(enabled: boolean = true) {
     },
     staleTime: 0,
     refetchOnMount: "always",
-    keepPreviousData: true,               // 小さな描画ゆらぎを抑えて E2E を安定化
+    keepPreviousData: true,
   });
 }
 
