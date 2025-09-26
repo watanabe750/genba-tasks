@@ -57,11 +57,21 @@ class Task < ApplicationRecord
   # 親自身を子のprogress平均で更新し、祖先へ伝播
   def recalc_from_children!
     if children.exists?
-      avg = children.average(:progress)
-      update_columns(progress: (avg ? avg.to_f.round : 0))
+      avg = children.average(:progress).to_f
+      all_done = !children.where.not(status: :completed).exists?
+  
+      updates = { progress: avg.round }
+      if all_done
+        updates[:status] = :completed unless status == "completed"
+      else
+        updates[:status] = :in_progress if status == "completed"
+      end
+      update_columns(updates) unless updates.empty?
     else
-      update_columns(progress: 0)
+      # 子が居ない場合は progress だけ0に（status はユーザー操作優先）
+      update_columns(progress: 0) if (progress || 0) != 0
     end
+  
     parent&.recalc_from_children!
   end
   # -----------------------------------------------
