@@ -2,32 +2,26 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import useAuth from "../providers/useAuth";
 
-const DEMO_BUILD = import.meta.env.VITE_DEMO_MODE === "true";
-
-function isDemoSession() {
-  try {
-    return sessionStorage.getItem("auth:demo") === "1";
-  } catch {
-    return false;
-  }
-}
+const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
 export default function RequireAuth() {
   const { authed } = useAuth();
   const loc = useLocation();
 
-  // ① ビルド時に DEMO モード  ② セッションに demo フラグ のどちらかで許可
-  const allow = authed || DEMO_BUILD || isDemoSession();
+  // ★ デモモードは未ログインでも通す
+  if (DEMO) return <Outlet />;
 
-  if (!allow) {
-    const p = loc.pathname + loc.search;
+  if (authed) return <Outlet />;
+
+  // 未ログイン → /login に飛ばす前に戻り先を保存
+  try {
+    const p = loc.pathname + loc.search + loc.hash;
     if (p.startsWith("/") && !p.startsWith("//") && p !== "/login") {
-      try {
-        sessionStorage.setItem("auth:from", p);
-      } catch {}
+      sessionStorage.setItem("auth:from", p);
     }
-    return <Navigate to="/login" replace />;
+  } catch {
+    /* ignore */
   }
 
-  return <Outlet />;
+  return <Navigate to="/login" replace />;
 }

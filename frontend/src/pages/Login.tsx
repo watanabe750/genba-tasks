@@ -93,32 +93,28 @@ export default function Login() {
 
   async function handleDemo() {
     setErrTop(null);
-    const demoEmail = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
-    const demoPass = import.meta.env.VITE_DEMO_PASS as string | undefined;
-
-    if (!demoEmail || !demoPass) {
-      setErrTop("ゲストユーザーが未設定です（VITE_DEMO_EMAIL / VITE_DEMO_PASS）。");
+    // デモを強制ON
+    try {
+      sessionStorage.setItem("auth:demo", "1");
+      window.dispatchEvent(new Event("auth:refresh"));
+    } catch {}
+    // ここで API を呼ばない（VITE_DEMO_LOCAL=1 のとき）
+    if (import.meta.env.VITE_DEMO_LOCAL === "1") {
+      nav("/tasks", { replace: true });
       return;
     }
-    setSubmitting(true);
+    // 既存: バックエンドが生きてるときだけ本当のゲストログイン
+    const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
+    const demoPass  = import.meta.env.VITE_DEMO_PASS;
+    if (!demoEmail || !demoPass) return setErrTop("ゲストユーザーが未設定です。");
     try {
       await signIn(demoEmail, demoPass);
-      try {
-        sessionStorage.setItem("auth:demo", "1");
-        window.dispatchEvent(new Event("auth:refresh"));
-      } catch {/* ignore */}
-      const dest = takeAuthFrom() || "/tasks";
-      nav(dest, { replace: true });
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.errors?.[0] ??
-        err?.message ??
-        "ゲストログインに失敗しました。しばらくしてからお試しください。";
-      setErrTop(String(msg));
-    } finally {
-      setSubmitting(false);
+      nav("/tasks", { replace: true });
+    } catch {
+      setErrTop("ゲストログインに失敗しました。しばらくしてからお試しください。");
     }
   }
+  
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

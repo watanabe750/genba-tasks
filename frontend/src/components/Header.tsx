@@ -36,6 +36,7 @@ export default function Header({ showDemoBadge = true }: HeaderProps) {
       window.removeEventListener("storage", read);
     };
   }, []);
+  const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
   return (
     <header className={`fixed inset-x-0 top-0 z-50 bg-blue-600 text-white ${HEADER_H} border-b border-white/10 shadow-[0_10px_30px_-6px_rgba(0,0,0,0.35)]`}>
@@ -45,13 +46,13 @@ export default function Header({ showDemoBadge = true }: HeaderProps) {
         </Link>
 
         <div className="flex items-center gap-3 text-sm">
-          {isDemo && showDemoBadge && (
+        {(DEMO || isDemo) && showDemoBadge && (
             <span
               className="rounded px-2 py-0.5 bg-white/15 border border-white/20"
               data-testid="badge-demo"
               title="ゲストユーザーでログイン中"
             >
-              ゲスト環境
+              デモモード
             </span>
           )}
 
