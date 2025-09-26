@@ -6,6 +6,7 @@ import { useFilteredTasks } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
 import { usePriorityTasks } from "../features/priority/usePriorityTasks";
 import { nestTasks, sortRootNodes } from "../features/tasks/nest";
+import type { Task, TaskNode } from "../types";
 import { TaskFilterBar } from "../features/tasks/TaskFilterBar";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { parseTaskFilters } from "../features/tasks/parseTaskFilters";
@@ -42,12 +43,12 @@ const TaskList: PageComponent = () => {
   const [sp] = useSearchParams();
   const rawFilters = parseTaskFilters(sp);
   const filters = useDebouncedValue(rawFilters, 300);
-  const { data: tasksFlat = [] } = useFilteredTasks(filters, enabled);
+  const { data: tasksFlat = [] as Task[] } = useFilteredTasks(filters, enabled);
 
-  const tasks = useMemo(() => {
+  const tasks: TaskNode[] = useMemo(() => {
     // ① 完了は必ず末尾へ（安定化のため相対順は保持）
-    const incomplete: typeof tasksFlat = [];
-    const completed: typeof tasksFlat = [];
+    const incomplete: Task[] = [];
+    const completed: Task[] = [];
     for (const t of tasksFlat) {
       (t.status === "completed" ? completed : incomplete).push(t);
     }

@@ -1,4 +1,3 @@
-import React from "react";
 
 export default function ProgressBar({ value, "data-testid": testId }: { value: number; "data-testid"?: string }) {
   const v = Math.max(0, Math.min(100, Math.round(value)));

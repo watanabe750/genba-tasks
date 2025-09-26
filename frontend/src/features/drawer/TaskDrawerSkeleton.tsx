@@ -1,5 +1,4 @@
 // src/features/drawer/TaskDrawerSkeleton.tsx
-import React from "react";
 
 export default function TaskDrawerSkeleton() {
   return (

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { OrderBy, SortDir, Status } from "../../types";
 

@@ -144,7 +144,6 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
 
       // 直前の配列と次の配列を捕捉しておく（失敗時ロールバック用）
       let prevArr: number[] | undefined;
-      let nextArr: number[] | undefined;
 
       setOrderMap((prev) => {
         const current = prev[k] ?? [];
@@ -159,7 +158,6 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
         const idx = afterId == null || afterId < 0 ? -1 : next.indexOf(afterId);
         const insertAt = Math.max(0, idx + 1);
         next.splice(insertAt, 0, movingId);
-        nextArr = next;
 
         if (eqArray(current, next)) return prev;
         return { ...prev, [k]: next };

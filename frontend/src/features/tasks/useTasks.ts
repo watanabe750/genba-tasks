@@ -46,7 +46,7 @@ export function useTasksFromUrl(enabled: boolean = true) {
     },
     staleTime: 0,
     refetchOnMount: "always",
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 }
 

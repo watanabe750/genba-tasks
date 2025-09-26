@@ -89,7 +89,8 @@ export type TaskDetail = {
 
   // 親のみ1枚の画像（署名URL or null）
   image_url?: string | null;
-
+  image_thumb_url?: string | null;
+  
   // 監査情報
   created_by_name: string;
   created_at: IsoDateString;

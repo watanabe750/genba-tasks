@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function IllustrationDnd({ className = "h-28 w-28" }: { className?: string }) {
   return (
     <svg viewBox="0 0 200 200" className={className} role="img" aria-label="親タスク同士のドラッグ＆ドロップによる並び替え">

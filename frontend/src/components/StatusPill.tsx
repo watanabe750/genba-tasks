@@ -1,5 +1,4 @@
-import React from "react";
-import type { Status } from "../type";
+import type { Status } from "../types";
 
 const LABEL: Record<Status, string> = {
   not_started: "未着手",
