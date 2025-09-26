@@ -13,6 +13,7 @@ import ChildPreviewList from "./ChildPreviewList";
 import ImagePreview from "./ImagePreviewList";
 import { useToast } from "../../components/ToastProvider";
 import { useCreateTask } from "../tasks/useCreateTask";
+import { brandIso } from "../../lib/brandIso";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -255,7 +256,7 @@ function TaskDrawerInner({
                           await createTask({
                             title: childTitle.trim(),
                             parentId: taskId,
-                            deadline: childDue || undefined, // APIは deadline を受け付ける
+                            deadline: brandIso(childDue || undefined), // APIは deadline を受け付ける
                           });
                           setChildTitle("");
                           setChildDue("");
@@ -283,7 +284,7 @@ function TaskDrawerInner({
                         await createTask({
                           title: childTitle.trim(),
                           parentId: taskId,
-                          deadline: childDue || undefined,
+                          deadline: brandIso(childDue || undefined),
                         });
                         setChildTitle("");
                         setChildDue("");

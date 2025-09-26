@@ -1,6 +1,7 @@
 // src/components/NewParentTaskForm.tsx
 import { useState } from "react";
 import { useCreateTask } from "../features/tasks/useCreateTask";
+import { brandIso } from "../lib/brandIso";
 
 const toISOorNull = (v: string): string | null =>
   v ? new Date(`${v}T00:00:00`).toISOString() : null;
@@ -20,7 +21,7 @@ export default function NewParentTaskForm() {
       {
         title: title.trim(),
         parentId: null,
-        deadline: toISOorNull(deadline),
+        deadline: brandIso(toISOorNull(deadline)),
         site: site.trim(),
       },
       {

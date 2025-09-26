@@ -1,13 +1,13 @@
-import { isAxiosError } from "./apiClient";
+import axios from "axios";
 
 type ErrorBody = { errors?: string[] | string } | undefined;
 
 export function formatApiError(err: unknown): string {
-  if (isAxiosError(err)) {
+  if (axios.isAxiosError(err)) {
     const s = err.response?.status;
 
     if (s === 422) {
-      const errors = (err.response?.data as ErrorBody)?.errors;
+      const errors = (err.response?.data as ErrorBody | undefined)?.errors;
       if (Array.isArray(errors)) return errors.join("\n");
       if (typeof errors === "string") return errors;
       return "入力内容をご確認ください。";

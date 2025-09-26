@@ -2,24 +2,22 @@
 import { useInlineDnd } from "./dndContext";
 
 type Props = {
-  parentId: number | null;      // ← ここを number | null に
-  acceptDepth: number;
-  lastChildId: number | null;
-  currentCount?: number;
-  showEmptyState?: boolean;
-};
+     parentId: number | null;
+     lastChildId: number | null;
+     showEmptyState: boolean;
+   };
 
 // 親IDの正規化 & 比較（元の実装のままでOK）
 const normPid = (v: number | string | null | undefined) =>
   v == null ? null : Number(v);
-const samePid = (a: number | string | null | undefined, b: number | string | null | undefined) =>
-  normPid(a) === normPid(b);
+const samePid = (
+  a: number | string | null | undefined,
+  b: number | string | null | undefined
+) => normPid(a) === normPid(b);
 
 export default function InlineDropZone({
   parentId,
-  acceptDepth,
   lastChildId,
-  currentCount,
   showEmptyState = false,
 }: Props) {
   const dnd = useInlineDnd();

@@ -1,6 +1,6 @@
 // src/features/tasks/api.ts
 import api from "../../lib/apiClient";
-import type { TaskDetail } from "../../type";
+import type { TaskDetail } from "../../types";
 
 /** 同一親内の並び替えをサーバ永続化 */
 export async function reorderWithinParentApi(taskId: number, afterId: number | null) {

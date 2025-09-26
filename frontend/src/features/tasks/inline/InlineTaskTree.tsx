@@ -3,9 +3,9 @@ import { useEffect, useMemo } from "react";
 import InlineTaskRow from "./InlineTaskRow";
 import InlineDropZone from "./InlineDropZone";
 import { useInlineDnd } from "./dndContext";
-import type { Task } from "../../../types/task";
+import type { TaskNode } from "../../../types";
 
-type Props = { tree: Task[] };
+type Props = { tree: TaskNode[] };
 
 export default function InlineTaskTree({ tree }: Props) {
   const dnd = useInlineDnd();
@@ -18,8 +18,9 @@ export default function InlineTaskTree({ tree }: Props) {
 
   // ルートも DnD の並びで描画
   const orderedRoot = dnd.getOrderedChildren(null, tree);
-  const lastRootId =
-    orderedRoot.length ? orderedRoot[orderedRoot.length - 1].id : null;
+  const lastRootId = orderedRoot.length
+    ? orderedRoot[orderedRoot.length - 1].id
+    : null;
 
   return (
     <div role="tree" aria-label="タスク" data-testid="task-tree-root">
@@ -32,9 +33,7 @@ export default function InlineTaskTree({ tree }: Props) {
         <div className="pointer-events-auto">
           <InlineDropZone
             parentId={null}
-            acceptDepth={1}
             lastChildId={lastRootId}
-            currentCount={orderedRoot.length}
             showEmptyState={orderedRoot.length === 0}
           />
         </div>
