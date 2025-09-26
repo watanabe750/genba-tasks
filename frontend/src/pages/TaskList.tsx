@@ -45,7 +45,16 @@ const TaskList: PageComponent = () => {
   const { data: tasksFlat = [] } = useFilteredTasks(filters, enabled);
 
   const tasks = useMemo(() => {
-    const tree = nestTasks(tasksFlat);
+    // ① 完了は必ず末尾へ（安定化のため相対順は保持）
+    const incomplete: typeof tasksFlat = [];
+    const completed: typeof tasksFlat = [];
+    for (const t of tasksFlat) {
+      (t.status === "completed" ? completed : incomplete).push(t);
+    }
+    const prioritized = [...incomplete, ...completed];
+
+    // ② いつも通りツリー化 → 既存の order_by/dir で最終整列
+    const tree = nestTasks(prioritized);
     return sortRootNodes(
       tree,
       filters.order_by ?? "deadline",
@@ -71,12 +80,15 @@ const TaskList: PageComponent = () => {
             role="note"
             data-testid="guest-notice"
           >
-            これは<strong className="mx-1">ゲスト環境</strong>です。データは定期的に初期化される場合があります。個人情報の入力はお控えください。
+            これは<strong className="mx-1">ゲスト環境</strong>
+            です。データは定期的に初期化される場合があります。個人情報の入力はお控えください。
           </div>
         )}
 
         {/* H1は非表示。右肩要約は TaskFilterBar に渡す */}
-        <TaskFilterBar summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`} />
+        <TaskFilterBar
+          summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`}
+        />
 
         {/* 進捗単一値のインジケータ（既存） */}
         {filters.progress_min != null &&
