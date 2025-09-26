@@ -1,3 +1,4 @@
+// frontend/src/features/tasks/inline/InlineTaskRow.tsx
 import {
   useMemo,
   useState,
@@ -14,6 +15,7 @@ import { useInlineDnd } from "./dndContext";
 import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 import TaskImagePanel from "../image/TaskImagePanel";
 import CompactThumb from "./CompactThumb";
+import ConfirmPopover from "../../../components/ConfirmPopover";
 
 const toDateInputValue = (iso?: string | null) => {
   if (!iso) return "";
@@ -73,6 +75,9 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
   const [childTitle, setChildTitle] = useState("");
   const [childDue, setChildDue] = useState<string>(""); // YYYY-MM-DD で保持
   const [showImagePanel, setShowImagePanel] = useState(false);
+
+  // 削除確認ポップオーバー
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const { open: openDrawer } = useTaskDrawer();
   const titleRef = useRef<HTMLSpanElement | null>(null);
@@ -507,20 +512,42 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
               </button>
             )}
 
-            <button
-              type="button"
-              className="rounded border px-2 py-1 text-xs hover:bg-red-50 border-red-200 text-red-600"
-              onClick={() => {
-                if (children.length > 0) {
-                  alert("サブタスクがあるため削除できません（まず子を削除）");
-                  return;
+            {/* 削除（ポップオーバー確認） */}
+            <div className="relative inline-block">
+              <button
+                type="button"
+                className={[
+                  "rounded border px-2 py-1 text-xs",
+                  children.length > 0
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "hover:bg-red-50 border-red-200 text-red-600",
+                ].join(" ")}
+                onClick={() => {
+                  if (children.length > 0) return; // 子がある場合は無効
+                  setConfirmOpen(true);
+                }}
+                title={
+                  children.length > 0
+                    ? "サブタスクがあるため削除できません\n（まずサブタスクを削除）"
+                    : "削除"
                 }
-                if (confirm("このタスクを削除しますか？")) remove(task.id);
-              }}
-              title="削除"
-            >
-              削除
-            </button>
+                aria-haspopup="dialog"
+                aria-expanded={confirmOpen}
+                disabled={children.length > 0}
+              >
+                削除
+              </button>
+              {confirmOpen && (
+                <ConfirmPopover
+                  text={"このタスクを削除しますか？"}
+                  onCancel={() => setConfirmOpen(false)}
+                  onConfirm={() => {
+                    setConfirmOpen(false);
+                    remove(task.id);
+                  }}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>
