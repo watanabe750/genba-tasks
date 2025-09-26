@@ -100,7 +100,8 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
         ? new Date(`${deadline}T00:00:00`).toISOString()
         : null,
       status,
-      progress: status === "completed" ? 100 : Math.min(task.progress ?? 0, 99),
+      // 完了なら100、未完は葉なら0（親はサーバで子平均に再計算されるが明示しておく）
+      progress: status === "completed" ? 100 : (isLeaf ? 0 : (task.progress ?? 0)),
     };
     update({ id: task.id, data: payload });
     setEditing(false);
@@ -120,7 +121,7 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
       id: task.id,
       data: nextDone
         ? { status: "completed", progress: 100 }
-        : { status: "in_progress", progress: Math.min(task.progress ?? 0, 99) },
+        : { status: "in_progress", progress: 0 },
     });
   };
 

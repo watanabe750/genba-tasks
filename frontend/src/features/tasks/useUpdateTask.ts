@@ -6,16 +6,20 @@ import { sortFlatForUI } from "../tasks/nest";
 
 type UpdateInput = {
   id: number;
-  data: (Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">> & {
+  data: Partial<
+    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">
+  > & {
     after_id?: number | null;
-  });
+  };
 };
 
 const clamp = (n: number, min = 0, max = 100) => Math.min(Math.max(n, min), max);
 
 // ★ 渡されたフィールドだけを送る（after_id はトップレベルで送る）
 function normalize(data: UpdateInput["data"]) {
-  const out: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">> = {};
+  const out: Partial<
+    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">
+  > = {};
 
   if (typeof data.title === "string") out.title = data.title.trim();
 
@@ -25,7 +29,10 @@ function normalize(data: UpdateInput["data"]) {
 
   if (data.status) {
     out.status = data.status;
-    if (data.status === "completed" && typeof data.progress !== "number") out.progress = 100;
+    // progress未指定なら status に合わせて 100/0 を補完
+    if (typeof data.progress !== "number") {
+      out.progress = data.status === "completed" ? 100 : 0;
+    }
   }
 
   if (typeof data.progress === "number") {
@@ -45,13 +52,19 @@ export function useUpdateTask() {
     Task,
     Error,
     UpdateInput,
-    { prevPriority?: Task[]; prevTasksEntries?: [unknown, Task[] | undefined][] }
+    {
+      prevPriority?: Task[];
+      prevTasksEntries?: [unknown, Task[] | undefined][];
+    }
   >({
     mutationKey: ["updateTask"],
     retry: false,
+
     mutationFn: async ({ id, data }) => {
       if ("after_id" in data) {
-        const res = await api.patch<Task>(`/tasks/${id}`, { after_id: data.after_id ?? null });
+        const res = await api.patch<Task>(`/tasks/${id}`, {
+          after_id: data.after_id ?? null,
+        });
         return res.data;
       } else {
         const n = normalize(data);
@@ -66,24 +79,25 @@ export function useUpdateTask() {
         qc.cancelQueries({ queryKey: ["priorityTasks"] }),
         qc.cancelQueries({ queryKey: ["tasks"] }),
       ]);
-    
+
       const prevPriority = qc.getQueryData<Task[]>(["priorityTasks"]);
       const prevTasksEntries = qc.getQueriesData<Task[]>({ queryKey: ["tasks"] });
-    
+
+      // 並び替え（after_id）のときは楽観更新しない（サーバ順をソースオブトゥルースに）
       if ("after_id" in data) {
         return { prevPriority, prevTasksEntries };
       }
-    
+
       const n = normalize(data);
       const patch = (arr?: Task[]) => arr?.map((t) => (t.id === id ? { ...t, ...n } : t));
-    
-      // 優先タスク（右パネル）
+
+      // 優先タスク（右パネル）：完了は即時除外＋UI順に並べ替え
       if (prevPriority) {
         const next = patch(prevPriority) ?? prevPriority;
-        // 右パネルは completed を非表示にしているならそのままでもOK。今回は一応UI順に。
-        qc.setQueryData<Task[]>(["priorityTasks"], sortFlatForUI(next));
+        const filtered = next.filter((t) => t.status !== "completed");
+        qc.setQueryData<Task[]>(["priorityTasks"], sortFlatForUI(filtered));
       }
-    
+
       // 一覧（クエリごとに order_by/dir が違う可能性がある）
       prevTasksEntries.forEach(([key, arr]) => {
         if (!arr) return;
@@ -94,7 +108,7 @@ export function useUpdateTask() {
         const dir = (params.dir as "asc" | "desc") ?? "asc";
         qc.setQueryData<Task[]>(key as any, sortFlatForUI(next, order_by, dir));
       });
-    
+
       return { prevPriority, prevTasksEntries };
     },
 
