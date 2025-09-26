@@ -5,16 +5,21 @@ import type { Task, UpdateTaskPayload } from "../../types";
 
 type UpdateInput = {
   id: number;
-  data: (Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">> & {
+  data: Partial<
+    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">
+  > & {
     after_id?: number | null;
-  });
+  };
 };
 
-const clamp = (n: number, min = 0, max = 100) => Math.min(Math.max(n, min), max);
+const clamp = (n: number, min = 0, max = 100) =>
+  Math.min(Math.max(n, min), max);
 
 // ★ 渡されたフィールドだけを送る（after_id はトップレベルで送る）
 function normalize(data: UpdateInput["data"]) {
-  const out: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">> = {};
+  const out: Partial<
+    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">
+  > = {};
 
   if (typeof data.title === "string") out.title = data.title.trim();
 
@@ -24,7 +29,10 @@ function normalize(data: UpdateInput["data"]) {
 
   if (data.status) {
     out.status = data.status;
-    if (data.status === "completed" && typeof data.progress !== "number") out.progress = 100;
+    // progress未指定なら status に合わせて 100/0 を補完
+    if (typeof data.progress !== "number") {
+      out.progress = data.status === "completed" ? 100 : 0;
+    }
   }
 
   if (typeof data.progress === "number") {
@@ -44,13 +52,18 @@ export function useUpdateTask() {
     Task,
     Error,
     UpdateInput,
-    { prevPriority?: Task[]; prevTasksEntries?: [unknown, Task[] | undefined][] }
+    {
+      prevPriority?: Task[];
+      prevTasksEntries?: [unknown, Task[] | undefined][];
+    }
   >({
     mutationKey: ["updateTask"],
     retry: false,
     mutationFn: async ({ id, data }) => {
       if ("after_id" in data) {
-        const res = await api.patch<Task>(`/tasks/${id}`, { after_id: data.after_id ?? null });
+        const res = await api.patch<Task>(`/tasks/${id}`, {
+          after_id: data.after_id ?? null,
+        });
         return res.data;
       } else {
         const n = normalize(data);
@@ -67,7 +80,9 @@ export function useUpdateTask() {
       ]);
 
       const prevPriority = qc.getQueryData<Task[]>(["priorityTasks"]);
-      const prevTasksEntries = qc.getQueriesData<Task[]>({ queryKey: ["tasks"] });
+      const prevTasksEntries = qc.getQueriesData<Task[]>({
+        queryKey: ["tasks"],
+      });
 
       // 並び替え（after_id）のときは楽観更新しない（サーバ順をソースオブトゥルースに）
       if ("after_id" in data) {
@@ -75,9 +90,11 @@ export function useUpdateTask() {
       }
 
       const n = normalize(data);
-      const patch = (arr?: Task[]) => arr?.map((t) => (t.id === id ? { ...t, ...n } : t));
+      const patch = (arr?: Task[]) =>
+        arr?.map((t) => (t.id === id ? { ...t, ...n } : t));
 
-      if (prevPriority) qc.setQueryData<Task[]>(["priorityTasks"], patch(prevPriority));
+      if (prevPriority)
+        qc.setQueryData<Task[]>(["priorityTasks"], patch(prevPriority));
       prevTasksEntries.forEach(([key, arr]) => {
         if (arr) qc.setQueryData<Task[]>(key as any, patch(arr));
       });
@@ -86,7 +103,8 @@ export function useUpdateTask() {
     },
 
     onError: (_e, _v, ctx) => {
-      if (ctx?.prevPriority) qc.setQueryData(["priorityTasks"], ctx.prevPriority);
+      if (ctx?.prevPriority)
+        qc.setQueryData(["priorityTasks"], ctx.prevPriority);
       ctx?.prevTasksEntries?.forEach(([key, data]) => {
         qc.setQueryData(key as any, data);
       });
@@ -95,9 +113,15 @@ export function useUpdateTask() {
 
     onSuccess: (fresh) => {
       // フィールド更新はローカルも同期、並び替えはinvalidateで再取得に任せる
-      const sync = (arr?: Task[]) => arr?.map((t) => (t.id === fresh.id ? fresh : t));
-      qc.setQueryData<Task[] | undefined>(["priorityTasks"], (old) => sync(old));
-      qc.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (old) => sync(old ?? undefined) as any);
+      const sync = (arr?: Task[]) =>
+        arr?.map((t) => (t.id === fresh.id ? fresh : t));
+      qc.setQueryData<Task[] | undefined>(["priorityTasks"], (old) =>
+        sync(old)
+      );
+      qc.setQueriesData<Task[]>(
+        { queryKey: ["tasks"] },
+        (old) => sync(old ?? undefined) as any
+      );
     },
 
     onSettled: () => {
