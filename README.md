@@ -21,6 +21,7 @@
     - [認証](#認証)
     - [タスク管理](#タスク管理)
   - [スクリーンショット / GIF](#スクリーンショット--gif)
+  - [画像バリデーション](#画像バリデーション)
     - [優先タスクパネル](#優先タスクパネル)
   - [技術スタック / バージョン](#技術スタック--バージョン)
   - [本番アーキテクチャ](#本番アーキテクチャ)
@@ -59,7 +60,17 @@
 ![ヒーロー画面](./docs/screens/hero.png)
 
 - `assets/01_signin.gif`（ゲストログイン → 親タスク作成）
-- `assets/02_edit_upload.gif`（編集 → 画像添付）
+## 画像バリデーション
+
+- **非画像**を選ぶとエラー表示  
+  <img src="backend/docs/readme-assets/img-error-type.png" width="900" alt="非画像を選択した際のエラー" />
+
+- **5MB超**を選ぶとエラー表示  
+  <img src="backend/docs/readme-assets/img-error-size.png" width="900" alt="5MBを超える画像を選択した際のエラー" />
+
+**許可形式**: jpeg / png / webp / gif  
+**サイズ上限**: 5MB  
+
 - `assets/03_drag_and_drop.gif`（親タスクのDnD並び替え）
 
 ### 優先タスクパネル
