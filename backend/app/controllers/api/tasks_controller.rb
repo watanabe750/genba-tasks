@@ -5,23 +5,48 @@ module Api
 
     SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
 
+    # GET /api/tasks
     def index
-      filters = filter_params
-      scope   = Task.filter_sort(filters, user: current_user)
-    
-      dir = %w[asc desc].include?(filters[:dir].to_s.downcase) ? filters[:dir].to_s.upcase : "ASC"
-      ob  = (filters[:order_by].presence || "deadline").to_s
-    
-      # ----- order_by=site 専用：全体で「期限あり」→「期限なし」 -----
+      raw_filters = filter_params
+
+      # filter_sort に渡す許可キーだけ抽出（nil は除外）
+      allowed_keys = %i[site status progress_min progress_max order_by dir parents_only]
+      filters      = raw_filters.slice(*allowed_keys).compact
+
+      Rails.logger.info("[Tasks#index] filters(normalized)=#{filters.inspect}")
+
+      # ------- ベーススコープの決定（必ず成功させる） -------
+      scope = nil
+      if Task.respond_to?(:filter_sort)
+        begin
+          # ① Ruby 3 キーワード引数版
+          scope = Task.filter_sort(**filters, user: current_user)
+        rescue ArgumentError => e
+          Rails.logger.warn("[Tasks#index] filter_sort kwarg failed (fallback to hash): #{e.class}: #{e.message}")
+          # ② Hash 引数版
+          scope = Task.filter_sort(filters, user: current_user)
+        rescue => e
+          Rails.logger.warn("[Tasks#index] filter_sort failed -> fallback to current_user.tasks: #{e.class}: #{e.message}")
+          scope = current_user.tasks
+        end
+      else
+        scope = current_user.tasks
+      end
+
+      # ------- 並び順最終調整（DB 方言 + NULL 安全） -------
+      allowed_order = %w[deadline progress created_at title site]
+      ob  = allowed_order.include?(filters[:order_by].to_s) ? filters[:order_by].to_s : "deadline"
+      dir = %w[asc desc ASC DESC].include?(filters[:dir].to_s) ? filters[:dir].to_s.upcase : "ASC"
+
       if ob == "site"
         adapter = ActiveRecord::Base.connection.adapter_name.to_s
-        parents_first_sql =
+        sql =
           if adapter =~ /postgre/i
             <<~SQL.squish
               (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-              (CASE WHEN deadline IS NULL THEN 1 ELSE 0 END) ASC,                          -- 期限ありが先、期限なしは全体の末尾へ
+              (CASE WHEN deadline IS NULL THEN 1 ELSE 0 END) ASC,
               LOWER(site) #{dir} NULLS LAST,
-              CASE WHEN deadline IS NULL THEN NULL ELSE deadline END ASC,                  -- 期限ありグループ内は期限昇順
+              CASE WHEN deadline IS NULL THEN NULL ELSE deadline END ASC,
               parent_id ASC,
               position ASC,
               id ASC
@@ -29,88 +54,79 @@ module Api
           else
             <<~SQL.squish
               (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-              CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC,                            -- 期限ありが先
-              CASE WHEN LOWER(site) IS NULL THEN 1 ELSE 0 END ASC, LOWER(site) #{dir},    -- site 昇順
-              deadline ASC,                                                                -- 期限ありグループ内は期限昇順
+              CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC,
+              CASE WHEN LOWER(site) IS NULL THEN 1 ELSE 0 END ASC, LOWER(site) #{dir},
+              deadline ASC,
               parent_id ASC,
               position ASC,
               id ASC
             SQL
           end
-    
-        scope = scope.reorder(Arel.sql(parents_first_sql))
-        Rails.logger.info("[Tasks#index] order(site)=#{parents_first_sql} filters=#{filters.inspect}")
-        return render json: scope.with_attached_image
-   .as_json(only: SELECT_FIELDS, methods: [:image_url])
+        scope = scope.reorder(Arel.sql(sql))
+        Rails.logger.info("[Tasks#index] order(site)=#{sql}")
+        return render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
       end
-      # ----- ここから下は既存（progress / created_at / title / deadline） -----
-    
-      primary, secondary, secondary_dir =
-        case ob
-        when "progress"   then ["progress",     nil,        nil]
-        when "created_at" then ["created_at",   nil,        nil]
-        when "title"      then ["LOWER(title)", nil,        nil]
-        else                   ["deadline",     nil,        nil]
-        end
-    
-      adapter = ActiveRecord::Base.connection.adapter_name.to_s
-      if adapter =~ /postgre/i
-        parts = [
-          "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-          "#{primary} #{dir} NULLS LAST"
-        ]
-        parts << "#{secondary} #{secondary_dir} NULLS LAST" if secondary
-        parts += ["parent_id ASC", "position ASC", "id ASC"]
-      else
-        parts = [
-          "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-          "CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC",
-          "#{primary} #{dir}"
-        ]
-        if secondary
-          parts << "CASE WHEN #{secondary} IS NULL THEN 1 ELSE 0 END ASC"
-          parts << "#{secondary} #{secondary_dir}"
-        end
-        parts += ["parent_id ASC", "position ASC", "id ASC"]
-      end
-    
-      parents_first_sql = parts.join(", ")
-      scope = scope.reorder(Arel.sql(parents_first_sql))
-      Rails.logger.info("[Tasks#index] order=#{parents_first_sql} filters=#{filters.inspect}")
-    
-      render json: scope.with_attached_image
-   .as_json(only: SELECT_FIELDS, methods: [:image_url])
-    end
-    
-    
 
+      primary =
+        case ob
+        when "progress"   then "progress"
+        when "created_at" then "created_at"
+        when "title"      then "LOWER(title)"
+        else                    "deadline"
+        end
+
+      adapter = ActiveRecord::Base.connection.adapter_name.to_s
+      parts =
+        if adapter =~ /postgre/i
+          [
+            "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
+            "#{primary} #{dir} NULLS LAST",
+            "parent_id ASC",
+            "position ASC",
+            "id ASC"
+          ]
+        else
+          [
+            "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
+            "CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC",
+            "#{primary} #{dir}",
+            "parent_id ASC",
+            "position ASC",
+            "id ASC"
+          ]
+        end
+
+      scope = scope.reorder(Arel.sql(parts.join(", ")))
+
+      render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
+    rescue => e
+      # ここで 422 を返さず、常に 200 フォールバック（UI 止めない）
+      Rails.logger.error("[Tasks#index] fatal -> soft-fallback: #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
+      safe = current_user.tasks.order(Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC, id ASC"))
+      render json: safe.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
+    end
+
+    # GET /api/tasks/priority
     def priority
       tasks = current_user.tasks.priority_order
       render json: tasks.as_json(only: SELECT_FIELDS)
     end
 
+    # GET /api/tasks/:id
     def show
       t = @task
-      # 画像URL（存在すれば）
-      img_urls = {
-        image_url: t.image_url,     # ← S3の署名付きURL（未添付ならnil）
-        image_thumb_url: nil        # ← 最小構成：サムネは後続ブランチで
-      }
+      img_urls = { image_url: t.image_url, image_thumb_url: nil }
 
-      # 直下の子（最大4件）：期限昇順 → 期限なし → id昇順
-      kids_scope = current_user.tasks
-                     .where(parent_id: t.id)
-                     .select(:id, :title, :status, :progress, :deadline, :parent_id)
-                     .order(Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC, deadline ASC, id ASC"))
-                     .limit(4)
-      kids = kids_scope.to_a
+      kids = current_user.tasks
+               .where(parent_id: t.id)
+               .select(:id, :title, :status, :progress, :deadline, :parent_id)
+               .order(Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC, deadline ASC, id ASC"))
+               .limit(4)
+               .to_a
 
-      # 直下の子サマリ
-      children_count       = current_user.tasks.where(parent_id: t.id).count
-      children_done_count  = current_user.tasks.where(parent_id: t.id, status: "completed").count
-
-      # 孫の総数
-      grandkids_count =
+      children_count      = current_user.tasks.where(parent_id: t.id).count
+      children_done_count = current_user.tasks.where(parent_id: t.id, status: "completed").count
+      grandkids_count     =
         if children_count.zero?
           0
         else
@@ -118,7 +134,6 @@ module Api
           current_user.tasks.where(parent_id: child_ids).count
         end
 
-      # 進捗％（nilでも0に）
       progress_percent = (t.respond_to?(:progress_percent) ? t.progress_percent : t.progress).to_i
 
       render json: {
@@ -145,8 +160,8 @@ module Api
         updated_at: t.updated_at.iso8601,
       }.merge(img_urls)
     end
-    # ==== 差し替えここまで ====
 
+    # POST /api/tasks
     def create
       task = current_user.tasks.new(task_params)
       if task.save
@@ -163,6 +178,7 @@ module Api
       render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
 
+    # PATCH/PUT /api/tasks/:id
     def update
       attrs = task_params
       if attrs.key?(:parent_id)
@@ -185,11 +201,13 @@ module Api
       render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
     end
 
+    # DELETE /api/tasks/:id
     def destroy
       @task.destroy
       head :no_content
     end
 
+    # GET /api/tasks/sites
     def sites
       names = current_user.tasks
                 .where(parent_id: nil)
@@ -200,6 +218,7 @@ module Api
       render json: names
     end
 
+    # PATCH /api/tasks/:id/reorder
     def reorder
       after_id = params[:after_id].presence
 
@@ -230,21 +249,26 @@ module Api
 
     def set_task
       @task = current_user.tasks.with_attached_image.find_by(id: params[:id])
-            render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
+      render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
     end
 
+    # 旧/新どちらのクエリも受ける互換版（未指定は nil のまま）
     def filter_params
+      cast_bool = ->(v) { ActiveModel::Type::Boolean.new.cast(v) }
+      parents_only_specified = params.key?(:parents_only) || params.key?(:only_parent)
+
       {
         site:          params[:site],
-        status:        Array(params[:status]),
-        progress_min:  params[:progress_min],
-        progress_max:  params[:progress_max],
-        order_by:      params[:order_by],
-        dir:           params[:dir],
-        parents_only:  params[:parents_only]
+        status:        (params[:status].is_a?(String) ? params[:status].split(",") : Array(params[:status])).presence,
+        progress_min:  (params[:progress_min].presence || params[:min].presence),
+        progress_max:  (params[:progress_max].presence || params[:max].presence),
+        order_by:      (params[:order_by].presence   || params[:sort].presence),
+        dir:           (params[:dir].presence        || params[:order].presence),
+        parents_only:  (parents_only_specified ? cast_bool.call(params[:parents_only].presence || params[:only_parent].presence) : nil)
       }
     end
 
+    # JSON ラッパー/生 JSON/フォームをすべて許容する堅牢な取り出し
     def task_params
       raw = request.request_parameters
       src =
@@ -271,6 +295,7 @@ module Api
         .permit(:title, :status, :progress, :deadline, :parent_id, :description, :site)
     end
 
+    # 同一 parent 内で position を付け替える
     def reorder_within_parent!(task, after_id_param)
       after_id = after_id_param.present? ? after_id_param.to_i : nil
 
