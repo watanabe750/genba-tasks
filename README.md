@@ -57,6 +57,7 @@
 
 ## スクリーンショット / GIF
 ![ヒーロー画面](./docs/screens/hero.png)
+
 - `assets/01_signin.gif`（ゲストログイン → 親タスク作成）
 - `assets/02_edit_upload.gif`（編集 → 画像添付）
 - `assets/03_drag_and_drop.gif`（親タスクのDnD並び替え）
@@ -104,14 +105,11 @@
 ---
 
 ## リポジトリ構成
-```
 
 /frontend   # React + Vite (SPA)
 /backend    # Rails API (Devise Token Auth, Active Storage)
 /infra      # IaC/運用スクリプト（最小）
-/assets     # README 用の画像・GIF（01/02/03\_\*.gif）
-
-````
+/assets     # README 用の画像・GIF（01/02/03_*.gif）
 
 ---
 
@@ -237,5 +235,3 @@ flowchart LR
 ## ライセンス
 
 MIT
-
----
