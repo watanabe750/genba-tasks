@@ -63,10 +63,10 @@
 ## 画像バリデーション
 
 - **非画像**を選ぶとエラー表示  
-  <img src="backend/docs/readme-assets/img-error-type.png" width="900" alt="非画像を選択した際のエラー" />
+  <img src="docs/screens/readme-assets/img-error-type.png" width="900" alt="非画像を選択した際のエラー" />
 
 - **5MB超**を選ぶとエラー表示  
-  <img src="backend/docs/readme-assets/img-error-size.png" width="900" alt="5MBを超える画像を選択した際のエラー" />
+  <img src="docs/screens/readme-assets/img-error-size.png" width="900" alt="5MBを超える画像を選択した際のエラー" />
 
 **許可形式**: jpeg / png / webp / gif  
 **サイズ上限**: 5MB  
