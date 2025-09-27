@@ -530,6 +530,13 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
                 )}
               </div>
             </div>
+
+            {/* ← ここを追加：ボタン群の“下”に赤字で上限表示 */}
+            {(task.children?.length ?? 0) >= MAX_CHILDREN_PER_NODE && (
+              <div className="text-[12px] text-red-600 mt-1">
+                最大{MAX_CHILDREN_PER_NODE}件まで
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -22,6 +22,8 @@
     - [タスク管理](#タスク管理)
     - [ヒーローセクション](#ヒーローセクション)
     - [機能ハイライト](#機能ハイライト)
+    - [タスクの基本操作（CRUD）](#タスクの基本操作crud)
+    - [子タスク上限](#子タスク上限)
   - [画像バリデーション](#画像バリデーション)
     - [タスク詳細ドロワー](#タスク詳細ドロワー)
     - [優先タスクパネル](#優先タスクパネル)
@@ -63,6 +65,15 @@
 
 ### 機能ハイライト
 <img src="docs/screens/readme-assets/hero-cards.png" width="1200" alt="サブタスク管理・ドラッグ＆ドロップ・タスク検索カード" />
+
+### タスクの基本操作（CRUD）
+![Tasks CRUD](docs/screens/readme-assets/tasks-crud.gif)
+
+### 子タスク上限
+親タスクごとに**最大 4 件**。5件目は作成できません（＋が無効）。
+![Subtask limit](docs/screens/readme-assets/subtask-limit.png)
+
+
 
 ## 画像バリデーション
 
