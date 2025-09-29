@@ -1,4 +1,3 @@
-// src/features/tasks/inline/InlineTaskTree.tsx
 import { useEffect, useMemo } from "react";
 import InlineTaskRow from "./InlineTaskRow";
 import InlineDropZone from "./InlineDropZone";
@@ -8,27 +7,28 @@ import type { TaskNode } from "../../../types";
 type Props = { tree: TaskNode[] };
 
 export default function InlineTaskTree({ tree }: Props) {
-  const dnd = useInlineDnd();
+  const { registerChildren, getOrderedChildren } = useInlineDnd();
+  const orderedRoot = getOrderedChildren(null, tree);
+  const orderedIds = useMemo(() => orderedRoot.map(t => t.id), [orderedRoot]);
 
-  // ルート配下の現在順を登録
-  const rootIds = useMemo(() => tree.map((t) => t.id), [tree]);
+  // ★ 表示順で登録する（DnDの楽観順を壊さない）
   useEffect(() => {
-    if (rootIds.length) dnd.registerChildren(null, rootIds);
-  }, [dnd, rootIds]);
+    registerChildren(null, orderedIds);
+    return () => {
+      // 任意：アンレジスタする場合
+      // registerChildren(null, []);
+    };
+  }, [registerChildren, orderedIds]);
 
-  // ルートも DnD の並びで描画
-  const orderedRoot = dnd.getOrderedChildren(null, tree);
-  const lastRootId = orderedRoot.length
-    ? orderedRoot[orderedRoot.length - 1].id
-    : null;
+  const lastRootId =
+    orderedRoot.length ? orderedRoot[orderedRoot.length - 1].id : null;
 
   return (
     <div role="tree" aria-label="タスク" data-testid="task-tree-root">
-      {orderedRoot.map((t) => (
-        <InlineTaskRow key={t.id} task={t} depth={1} />
-      ))}
-
-      {/* 末尾に入れられるように（任意だけど便利） */}
+      {orderedRoot.map((t, i) => {
+   const prevId = i > 0 ? orderedRoot[i - 1].id : null;
+   return <InlineTaskRow key={t.id} task={t} depth={1} prevId={prevId} />;
+ })}
       <div className="pointer-events-none">
         <div className="pointer-events-auto">
           <InlineDropZone

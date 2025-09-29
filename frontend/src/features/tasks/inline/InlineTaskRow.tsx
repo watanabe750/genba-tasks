@@ -34,7 +34,7 @@ const STATUS_LABEL: Record<Task["status"], string> = {
   completed: "完了",
 };
 
-type RowProps = { task: Task; depth: number };
+type RowProps = { task: Task; depth: number; prevId?: number | null };
 const INDENT_STEP = 24;
 
 const normPid = (v: number | null | undefined) =>
@@ -53,7 +53,11 @@ const sortChildrenFixed = (kids: Task[]) => {
     .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
 };
 
-export default function InlineTaskRow({ task, depth }: RowProps) {
+export default function InlineTaskRow({
+  task,
+  depth,
+  prevId = null,
+}: RowProps) {
   const children = task.children ?? [];
   const isLeaf = children.length === 0;
   const isParent = depth === 1;
@@ -172,8 +176,20 @@ export default function InlineTaskRow({ task, depth }: RowProps) {
     if (movingId == null || movingId === task.id) return dnd.onDragEnd();
     const fromPid = dnd.state.draggingParentId;
     const toPid = task.parent_id ?? null;
-    if (samePid(fromPid, toPid))
-      dnd.reorderWithinParent(normPid(toPid), movingId, task.id);
+    if (samePid(fromPid, toPid)) {
+      const pid = normPid(toPid);
+      const movingIdx = dnd.getIndexInParent(pid, movingId);
+      const targetIdx = dnd.getIndexInParent(pid, task.id);
+      let afterId: number | null;
+      if (movingIdx != null && targetIdx != null && movingIdx < targetIdx) {
+        // 下へ移動中：ターゲット“の後ろ”に入れる
+        afterId = task.id;
+      } else {
+        // 上へ移動中（またはインデックス不明）：ターゲット“の前”に入れる
+        afterId = prevId ?? null;
+      }
+      dnd.reorderWithinParent(pid, movingId, afterId);
+    }
     dnd.onDragEnd();
   };
 
