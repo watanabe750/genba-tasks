@@ -38,7 +38,7 @@ type Ctx = {
   }) => void;
 
   getOrderedChildren: (parentId: number | null, children: Task[]) => Task[];
-
+  getIndexInParent: (parentId: number | null, id: number) => number | null;
   registerChildren: (parentId: number | null, childIds: number[]) => void;
 };
 
@@ -59,6 +59,17 @@ const eqArray = (a?: number[], b?: number[]) => {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
 };
+
+// 集合として同じか（順序は不問）
+const sameSet = (a?: number[], b?: number[]) => {
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    const sa = new Set(a), sb = new Set(b);
+    if (sa.size !== sb.size) return false;
+    for (const x of sa) if (!sb.has(x)) return false;
+    return true;
+  };
+  
 
 export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     const [state, setState] = useState<DndState>({ draggingId: null, draggingParentId: null, draggingDepth: null });
@@ -117,39 +128,41 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     [state.draggingParentId]
   );
 
-  // サーバから受け取った現在の並びを登録
-  // 集合が同じなら “順序差” はローカル優先（上書きしない）
   const registerChildren = useCallback(
     (parentId: number | null, childIds: number[]) => {
-      console.log("[REGISTER]", { parentId, childIds });
+      // console.debug("[REGISTER]", { parentId, childIds });
       const k = keyOf(parentId);
-      setOrderMap((prev) => {
-        const current = prev[k];
-        if (!current) return { ...prev, [k]: childIds.slice() };
+      setOrderMap(prev => {
+        // 空配列なら削除（unregister）
+        if (!childIds || childIds.length === 0) {
+          if (!(k in prev)) return prev;
+          const next = { ...prev };
+          delete next[k];
+          return next;
+        }
 
-        // ★ 順序まで一致しているか（順序が違えば外部順で上書き）
-        if (!eqArray(current, childIds)) {
-            return { ...prev, [k]: childIds.slice() };
-          }
-          return prev;
+        const current = prev[k];
+        // 初回は登録
+        if (!current) return { ...prev, [k]: childIds.slice() };
+        // ★ メンバーが同じなら既存順を維持（DnD結果を壊さない）
+        if (sameSet(current, childIds)) return prev;
+        // メンバーが変わった時だけ上書き
+        if (!eqArray(current, childIds)) return { ...prev, [k]: childIds.slice() };
+        return prev;
       });
     },
     []
   );
 
-  // ★ 同一親内の並べ替え：UI反映 → API → 成功でinvalidate / 失敗でロールバック
   const reorderWithinParent = useCallback(
     (parentId: number | null, movingId: number, afterId: number | null) => {
       const k = keyOf(parentId);
-
-      // 直前の配列と次の配列を捕捉しておく（失敗時ロールバック用）
       let prevArr: number[] | undefined;
 
       setOrderMap((prev) => {
         const current = prev[k] ?? [];
         prevArr = current;
 
-        // --- 既存ロジック（フォールバック初期化含む） ---
         let base = current.slice();
         if (base.length === 0) base = [movingId];
         else if (!base.includes(movingId)) base = [...base, movingId];
@@ -163,18 +176,18 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
         return { ...prev, [k]: next };
       });
 
-      // 非同期でサーバ永続化 → 成功なら再取得、失敗ならロールバック
       (async () => {
         try {
           await reorderWithinParentApi(movingId, afterId);
-          await qc.invalidateQueries({ queryKey: ["tasks"] });
+          // ← クエリキーの違いを吸収（"tasks" で始まるもの全部）
+          await qc.invalidateQueries({
+            predicate: (q) =>
+              Array.isArray(q.queryKey) && q.queryKey[0] === "tasks",
+          });
         } catch (e) {
-          // 失敗：UIを元の順序に戻す
           if (prevArr) {
             setOrderMap((prev) => ({ ...prev, [k]: prevArr! }));
           }
-          // 任意：開発中の可視化
-          // console.warn("[REORDER persist failed]", e);
         }
       })();
     },
@@ -209,6 +222,15 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     window.__orderMap = orderMap;
   }, [orderMap]);
 
+   // 追加：親内の現在インデックスを返す（なければ null）
+   const getIndexInParent = useCallback((parentId: number | null, id: number) => {
+     const k = keyOf(parentId);
+     const ord = orderMap[k];
+     if (!ord) return null;
+     const idx = ord.indexOf(id);
+     return idx >= 0 ? idx : null;
+   }, [orderMap]);
+
   const value = useMemo(
     () => ({
       state,
@@ -218,6 +240,7 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
       reorderWithinParent,
       moveAcrossParents,
       getOrderedChildren,
+      getIndexInParent,
       registerChildren,
     }),
     [
@@ -228,6 +251,7 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
       reorderWithinParent,
       moveAcrossParents,
       getOrderedChildren,
+      getIndexInParent,
       registerChildren,
     ]
   );

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_05_000956) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_29_015948) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -54,6 +54,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_05_000956) do
     t.string "site"
     t.index ["parent_id"], name: "index_tasks_on_parent_id"
     t.index ["user_id", "parent_id", "position"], name: "index_tasks_on_user_id_and_parent_id_and_position"
+    t.index ["user_id", "parent_id", "position"], name: "index_tasks_on_user_parent_position"
     t.index ["user_id"], name: "index_tasks_on_user_id"
   end
 

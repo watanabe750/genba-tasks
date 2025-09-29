@@ -1,14 +1,11 @@
-// src/features/tasks/api.ts
+// 必要に応じてファイル冒頭に
 import api from "../../lib/apiClient";
-import type { TaskDetail } from "../../types";
 
-/** 同一親内の並び替えをサーバ永続化 */
-export async function reorderWithinParentApi(taskId: number, afterId: number | null) {
-  await api.patch(`/tasks/${taskId}`, { after_id: afterId ?? null });
-}
-
-/** 親タスクの詳細を取得（ドロワー用） */
-export async function getTaskDetail(id: number): Promise<TaskDetail> {
-  const { data } = await api.get<TaskDetail>(`/tasks/${id}`);
-  return data;
+// 同一親内 並べ替え API
+export async function reorderWithinParentApi(
+  movingId: number,
+  afterId: number | null
+) {
+  // Rails 側は { after_id } を素で受け取る
+  await api.patch(`/tasks/${movingId}/reorder`, { after_id: afterId });
 }

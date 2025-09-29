@@ -7,6 +7,11 @@ import axios, {
 import type { InternalAxiosRequestConfig, AxiosResponse } from "axios";
 import { demoStore } from "./demoStore";
 
+/** ===== Base URL =====
+ * .env: VITE_API_BASE_URL="http://localhost:3000"
+ * → 実URLは `${VITE_API_BASE_URL}/api`
+ * 未設定なら相対 "/api"
+ */
 const base = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "")}/api`
   : "/api";
@@ -17,14 +22,20 @@ const api = axios.create({
   headers: { Accept: "application/json", "Content-Type": "application/json" },
 });
 
-// DEMOモード（.envで VITE_DEMO_MODE=true を想定）
+/** ===== Flags / Const ===== */
 const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
-const AUTH_WHITELIST = [/^\/auth\//, /^\/omniauth\//, /^\/healthz?$/];
+/** 認証不要で通すパス */
+const AUTH_WHITELIST = [
+  /^\/auth\//,       // /auth/sign_in, /auth/sign_out など
+  /^\/omniauth\//,
+  /^\/healthz?$/,    // /health or /healthz
+];
 
+/** ===== Header helpers ===== */
 function getHeader(h: unknown, key: string): string | undefined {
   if (h instanceof AxiosHeaders) {
-    const v = h.get(key);
+    const v = h.get(key) ?? h.get(key.toLowerCase());
     return typeof v === "string" ? v : undefined;
   }
   const rec = h as Record<string, unknown> | undefined;
@@ -32,7 +43,7 @@ function getHeader(h: unknown, key: string): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
-// どこからでも使える保存ヘルパ
+/** 任意の Headers/AxiosResponseHeaders からトークン保存 */
 export function saveAuthFromHeaders(headers: AxiosResponseHeaders | Headers) {
   const getter =
     headers instanceof Headers
@@ -55,7 +66,12 @@ export function saveAuthFromHeaders(headers: AxiosResponseHeaders | Headers) {
   }
 }
 
-// リクエスト前：未認証ブロック＆トークン付与（DEMO時はネットワーク出さない想定）
+/** ===== Request interceptor =====
+ * - 未認証ブロック（ホワイトリストは許可）
+ * - トークン付与
+ * - x-auth-start で開始時刻埋め込み
+ * - FormData のときは Content-Type を消す
+ */
 api.interceptors.request.use((config) => {
   const headers = AxiosHeaders.from(config.headers);
   const urlObj = new URL(config.url!, config.baseURL || window.location.origin);
@@ -68,7 +84,7 @@ api.interceptors.request.use((config) => {
   const authed = !!(at && client && uid);
   const isWhitelisted = AUTH_WHITELIST.some((re) => re.test(path));
 
-  // DEMO中はブロックしない（そもそも adapter が拾う）
+  // DEMO はブロックなし。通常は未認証でホワイト以外をブロック
   if (!DEMO && !authed && !isWhitelisted) {
     return Promise.reject(
       new axios.Cancel("unauthenticated: blocked by apiClient"),
@@ -86,14 +102,16 @@ api.interceptors.request.use((config) => {
   headers.set("x-auth-start", String(Date.now()));
 
   if (typeof FormData !== "undefined" && config.data instanceof FormData) {
-    headers.delete("Content-Type");
+    headers.delete("Content-Type"); // ブラウザに任せる
   }
 
   config.headers = headers;
   return config;
 });
 
-// レスポンスで新トークンが来たら保存
+/** ===== Response interceptor =====
+ * - 新トークンが来たら保存（DEMOは保存不要）
+ */
 api.interceptors.response.use(
   (res) => {
     if (!DEMO) saveAuthFromHeaders(res.headers as any);
@@ -105,7 +123,9 @@ api.interceptors.response.use(
   },
 );
 
-// ==== DEMOアダプタ：axiosをネットワークに出さずローカルで返す ====
+/** ===== DEMO adapter =====
+ * axios をネットワークに出さず、その場でレスポンスを返す
+ */
 if (DEMO) {
   api.defaults.adapter = async function demoAdapter(
     cfg: InternalAxiosRequestConfig,
@@ -114,12 +134,12 @@ if (DEMO) {
     const u = new URL(cfg.url!, cfg.baseURL || window.location.origin);
     const path = u.pathname.replace(/^\/api(\/|$)/, "/");
 
-    // 共通ヘルパ
-    const ok = (data: any, status = 200): AxiosResponse => ({
+    // 共通レスポンス
+    const ok = (data: any, status = 200, headers: Record<string, string> = {}): AxiosResponse => ({
       data,
       status,
-      statusText: "OK",
-      headers: {},
+      statusText: status === 201 ? "Created" : "OK",
+      headers,
       config: cfg,
     });
     const noContent = (status = 204): AxiosResponse => ({
@@ -137,12 +157,33 @@ if (DEMO) {
       config: cfg,
     });
 
-    // ① ヘルスチェック
+    // ---- 0) 認証系（デモでは成功扱い）----
+    if (path === "/auth/sign_in" && method === "post") {
+      // 擬似トークンを返却（フロントはこれを保存しないが影響なし）
+      const demoHeaders = {
+        "access-token": "demo-token",
+        client: "demo-client",
+        uid: "demo@example.com",
+        "token-type": "Bearer",
+        expiry: String(Math.floor(Date.now() / 1000) + 3600),
+      };
+      return ok({ data: { uid: "demo@example.com" } }, 200, demoHeaders);
+    }
+    if (path === "/auth/sign_out" && method === "delete") {
+      return noContent();
+    }
+
+    // ---- 1) ヘルスチェック ----
     if (method === "get" && (path === "/health" || path === "/healthz")) {
       return ok({ status: "ok", mode: "demo" });
     }
 
-    // ② タスクリスト /tasks
+    // ---- 2) /me ----
+    if (path === "/me" && method === "get") {
+      return ok({ email: "demo@example.com", name: "Demo User" });
+    }
+
+    // ---- 3) タスク一覧／作成 ----
     if (path === "/tasks" && method === "get") {
       return ok(demoStore.list());
     }
@@ -155,7 +196,7 @@ if (DEMO) {
       return ok(demoStore.create(nested), 201);
     }
 
-    // ③ 個別 /tasks/:id(/image)
+    // ---- 4) 個別タスク／画像 ----
     const mTask = path.match(/^\/tasks\/(\d+)(?:\/(image))?$/);
     if (mTask) {
       const id = Number(mTask[1]);
@@ -170,7 +211,6 @@ if (DEMO) {
             cfg.data && typeof cfg.data === "string"
               ? JSON.parse(cfg.data)
               : cfg.data;
-          // reorder: { after_id } もここで吸収
           const patch = body?.task ?? body ?? {};
           const t = demoStore.update(id, patch);
           return t ? ok(t) : notFound();
@@ -180,13 +220,12 @@ if (DEMO) {
           return noContent();
         }
       } else if (sub === "image") {
-        // デモではNO-OP
         if (method === "post") return ok({ url: null }, 201);
         if (method === "delete") return noContent();
       }
     }
 
-    // ④ 補助API
+    // ---- 5) 補助API ----
     if (path === "/tasks/sites" && method === "get") return ok(demoStore.sites());
     if (path === "/tasks/priority" && method === "get")
       return ok(demoStore.priority());
@@ -199,3 +238,4 @@ if (DEMO) {
 }
 
 export default api;
+

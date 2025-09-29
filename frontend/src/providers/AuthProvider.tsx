@@ -43,14 +43,14 @@ type TokenBundle = {
 };
 
 function getHeaderString(h: unknown, key: string): string | undefined {
-  if (h instanceof AxiosHeaders) {
-    const v = h.get(key) ?? h.get(key.toLowerCase());
-    return typeof v === "string" ? v : undefined;
-  }
-  const rec = h as Record<string, unknown> | undefined;
-  const v = rec?.[key] ?? rec?.[key.toLowerCase()];
-  return typeof v === "string" ? v : undefined;
-}
+     if (h instanceof AxiosHeaders) {
+       const v = h.get(key) ?? h.get(key.toLowerCase());
+       return typeof v === "string" ? v : undefined;
+     }
+     const rec = h as Record<string, unknown> | undefined;
+     const v = rec?.[key] ?? rec?.[key.toLowerCase()];
+     return typeof v === "string" ? v : undefined;
+   }
 
 /** レスポンスヘッダからトークン抽出→保存＆適用（startedAt で競合勝者を決める） */
 function saveTokensFromHeaders(
@@ -391,5 +391,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// —— export（default は 1 回だけ）——
 export { AuthProvider };
 export default AuthProvider;
