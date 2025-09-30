@@ -1,4 +1,3 @@
-// src/features/tasks/inline/dndContext.tsx
 import React, {
   createContext,
   useCallback,
@@ -60,23 +59,16 @@ const eqArray = (a?: number[], b?: number[]) => {
   return true;
 };
 
-// 集合として同じか（順序は不問）
-const sameSet = (a?: number[], b?: number[]) => {
-    if (!a || !b) return false;
-    if (a.length !== b.length) return false;
-    const sa = new Set(a), sb = new Set(b);
-    if (sa.size !== sb.size) return false;
-    for (const x of sa) if (!sb.has(x)) return false;
-    return true;
-  };
-  
-
 export function InlineDndProvider({ children }: { children: React.ReactNode }) {
-    const [state, setState] = useState<DndState>({ draggingId: null, draggingParentId: null, draggingDepth: null });
-    const [orderMap, setOrderMap] = useState<Record<string, number[]>>({});
-    const qc = useQueryClient();
+  const [state, setState] = useState<DndState>({
+    draggingId: null,
+    draggingParentId: null,
+    draggingDepth: null,
+  });
+  const [orderMap, setOrderMap] = useState<Record<string, number[]>>({});
+  const qc = useQueryClient();
 
-  // ドラッグ中フラグ（右ペイン等の当たり判定を殺すためのグローバルフラグ）
+  // body flag
   useEffect(() => {
     document.body.classList.toggle("is-dragging", !!state.draggingId);
     if (!state.draggingId) document.body.classList.remove("pre-drag");
@@ -86,39 +78,29 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state.draggingId]);
 
-  // ★ Chrome keep-alive：ドラッグ中は常に「どこか」が preventDefault する
+  // keep-alive: always preventDefault while dragging
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
       if (!state.draggingId) return;
-      // これが無いと、最初の dragover までに対象が居ないケースで即 dragend になる
       e.preventDefault();
     };
     window.addEventListener("dragover", onDragOver as any, {
       passive: false,
       capture: true,
     });
-    return () =>
-      window.removeEventListener("dragover", onDragOver as any, true);
+    return () => window.removeEventListener("dragover", onDragOver as any, true);
   }, [state.draggingId]);
 
-  // ★ Playwright/ブラウザ差対策：即時 set + 次フレームでも再度 set
+  // drag state
   const onDragStart = useCallback((task: Task, depth: number) => {
     const pid = task.parent_id ?? null;
-    const next = {
-      draggingId: task.id,
-      draggingParentId: pid,
-      draggingDepth: depth,
-    };
+    const next = { draggingId: task.id, draggingParentId: pid, draggingDepth: depth };
     setState(next);
     requestAnimationFrame(() => setState(next));
   }, []);
 
   const onDragEnd = useCallback(() => {
-    const cleared = {
-      draggingId: null,
-      draggingParentId: null,
-      draggingDepth: null,
-    };
+    const cleared = { draggingId: null, draggingParentId: null, draggingDepth: null };
     setState(cleared);
     requestAnimationFrame(() => setState(cleared));
   }, []);
@@ -128,12 +110,12 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     [state.draggingParentId]
   );
 
+  // 現在表示の順で登録（DnDの楽観順は壊さない）
   const registerChildren = useCallback(
     (parentId: number | null, childIds: number[]) => {
-      // console.debug("[REGISTER]", { parentId, childIds });
       const k = keyOf(parentId);
-      setOrderMap(prev => {
-        // 空配列なら削除（unregister）
+      setOrderMap((prev) => {
+        // unregister
         if (!childIds || childIds.length === 0) {
           if (!(k in prev)) return prev;
           const next = { ...prev };
@@ -142,18 +124,23 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
         }
 
         const current = prev[k];
-        // 初回は登録
+        // 初回はそのまま登録
         if (!current) return { ...prev, [k]: childIds.slice() };
-        // ★ メンバーが同じなら既存順を維持（DnD結果を壊さない）
-        if (sameSet(current, childIds)) return prev;
-        // メンバーが変わった時だけ上書き
-        if (!eqArray(current, childIds)) return { ...prev, [k]: childIds.slice() };
+
+        // ★ ドラッグ中は上書きしない（チラつき防止）
+        if (state.draggingId) return prev;
+
+        // ★ 並びが違えば必ず上書き（昇順/降順などの切替を反映）
+        if (!eqArray(current, childIds)) {
+          return { ...prev, [k]: childIds.slice() };
+        }
         return prev;
       });
     },
-    []
+    [state.draggingId]
   );
 
+  // 同一親内の並べ替え（即時更新→API→invalidate）
   const reorderWithinParent = useCallback(
     (parentId: number | null, movingId: number, afterId: number | null) => {
       const k = keyOf(parentId);
@@ -179,15 +166,12 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
       (async () => {
         try {
           await reorderWithinParentApi(movingId, afterId);
-          // ← クエリキーの違いを吸収（"tasks" で始まるもの全部）
           await qc.invalidateQueries({
             predicate: (q) =>
               Array.isArray(q.queryKey) && q.queryKey[0] === "tasks",
           });
-        } catch (e) {
-          if (prevArr) {
-            setOrderMap((prev) => ({ ...prev, [k]: prevArr! }));
-          }
+        } catch {
+          if (prevArr) setOrderMap((prev) => ({ ...prev, [k]: prevArr! }));
         }
       })();
     },
@@ -195,7 +179,7 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
   );
 
   const moveAcrossParents = useCallback((_args: any) => {
-    /* 親またぎ不可なので no-op */
+    /* 親またぎ不可（no-op） */
   }, []);
 
   const getOrderedChildren = useCallback(
@@ -216,20 +200,22 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     [orderMap]
   );
 
-  // （任意）デバッグ用：現在の orderMap を覗けるように
+  const getIndexInParent = useCallback(
+    (parentId: number | null, id: number) => {
+      const k = keyOf(parentId);
+      const ord = orderMap[k];
+      if (!ord) return null;
+      const idx = ord.indexOf(id);
+      return idx >= 0 ? idx : null;
+    },
+    [orderMap]
+  );
+
+  // debug
   useEffect(() => {
     // @ts-ignore
     window.__orderMap = orderMap;
   }, [orderMap]);
-
-   // 追加：親内の現在インデックスを返す（なければ null）
-   const getIndexInParent = useCallback((parentId: number | null, id: number) => {
-     const k = keyOf(parentId);
-     const ord = orderMap[k];
-     if (!ord) return null;
-     const idx = ord.indexOf(id);
-     return idx >= 0 ? idx : null;
-   }, [orderMap]);
 
   const value = useMemo(
     () => ({
