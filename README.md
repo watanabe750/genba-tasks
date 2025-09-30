@@ -37,7 +37,7 @@
   - [CORS 設定（Rails）](#cors-設定rails)
   - [テスト / 品質](#テスト--品質)
   - [ER 図](#er-図)
-  - [Entity-Relationship Diagram](#entity-relationship-diagram)
+  - [インフラ構成図](#インフラ構成図)
   - [既知の制限 / 今後の拡張](#既知の制限--今後の拡張)
   - [ライセンス](#ライセンス)
 
@@ -72,21 +72,21 @@
 ![Tasks CRUD](docs/screens/readme-assets/tasks-crud.gif)
 
 ### 子タスク上限
-親タスクごとに**最大 4 件**。5件目は作成できません（＋が無効）。
+親タスクごとに**最大 4 件**。5件目は作成できません（＋が無効）。  
 ![Subtask limit](docs/screens/readme-assets/subtask-limit.png)
 
-
+---
 
 ## 画像バリデーション
 
-- **非画像**を選ぶとエラー表示 
+- **非画像**を選ぶとエラー表示  
   <img src="docs/screens/readme-assets/img-error-type.png" width="900" alt="非画像を選択した際のエラー" />
 
 - **5MB超**を選ぶとエラー表示  
   <img src="docs/screens/readme-assets/img-error-size.png" width="900" alt="5MBを超える画像を選択した際のエラー" />
 
 **許可形式**: jpeg / png / webp / gif  
-**サイズ上限**: 5MB  
+**サイズ上限**: 5MB
 
 ### タスク詳細ドロワー
 <img src="docs/screens/readme-assets/drawer.png" width="900" alt="タスク詳細ドロワー（画像＋メタ情報）" />
@@ -95,9 +95,8 @@
 ![Drag parent order](docs/screens/readme-assets/drag-parent-order.gif)
 
 ### 優先タスクパネル
-完了トグルで該当行が即時にリストから消えます。
-
-![Priority Toggle](backend/docs/readme-assets/priority-toggle.gif)
+完了トグルで該当行が即時にリストから消えます。  
+![Priority Toggle](docs/screens/readme-assets/priority-toggle.gif)
 
 ## 絞り込み & 並び替え
 ![Filter & Sort](docs/screens/readme-assets/filter-and-sort.gif)
@@ -141,14 +140,19 @@
 
 ## リポジトリ構成
 
+```
+
 /frontend   # React + Vite (SPA)
 /backend    # Rails API (Devise Token Auth, Active Storage)
 /infra      # IaC/運用スクリプト（最小）
-/assets     # README 用の画像・GIF（01/02/03_*.gif）
+/docs/screens/readme-assets  # README 用の画像・GIF
+
+````
 
 ---
 
 ## ローカル実行
+
 **Backend**
 ```bash
 cd backend
@@ -210,16 +214,17 @@ end
 
 ## ER 図
 
-## Entity-Relationship Diagram
+![ER Diagram](docs/screens/readme-assets/er.svg)
 
-> 記号: `||`=1, `|o`=0..1, `}|`=1..N, `}o`=0..N
+> **Status enum:** `0=todo / 1=doing / 2=done`
 
-```mermaid
+<details>
+<summary>Mermaid ソース（参考・描画しません）</summary>
+
+```text
 erDiagram
   USERS ||--o{ TASKS : "has many"
   TASKS ||--o{ TASKS : "self (parent_id)"
-
-  %% Active Storage
   TASKS ||--o{ ACTIVE_STORAGE_ATTACHMENTS : "images"
   ACTIVE_STORAGE_ATTACHMENTS }|--|| ACTIVE_STORAGE_BLOBS : "blob"
 
@@ -248,10 +253,10 @@ erDiagram
 
   ACTIVE_STORAGE_ATTACHMENTS {
     bigint id
-    string name        %% e.g. "images"
-    string record_type %% e.g. "Task"
-    bigint record_id   %% -> tasks.id
-    bigint blob_id     %% -> blobs.id
+    string name
+    string record_type
+    bigint record_id
+    bigint blob_id
     datetime created_at
   }
 
@@ -262,14 +267,9 @@ erDiagram
     bigint byte_size
     datetime created_at
   }
+```
 
-Status Enum
-
-・0: todo / 1: doing / 2: done
----
-
-## ER 図
-![ER Diagram](docs/screens/readme-assets/er.svg)
+</details>
 
 ---
 
