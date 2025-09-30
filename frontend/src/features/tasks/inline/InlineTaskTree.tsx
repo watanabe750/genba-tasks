@@ -8,27 +8,30 @@ type Props = { tree: TaskNode[] };
 
 export default function InlineTaskTree({ tree }: Props) {
   const { registerChildren, getOrderedChildren } = useInlineDnd();
-  const orderedRoot = getOrderedChildren(null, tree);
-  const orderedIds = useMemo(() => orderedRoot.map(t => t.id), [orderedRoot]);
 
-  // ★ 表示順で登録する（DnDの楽観順を壊さない）
+  // ① 素の tree の順序（サーバ/クライアントの並び替え結果そのもの）
+  const rawIds = useMemo(() => tree.map(t => t.id), [tree]);
+
+  // ② registerChildren へは“素の順序”を渡す（←ここが重要）
   useEffect(() => {
-    registerChildren(null, orderedIds);
-    return () => {
-      // 任意：アンレジスタする場合
-      // registerChildren(null, []);
-    };
-  }, [registerChildren, orderedIds]);
+    registerChildren(null, rawIds);
+  }, [registerChildren, rawIds]);
 
-  const lastRootId =
-    orderedRoot.length ? orderedRoot[orderedRoot.length - 1].id : null;
+  // ③ 表示は orderMap を加味した順序で描画
+  const orderedRoot = getOrderedChildren(null, tree);
+  const lastRootId = orderedRoot.length ? orderedRoot[orderedRoot.length - 1].id : null;
 
   return (
     <div role="tree" aria-label="タスク" data-testid="task-tree-root">
-      {orderedRoot.map((t, i) => {
-   const prevId = i > 0 ? orderedRoot[i - 1].id : null;
-   return <InlineTaskRow key={t.id} task={t} depth={1} prevId={prevId} />;
- })}
+      {orderedRoot.map((t, i) => (
+        <InlineTaskRow
+          key={t.id}
+          task={t}
+          depth={1}
+          prevId={i === 0 ? null : orderedRoot[i - 1].id}
+        />
+      ))}
+
       <div className="pointer-events-none">
         <div className="pointer-events-auto">
           <InlineDropZone

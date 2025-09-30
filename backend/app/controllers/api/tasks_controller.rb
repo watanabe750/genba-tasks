@@ -8,7 +8,7 @@ module Api
 
     # GET /api/tasks
     def index
-      raw_filters = filter_params
+      raw_filters  = filter_params
       allowed_keys = %i[site status progress_min progress_max order_by dir parents_only]
       filters      = raw_filters.slice(*allowed_keys).compact
 
@@ -31,21 +31,19 @@ module Api
         end
 
       # ------- 並び順最終調整 -------
-      # position を許可し、指定が無いときは deadline
       allowed_order = %w[position deadline progress created_at title site]
       ob  = allowed_order.include?(filters[:order_by].to_s) ? filters[:order_by].to_s : "deadline"
       dir = %w[asc desc ASC DESC].include?(filters[:dir].to_s) ? filters[:dir].to_s.upcase : "ASC"
-
       adapter = ActiveRecord::Base.connection.adapter_name.to_s
 
-      # ---- 手動順（DnD）：親→position を最優先 ----
+      # ---- 手動順（DnD）のときだけ position を主キーにする ----
       if ob == "position"
         parts =
           if adapter =~ /postgre/i
             [
-              "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-              "parent_id ASC",
-              "position ASC NULLS LAST",
+              "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC", # 親→子
+              "parent_id ASC",                                       # 親で固める
+              "position #{dir} NULLS LAST",                          # 親内の手動順
               "id ASC"
             ]
           else
@@ -53,7 +51,7 @@ module Api
               "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
               "parent_id ASC",
               "CASE WHEN position IS NULL THEN 1 ELSE 0 END ASC",
-              "position ASC",
+              "position #{dir}",
               "id ASC"
             ]
           end
@@ -62,62 +60,65 @@ module Api
       end
 
       # ---- site 指定：親→position を優先しつつ site をキーに ----
-      if ob == "site"
-        sql =
-          if adapter =~ /postgre/i
-            <<~SQL.squish
-              (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-              parent_id ASC,
-              position ASC,
-              LOWER(site) #{dir} NULLS LAST,
-              CASE WHEN deadline IS NULL THEN NULL ELSE deadline END ASC,
-              id ASC
-            SQL
-          else
-            <<~SQL.squish
-              (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-              parent_id ASC,
-              position ASC,
-              CASE WHEN LOWER(site) IS NULL THEN 1 ELSE 0 END ASC, LOWER(site) #{dir},
-              deadline ASC,
-              id ASC
-            SQL
-          end
-        scope = scope.reorder(Arel.sql(sql))
-        return render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
-      end
+if ob == "site"
+  sql =
+    if adapter =~ /postgre/i
+      <<~SQL.squish
+        (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
+        parent_id ASC,
+        LOWER(site) #{dir} NULLS LAST,
+        position ASC,
+        CASE WHEN deadline IS NULL THEN NULL ELSE deadline END ASC,
+        id ASC
+      SQL
+    else
+      <<~SQL.squish
+        (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
+        parent_id ASC,
+        CASE WHEN LOWER(site) IS NULL THEN 1 ELSE 0 END ASC, LOWER(site) #{dir},
+        position ASC,
+        deadline ASC,
+        id ASC
+      SQL
+    end
+  scope = scope.reorder(Arel.sql(sql))
+  return render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
+end
 
-      # ---- それ以外（deadline/progress/created_at/title） ----
-      primary =
-        case ob
-        when "progress"   then "progress"
-        when "created_at" then "created_at"
-        when "title"      then "LOWER(title)"
-        else                    "deadline"
-        end
 
-      parts =
-        if adapter =~ /postgre/i
-          [
-            "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-            "parent_id ASC",
-            "position ASC",
-            "#{primary} #{dir} NULLS LAST",
-            "id ASC"
-          ]
-        else
-          [
-            "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-            "parent_id ASC",
-            "position ASC",
-            "CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC",
-            "#{primary} #{dir}",
-            "id ASC"
-          ]
-        end
+# ---- それ以外（deadline/progress/created_at/title） ----
+primary =
+  case ob
+  when "progress"   then "progress"
+  when "created_at" then "created_at"
+  when "title"      then "LOWER(title)"
+  else                    "deadline"
+  end
 
-      scope = scope.reorder(Arel.sql(parts.join(", ")))
-      render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
+parts =
+  if adapter =~ /postgre/i
+    [
+      "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
+      "parent_id ASC",
+      "#{primary} #{dir} NULLS LAST",   # ← primary を先に
+      "position ASC",                    # ← position はタイブレーク用に後ろ
+      "id ASC"
+    ]
+  else
+    [
+      "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
+      "parent_id ASC",
+      "CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC",
+      "#{primary} #{dir}",               # ← primary を先に
+      "position ASC",                    # ← position は後ろ
+      "id ASC"
+    ]
+  end
+
+scope = scope.reorder(Arel.sql(parts.join(", ")))
+
+render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
+
     rescue => e
       Rails.logger.error("[Tasks#index] fatal -> soft-fallback: #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
       safe = current_user.tasks.order(Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC, parent_id ASC, position ASC, id ASC"))
