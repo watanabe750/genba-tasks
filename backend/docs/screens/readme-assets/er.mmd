@@ -1,0 +1,52 @@
+%%{init: {"theme": "default"}}%%
+erDiagram
+  USERS ||--o{ TASKS : "has many"
+  TASKS ||--o{ TASKS : "self (parent_id)"
+
+  TASKS ||--o{ ACTIVE_STORAGE_ATTACHMENTS : "images"
+  ACTIVE_STORAGE_ATTACHMENTS }|--|| ACTIVE_STORAGE_BLOBS : "blob"
+
+  USERS {
+    bigint id
+    string email
+    string name
+    datetime created_at
+    datetime updated_at
+  }
+
+  TASKS {
+    bigint id
+    string title
+    int status
+    float progress
+    datetime deadline
+    string site
+    int depth
+    int position
+    bigint user_id
+    bigint parent_id
+    datetime created_at
+    datetime updated_at
+  }
+
+  ACTIVE_STORAGE_ATTACHMENTS {
+    bigint id
+    string name
+    string record_type
+    bigint record_id
+    bigint blob_id
+    datetime created_at
+  }
+
+  ACTIVE_STORAGE_BLOBS {
+    bigint id
+    string filename
+    string content_type
+    bigint byte_size
+    datetime created_at
+  }
+
+  TASK_STATUS {
+    string enum "0: todo / 1: doing / 2: done"
+  }
+  TASKS ||--|| TASK_STATUS : "status legend"
