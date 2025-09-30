@@ -37,7 +37,7 @@
   - [CORS 設定（Rails）](#cors-設定rails)
   - [テスト / 品質](#テスト--品質)
   - [ER 図](#er-図)
-  - [インフラ構成図](#インフラ構成図)
+  - [Entity-Relationship Diagram](#entity-relationship-diagram)
   - [既知の制限 / 今後の拡張](#既知の制限--今後の拡張)
   - [ライセンス](#ライセンス)
 
@@ -210,28 +210,66 @@ end
 
 ## ER 図
 
+## Entity-Relationship Diagram
+
+> 記号: `||`=1, `|o`=0..1, `}|`=1..N, `}o`=0..N
+
 ```mermaid
 erDiagram
   USERS ||--o{ TASKS : "has many"
-  TASKS ||--o{ TASKS : "self reference (parent_id)"
+  TASKS ||--o{ TASKS : "self (parent_id)"
+
+  %% Active Storage
+  TASKS ||--o{ ACTIVE_STORAGE_ATTACHMENTS : "images"
+  ACTIVE_STORAGE_ATTACHMENTS }|--|| ACTIVE_STORAGE_BLOBS : "blob"
+
   USERS {
-    bigint id PK
+    bigint id
     string email
-    string encrypted_password
-    timestamps
+    string name
+    datetime created_at
+    datetime updated_at
   }
+
   TASKS {
-    bigint id PK
+    bigint id
     string title
-    bigint parent_id FK
+    int status
+    float progress
+    datetime deadline
     string site
-    integer progress
-    enum status   // todo / doing / done
-    date due_on
-    bigint user_id FK
-    timestamps
+    int depth
+    int position
+    bigint user_id
+    bigint parent_id
+    datetime created_at
+    datetime updated_at
   }
-```
+
+  ACTIVE_STORAGE_ATTACHMENTS {
+    bigint id
+    string name        %% e.g. "images"
+    string record_type %% e.g. "Task"
+    bigint record_id   %% -> tasks.id
+    bigint blob_id     %% -> blobs.id
+    datetime created_at
+  }
+
+  ACTIVE_STORAGE_BLOBS {
+    bigint id
+    string filename
+    string content_type
+    bigint byte_size
+    datetime created_at
+  }
+
+Status Enum
+
+・0: todo / 1: doing / 2: done
+---
+
+## ER 図
+![ER Diagram](docs/screens/readme-assets/er.svg)
 
 ---
 
