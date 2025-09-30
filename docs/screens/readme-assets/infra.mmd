@@ -1,0 +1,41 @@
+%%{init: {"theme": "default"}}%%
+flowchart LR
+
+  %% --- Groups ---
+  subgraph Internet
+    Client["Client (PC Browser)"]
+    DNS["Route53 DNS"]
+  end
+
+  subgraph Public_Subnet["Public Subnet(s)"]
+    ALB["ALB 443"]
+    IGW["Internet Gateway"]
+    NAT["NAT Gateway"]
+  end
+
+  subgraph Private_Subnet["Private Subnet(s)"]
+    ECS["ECS Fargate (Rails API)"]
+    RDS[("RDS MySQL 8.0.43")]
+  end
+
+  CF["CloudFront (SPA)"]
+  S3[("S3 Bucket - Active Storage")]
+  ACM["ACM Certificate"]
+
+  %% --- DNS / TLS ---
+  Client -->|HTTPS| CF
+  DNS -.-> CF
+  DNS -.-> ALB
+  ACM -.-> ALB
+
+  %% --- SPA -> API ---
+  CF -->|/api HTTPS| ALB
+
+  %% --- Network path ---
+  IGW --- ALB
+  ALB -->|Target Group| ECS
+  ECS -->|3306| RDS
+  ECS --> S3
+
+  %% --- Outbound from private subnet ---
+  ECS -->|Outbound| NAT --> IGW
