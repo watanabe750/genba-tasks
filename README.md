@@ -274,15 +274,7 @@ erDiagram
 ---
 
 ## インフラ構成図
-
-```mermaid
-flowchart LR
-  A[Client (PC Browser)] -->|HTTPS| CF[CloudFront (SPA)]
-  CF -->|/api| ALB[ALB 443]
-  ALB --> ECS[ECS Fargate (Rails API)]
-  ECS --> RDS[(RDS MySQL)]
-  ECS -- ActiveStorage --> S3[(S3)]
-```
+![Infrastructure Diagram](docs/screens/readme-assets/infra.svg)
 
 ---
 
