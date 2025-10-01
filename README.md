@@ -214,7 +214,7 @@ end
 
 ## ER 図
 
-![ER Diagram](docs/screens/readme-assets/er.svg)
+![ER Diagram](docs/screens/readme-assets/er.png)
 
 > **Status enum:** `0=todo / 1=doing / 2=done`
 
