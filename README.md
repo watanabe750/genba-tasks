@@ -274,7 +274,7 @@ erDiagram
 ---
 
 ## インフラ構成図
-![Infrastructure Diagram](docs/screens/readme-assets/infra.svg)
+![Infrastructure Diagram](docs/screens/readme-assets/infra.png)
 
 ---
 
