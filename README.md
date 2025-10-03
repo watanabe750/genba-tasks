@@ -30,14 +30,15 @@
     - [優先タスクパネル](#優先タスクパネル)
   - [絞り込み \& 並び替え](#絞り込み--並び替え)
   - [技術スタック / バージョン](#技術スタック--バージョン)
-  - [本番アーキテクチャ](#本番アーキテクチャ)
+  - [インフラ構成図](#インフラ構成図)
   - [使い方（デモ手順）](#使い方デモ手順)
   - [リポジトリ構成](#リポジトリ構成)
   - [ローカル実行](#ローカル実行)
   - [CORS 設定（Rails）](#cors-設定rails)
   - [テスト / 品質](#テスト--品質)
+    - [RSpec（モデル／リクエスト）](#rspecモデルリクエスト)
+    - [Playwright（E2E）](#playwrighte2e)
   - [ER 図](#er-図)
-  - [インフラ構成図](#インフラ構成図)
   - [既知の制限 / 今後の拡張](#既知の制限--今後の拡張)
   - [ライセンス](#ライセンス)
 
@@ -111,21 +112,33 @@
 
 ---
 
-## 本番アーキテクチャ
-- **独自ドメイン & HTTPS**
-  - `app.genba-tasks.com` … CloudFront（SPA配信、**OACは未実装** → 今後導入予定）
-  - `api.genba-tasks.com` … **ALB**（**80→443** リダイレクト、**ACM: ap-northeast-1**）
-- **ECS (Fargate)**
-  - Service: **DesiredCount ≥ 2**（無停止デプロイ前提）
-  - Task Definition: 環境変数は **Secrets Manager / SSM** から注入（`DATABASE_URL`, `RAILS_MASTER_KEY`, `SECRET_KEY_BASE`, ほか）
-  - Networking: **Private Subnet**（NAT経由アウトバウンド）、ALBは **Public Subnet**
-- **RDS (MySQL)**
-  - **Private Subnet**、**SGはECSタスクSGからの3306のみ許可**（ALB/外部は拒否）
-  - 自動バックアップON、削除保護ON、文字コードは `utf8mb4_0900_ai_ci` 等
-- **Active Storage**
-  - 本番は **S3**（**画像CDNは後段で CloudFront + OAC を適用予定**）
-- **ヘルスチェック**
-  - `GET /up`（ALBターゲット監視 + 手動確認）
+## インフラ構成図
+![Infrastructure Diagram](docs/screens/readme-assets/infra.png)
+
+本番環境は AWS 上で構築しています。
+
+- **フロントエンド (React SPA)**  
+  - S3 に静的ファイルを配置し、CloudFront (OAC) 経由で配信  
+  - Route53 で `app.genba-tasks.com` を独自ドメインとして解決  
+  - ACM により TLS 証明書を発行し、HTTPS 通信を実現  
+
+- **バックエンド (Rails API)**  
+  - CloudFront → ALB(443) → ECS(Fargate) → RDS(MySQL) の構成  
+  - Route53 で `api.genba-tasks.com` を解決し、CloudFront 経由で API リクエストを ALB にルーティング  
+  - ACM により API 側も HTTPS 化  
+
+- **画像アップロード (Active Storage)**  
+  - API サーバ (ECS) は Private Subnet に配置  
+  - 直接 S3 には出られないため、NAT Gateway → Internet Gateway を経由して S3 API(HTTPS) へアクセス  
+  - これによりセキュリティを担保しつつ Active Storage で画像の PUT/GET が可能  
+
+- **セキュリティ / 運用設計**  
+  - フロントは CloudFront (OAC) 経由でのみ S3 バケットにアクセスできるよう制限（直アクセス禁止）  
+  - バックエンドは Private Subnet に隔離し、外部から直接アクセスできない設計  
+  - すべての通信を HTTPS/TLS 経由に統一し、安全な通信を実現  
+
+> この構成により「静的コンテンツの高速配信」「API サーバのセキュリティ確保」「HTTPS による暗号化通信」「S3 の安全な利用 (OAC/NAT 経由)」を実現しています。
+
 
 ---
 
@@ -195,20 +208,61 @@ end
 
 ## テスト / 品質
 
-* **RSpec（最低ライン）**
+> 実行コマンド（例）  
+> **API**: `RAILS_ENV=test bundle exec rspec`  
+> **E2E**: `pnpm test:e2e`（Playwright／`tests/.auth` を利用）
 
-  * 認可：未ログインアクセスは `401/403` を返す
-  * tasks CRUD：親/子のバリデーション（**子は各親最大4つ**、**画像は親のみ**）
-  * 並び替えAPI：**同一parentのみ成功**、他parent混在は `400`
-  * 画像バリデーション：拡張子・容量（≤5MB）・子タスクはNG
-* **E2E（Playwright）**
+### RSpec（モデル／リクエスト）
 
-  * 未ログイン → `/login` リダイレクト
-  * ゲストログイン → 親作成 → **DnD永続化**（並び替え結果がAPIに保存されること）
-  * 画像アップロード（非画像/5MB超はエラー表示）
-* **計測**
+- **認可 / セキュリティ**
+  - 未ログインアクセスは `401/403`
+  - 他人のタスク更新は **404/403**
+- **業務ルール**
+  - 親のみ **site 必須**（子は不要）
+  - **子上限＝各親4件**（5件目は invalid／親付け替えでも invalid）
+  - **階層は4まで**（5階層目は `422/invalid`）
+  - **子 progress 更新 → 親は平均で自動更新**
+- **一覧・優先順・補助エンドポイント**
+  - `deadline:asc` は **NULLS LAST**（期限あり→期限なし）
+  - `progress_min/max` 範囲フィルタ
+  - `status` は **文字列/数値の両方**を受け付け
+  - `parents_only=1` で **親のみ**返す
+  - `/api/tasks/priority` は **自分のタスクのみ**を優先順で返す
+  - `/api/tasks/sites` は **親タスクの site を distinct + 並び替え**で返す
+- **画像アップロード（Active Storage）**
+  - 親のみ添付/置換OK → **URL/サムネURL返却**
+  - **子は常に 422**、**非画像は 422**
+- **ヘルスチェック**
+  - `GET /up` が認証不要で `200`、`{ status, app, sha, rails_env, time, db }` を返す
 
-  * Lighthouse（将来的に CI 化を予定）
+### Playwright（E2E）
+
+- **認証フロー**
+  - 未ログインで `/tasks` → `/login` リダイレクト
+  - 正常ログインで `/tasks` 到達
+  - セッション破棄で `/login` に戻る
+- **D&D（並び替え）**
+  - **ハンドル以外**からは drag 開始しない
+  - **子タスクはドラッグ不可**（ハンドル非表示・順序不変）
+  - 親タスクは **after 仕様**で並び替え可（UI反映を確認）
+  - **親またぎ reorder は 422**（APIガード）
+- **画像UI**
+  - 親：**添付 → 表示 → 置換 → 削除** → リロードしても状態一致
+  - 子：画像UIなし（または disabled）
+  - **非画像 / 5MB超**はバリデーション表示
+- **UIガード**
+  - 親に子があると **削除不可**（**DELETE がネットワーク送出されない**ことを確認）
+- **フィルタ & 並び替え**
+  - フィルタバーの **URLクエリ同期**（`site/order_by/dir`）
+  - 進捗 **20–80%** の範囲絞り込み、**境界値** `min=max=50` で50%のみ
+  - **ステータス複数選択**で絞り込み（未着手/進行中/完了）
+- **作成・編集系**
+  - 上位タスク作成ボックスで **親を新規作成**
+  - 期限入力を保存すると **`yyyy-mm-dd` 表示**
+  - 親の ▾/▸ で **子の開閉**
+  - **親は青バー／子はチェック先頭**・完了で **取り消し線**・期限表示
+
+> ストレージ：`tests/.auth/storage.json` / `tests/.auth/e2e.json` を利用し、DTAトークン（`access-token/client/uid`）をローカルストレージへ注入して安定実行。
 
 ---
 
@@ -270,35 +324,6 @@ erDiagram
 ```
 
 </details>
-
----
-
-## インフラ構成図
-![Infrastructure Diagram](docs/screens/readme-assets/infra.png)
-
-本番環境は AWS 上で構築しています。
-
-- **フロントエンド (React SPA)**  
-  - S3 に静的ファイルを配置し、CloudFront (OAC) 経由で配信  
-  - Route53 で `app.genba-tasks.com` を独自ドメインとして解決  
-  - ACM により TLS 証明書を発行し、HTTPS 通信を実現  
-
-- **バックエンド (Rails API)**  
-  - CloudFront → ALB(443) → ECS(Fargate) → RDS(MySQL) の構成  
-  - Route53 で `api.genba-tasks.com` を解決し、CloudFront 経由で API リクエストを ALB にルーティング  
-  - ACM により API 側も HTTPS 化  
-
-- **画像アップロード (Active Storage)**  
-  - API サーバ (ECS) は Private Subnet に配置  
-  - 直接 S3 には出られないため、NAT Gateway → Internet Gateway を経由して S3 API(HTTPS) へアクセス  
-  - これによりセキュリティを担保しつつ Active Storage で画像の PUT/GET が可能  
-
-- **セキュリティ / 運用設計**  
-  - フロントは CloudFront (OAC) 経由でのみ S3 バケットにアクセスできるよう制限（直アクセス禁止）  
-  - バックエンドは Private Subnet に隔離し、外部から直接アクセスできない設計  
-  - すべての通信を HTTPS/TLS 経由に統一し、安全な通信を実現  
-
-> この構成により「静的コンテンツの高速配信」「API サーバのセキュリティ確保」「HTTPS による暗号化通信」「S3 の安全な利用 (OAC/NAT 経由)」を実現しています。
 
 ---
 
