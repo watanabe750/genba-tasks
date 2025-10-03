@@ -276,6 +276,30 @@ erDiagram
 ## インフラ構成図
 ![Infrastructure Diagram](docs/screens/readme-assets/infra.png)
 
+本番環境は AWS 上で構築しています。
+
+- **フロントエンド (React SPA)**  
+  - S3 に静的ファイルを配置し、CloudFront (OAC) 経由で配信  
+  - Route53 で `app.genba-tasks.com` を独自ドメインとして解決  
+  - ACM により TLS 証明書を発行し、HTTPS 通信を実現  
+
+- **バックエンド (Rails API)**  
+  - CloudFront → ALB(443) → ECS(Fargate) → RDS(MySQL) の構成  
+  - Route53 で `api.genba-tasks.com` を解決し、CloudFront 経由で API リクエストを ALB にルーティング  
+  - ACM により API 側も HTTPS 化  
+
+- **画像アップロード (Active Storage)**  
+  - API サーバ (ECS) は Private Subnet に配置  
+  - 直接 S3 には出られないため、NAT Gateway → Internet Gateway を経由して S3 API(HTTPS) へアクセス  
+  - これによりセキュリティを担保しつつ Active Storage で画像の PUT/GET が可能  
+
+- **セキュリティ / 運用設計**  
+  - フロントは CloudFront (OAC) 経由でのみ S3 バケットにアクセスできるよう制限（直アクセス禁止）  
+  - バックエンドは Private Subnet に隔離し、外部から直接アクセスできない設計  
+  - すべての通信を HTTPS/TLS 経由に統一し、安全な通信を実現  
+
+> この構成により「静的コンテンツの高速配信」「API サーバのセキュリティ確保」「HTTPS による暗号化通信」「S3 の安全な利用 (OAC/NAT 経由)」を実現しています。
+
 ---
 
 ## 既知の制限 / 今後の拡張
