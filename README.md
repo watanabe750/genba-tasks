@@ -202,7 +202,7 @@ end
 
 ## テスト / 品質
 
-> 実行コマンド（例）  
+> 実行コマンド 
 > **API**: `RAILS_ENV=test bundle exec rspec`  
 > **E2E**: `pnpm test:e2e`（Playwright／`tests/.auth` を利用）
 
