@@ -2,57 +2,46 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <title>Genba Tasks – 現場タスクを“見える化”</title>
-    <meta
-      name="description"
-      content="階層タスク / 期限 & 進捗 / 画像添付 / 優先表示 に対応した現場向けタスク管理。チームの“今”を素早く把握。"
-    />
+    <meta name="description" content="階層タスク / 期限 & 進捗 / 画像添付 / 優先表示 に対応した現場向けタスク管理。チームの“今”を素早く把握。" />
 
-    <!-- Favicon / App Icons -->
+    <!-- Favicon / App Icons（サイト用バケットに配置） -->
     <link rel="icon" href="/favicon-32.png" sizes="32x32">
     <link rel="icon" href="/favicon-16.png" sizes="16x16">
-    <!-- SVGを併用したい場合（任意） -->
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
-    <!-- PWA Manifest -->
+    <!-- PWA Manifest（サイト用バケットに配置） -->
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#2563eb">
 
-    <!-- OGP -->
+    <!-- OGP（絶対URL推奨） -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Genba Tasks">
-    <meta
-      property="og:description"
-      content="現場タスクを“見える化”。階層タスク / 期限 & 進捗 / 画像添付 / 優先表示。"
-    >
-    <!-- 本番では絶対URL推奨（例: https://genba-tasks.com/og-home.png） -->
-    <meta property="og:image" content="/og-home.png">
+    <meta property="og:description" content="現場タスクを“見える化”。階層タスク / 期限 & 進捗 / 画像添付 / 優先表示。" />
+    <meta property="og:image" content="https://genba-tasks.com/og-home.png">
     <meta property="og:url" content="https://genba-tasks.com/">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Genba Tasks">
-    <meta
-      name="twitter:description"
-      content="現場タスクを“見える化”。階層タスク / 期限 & 進捗 / 画像添付 / 優先表示。"
-    >
-    <meta name="twitter:image" content="/og-home.png">
+    <meta name="twitter:description" content="現場タスクを“見える化”。階層タスク / 期限 & 進捗 / 画像添付 / 優先表示。" />
+    <meta name="twitter:image" content="https://genba-tasks.com/og-home.png">
 
     <!-- Canonical -->
     <link rel="canonical" href="https://genba-tasks.com/">
 
-    <!-- iOS での挙動改善（任意） -->
+    <!-- iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <!-- Build assets（CloudFront 配下に切替：相対 /assets/ ） -->
+    <!-- ここはエントリだけにする。ハッシュ名は書かない -->
+  <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
