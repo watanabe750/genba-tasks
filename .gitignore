@@ -10,3 +10,8 @@
 backend/td-*.json
 !docs/screens/readme-assets/*.svg
 !docs/screens/readme-assets/*.png
+node_modules/
+.DS_Store
+dist/
+build/
+coverage/

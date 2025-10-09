@@ -2,12 +2,15 @@
 import { useInlineDnd } from "./dndContext";
 
 type Props = {
-     parentId: number | null;
-     lastChildId: number | null;
-     showEmptyState: boolean;
-   };
+  parentId: number | null;
+  lastChildId: number | null;
+  showEmptyState: boolean;
+};
 
-// 親IDの正規化 & 比較（元の実装のままでOK）
+const DBG = true;
+const log = (...a: any[]) => DBG && console.log("[DND:DropZone]", ...a);
+
+// 親IDの正規化 & 比較
 const normPid = (v: number | string | null | undefined) =>
   v == null ? null : Number(v);
 const samePid = (
@@ -37,10 +40,12 @@ export default function InlineDropZone({
   const onDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
     e.preventDefault();
     const movingId = dnd.state.draggingId;
+    log("drop zone", { movingId, parentId, lastChildId, sameParent });
+
     if (movingId == null) return dnd.onDragEnd();
     if (!sameParent) return dnd.onDragEnd(); // 親またぎ不可
 
-    const afterId = lastChildId ?? -1;
+    const afterId = lastChildId ?? -1; // 末尾に付ける
     dnd.reorderWithinParent(normPid(parentId), movingId, afterId);
     dnd.onDragEnd();
   };

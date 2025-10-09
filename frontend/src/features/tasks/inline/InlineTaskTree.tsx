@@ -6,20 +6,25 @@ import type { TaskNode } from "../../../types";
 
 type Props = { tree: TaskNode[] };
 
+const DBG = true;
+const log = (...a: any[]) => DBG && console.log("[DND:Tree]", ...a);
+
 export default function InlineTaskTree({ tree }: Props) {
   const { registerChildren, getOrderedChildren } = useInlineDnd();
 
   // ① 素の tree の順序（サーバ/クライアントの並び替え結果そのもの）
-  const rawIds = useMemo(() => tree.map(t => t.id), [tree]);
+  const rawIds = useMemo(() => tree.map((t) => t.id), [tree]);
 
-  // ② registerChildren へは“素の順序”を渡す（←ここが重要）
+  // ② registerChildren へは“素の順序”を渡す
   useEffect(() => {
+    log("register root", rawIds);
     registerChildren(null, rawIds);
   }, [registerChildren, rawIds]);
 
   // ③ 表示は orderMap を加味した順序で描画
   const orderedRoot = getOrderedChildren(null, tree);
-  const lastRootId = orderedRoot.length ? orderedRoot[orderedRoot.length - 1].id : null;
+  const lastRootId =
+    orderedRoot.length ? orderedRoot[orderedRoot.length - 1].id : null;
 
   return (
     <div role="tree" aria-label="タスク" data-testid="task-tree-root">
@@ -32,6 +37,7 @@ export default function InlineTaskTree({ tree }: Props) {
         />
       ))}
 
+      {/* 末尾専用のドロップゾーン（同一親内のみ受け付ける） */}
       <div className="pointer-events-none">
         <div className="pointer-events-auto">
           <InlineDropZone

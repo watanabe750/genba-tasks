@@ -1,9 +1,11 @@
+// src/features/tasks/inline/dndContext.tsx
 import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,   // ★ 追加
   useState,
 } from "react";
 import type { Task } from "../../../types/task";
@@ -59,6 +61,11 @@ const eqArray = (a?: number[], b?: number[]) => {
   return true;
 };
 
+const DBG = true;
+const log = (...a: any[]) => DBG && console.log("[DND:Ctx]", ...a);
+// ★ drop 直後の“上書き抑止”猶予時間(ms)
+const REGISTER_SUPPRESS_MS = 800;
+
 export function InlineDndProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<DndState>({
     draggingId: null,
@@ -67,6 +74,9 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
   });
   const [orderMap, setOrderMap] = useState<Record<string, number[]>>({});
   const qc = useQueryClient();
+
+  // ★ 直近で並べ替えた親キーの時刻（registerChildren の上書きを短時間抑止）
+  const lastTouchedAtRef = useRef<Record<string, number>>({});
 
   // body flag
   useEffect(() => {
@@ -95,12 +105,14 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
   const onDragStart = useCallback((task: Task, depth: number) => {
     const pid = task.parent_id ?? null;
     const next = { draggingId: task.id, draggingParentId: pid, draggingDepth: depth };
+    log("start", next);
     setState(next);
     requestAnimationFrame(() => setState(next));
   }, []);
 
   const onDragEnd = useCallback(() => {
     const cleared = { draggingId: null, draggingParentId: null, draggingDepth: null };
+    log("end");
     setState(cleared);
     requestAnimationFrame(() => setState(cleared));
   }, []);
@@ -120,18 +132,31 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
           if (!(k in prev)) return prev;
           const next = { ...prev };
           delete next[k];
+          log("register (unregister)", { k });
           return next;
         }
 
         const current = prev[k];
+
         // 初回はそのまま登録
-        if (!current) return { ...prev, [k]: childIds.slice() };
+        if (!current) {
+          log("register (initial)", { k, childIds });
+          return { ...prev, [k]: childIds.slice() };
+        }
 
         // ★ ドラッグ中は上書きしない（チラつき防止）
         if (state.draggingId) return prev;
 
-        // ★ 並びが違えば必ず上書き（昇順/降順などの切替を反映）
+        // ★ 直近にこの親を並び替えた直後は上書き禁止
+        const touchedAt = lastTouchedAtRef.current[k] ?? 0;
+        if (Date.now() - touchedAt < REGISTER_SUPPRESS_MS) {
+          // 抑止中は現状維持
+          return prev;
+        }
+
+        // 並びが違えば上書き（昇順/降順の切替等を反映）
         if (!eqArray(current, childIds)) {
+          log("register (replace)", { k, childIds });
           return { ...prev, [k]: childIds.slice() };
         }
         return prev;
@@ -146,6 +171,8 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
       const k = keyOf(parentId);
       let prevArr: number[] | undefined;
 
+      log("reorderWithinParent", { k, movingId, afterId });
+
       setOrderMap((prev) => {
         const current = prev[k] ?? [];
         prevArr = current;
@@ -159,18 +186,28 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
         const insertAt = Math.max(0, idx + 1);
         next.splice(insertAt, 0, movingId);
 
-        if (eqArray(current, next)) return prev;
+        if (eqArray(current, next)) {
+          log("apply order (no change)", { k, next });
+          return prev;
+        }
+        // ★ 並べ替えた親を “直近タッチ” として記録（register の上書きを抑止）
+        lastTouchedAtRef.current[k] = Date.now();
+
+        log("apply order", { k, next });
         return { ...prev, [k]: next };
       });
 
       (async () => {
         try {
           await reorderWithinParentApi(movingId, afterId);
+          log("api ok");
           await qc.invalidateQueries({
-            predicate: (q) =>
-              Array.isArray(q.queryKey) && q.queryKey[0] === "tasks",
+            predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "tasks",
+            // ★ 画面で active なクエリも即 refetch
+            refetchType: "active",
           });
         } catch {
+          log("api rollback");
           if (prevArr) setOrderMap((prev) => ({ ...prev, [k]: prevArr! }));
         }
       })();
