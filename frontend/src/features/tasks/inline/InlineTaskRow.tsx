@@ -14,9 +14,10 @@ import { MAX_CHILDREN_PER_NODE } from "../../tasks/constraints";
 import { useInlineDnd } from "./dndContext";
 import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 import TaskImagePanel from "../image/TaskImagePanel";
-import CompactThumb from "./CompactThumb";
+// import CompactThumb from "./CompactThumb"; // ←使わない
 import ConfirmPopover from "../../../components/ConfirmPopover";
 import { brandIso } from "../../../lib/brandIso";
+import { demoImageStore } from "../../../lib/demoImageStore"; // ★追加
 
 const DBG = true;
 const log = (...a: any[]) => DBG && console.log("[DND:Row]", ...a);
@@ -79,6 +80,9 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
 
   const { open: openDrawer } = useTaskDrawer();
   const titleRef = useRef<HTMLSpanElement | null>(null);
+
+  // 親だけ画像データを取り出す（/public/demo/*.jpg のURLが入っている）
+  const thumbSrc = isParent ? demoImageStore.get(task.id) : undefined;
 
   // 子完了数
   const leafStats = useMemo(() => {
@@ -273,7 +277,6 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
               dt.effectAllowed = "move";
               dt.setData("application/x-task-id", String(task.id));
               dt.setData("text/plain", String(task.id));
-              // ゴースト画像をセットして安定化
               dt.setDragImage((e.currentTarget as HTMLElement), 8, 8);
               document.body.classList.add("is-dragging");
               dnd.onDragStart(task, depth);
@@ -282,7 +285,6 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
               document.body.classList.remove("is-dragging");
               dnd.onDragEnd();
             }}
-            // ハンドル上で離しても成立
             onDragOver={(e) => {
               if (!isParent) return;
               e.preventDefault();
@@ -305,8 +307,22 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
           </div>
         )}
 
-        {/* 親のみ：軽量サムネ */}
-        {isParent && <CompactThumb taskId={task.id} />}
+        {/* 親のみ：軽量サムネ（demoImageStoreから直接） */}
+        {isParent && (
+          <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+            {thumbSrc ? (
+              <img
+                src={thumbSrc}
+                alt=""
+                className="w-full h-full object-cover"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="text-gray-400">未</span>
+            )}
+          </div>
+        )}
 
         {/* 葉の完了チェック */}
         {isLeaf && !editing && (
