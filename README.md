@@ -138,7 +138,7 @@
 
 ## 使い方（デモ手順）
 1. https://app.genba-tasks.com を開く  
-2. 右上の **「ゲスト環境」** で入場  
+2. 右上の **「ゲストユーザーで試す」** で入場  
 3. 上部フォームから **親タスクを作成**（現場名は必須）  
 4. 親タスクの編集で **画像を添付**（S3に保存 → サムネ表示）  
 5. ボード上で **親タスクをドラッグ＆ドロップ**して順序変更
@@ -188,7 +188,7 @@ pnpm dev      # http://localhost:5173
 # config/initializers/cors.rb
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    origins 'https://app.genba-tasks.com' # 必要ならCloudFrontドメインを追加
+    origins 'https://app.genba-tasks.com'
     resource '*',
       headers: :any,
       expose: %w[access-token client uid expiry token-type],
