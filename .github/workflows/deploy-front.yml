@@ -18,18 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node を .nvmrc で指定（.nvmrcが無ければ node-version: 20 に変更）
+      # Nodeは .nvmrc を見る（無いなら node-version: 20 に変えてOK）
       - uses: actions/setup-node@v4
         with:
-          node-version-file: 'frontend/.nvmrc'
+          node-version-file: frontend/.nvmrc
 
-      # pnpm は package.json の "packageManager" を参照
+      # pnpm のバージョンは package.json の "packageManager" を参照
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: frontend/package.json   # ← ここを修正
+          package_json_file: frontend/package.json
           run_install: false
 
-      # 必須の環境変数を先に検証（空なら即Failで原因が分かりやすい）
+      # 必須の環境変数チェック（空なら即Fail）
       - name: Validate env vars
         run: |
           [ -n "${{ vars.S3_BUCKET }}" ] || { echo "S3_BUCKET is empty"; exit 1; }
