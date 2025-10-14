@@ -14,19 +14,20 @@ jobs:
     permissions:
       id-token: write
       contents: read
-
     steps:
       - uses: actions/checkout@v4
 
-      # Node.js セットアップ
+      # Node を先に入れる（キャッシュ指定は外す）
       - uses: actions/setup-node@v4
         with:
           node-version-file: 'frontend/.nvmrc'
-          cache: 'pnpm'
 
-      # ✅ ここで pnpm をセットアップ
-      - name: Setup pnpm
-        run: npm install -g pnpm
+      # ここで pnpm をセットアップ（どちらか一方でOK）
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      # or:
+      # - run: npm install -g pnpm
 
       - name: Install deps
         working-directory: frontend
