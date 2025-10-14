@@ -3,18 +3,17 @@ const ORIGIN = process.env.ALLOWED_ORIGIN || "https://app.genba-tasks.com";
 
 // 共通CORSヘッダ
 function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": ORIGIN,
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    // プリフライトで申告され得るヘッダ
-    "Access-Control-Allow-Headers":
-      "Content-Type,Authorization,X-Auth-Start,access-token,client,uid,token-type,expiry",
-    // フロントJSが読み取れるように公開するヘッダ
-    "Access-Control-Expose-Headers":
-      "access-token,client,uid,token-type,expiry",
-    Vary: "Origin",
-  };
-}
+    return {
+      "Access-Control-Allow-Origin": ORIGIN,
+      "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type,Authorization,x-auth-start,X-Auth-Start,access-token,client,uid,token-type,expiry",
+      "Access-Control-Expose-Headers":
+        "access-token,client,uid,token-type,expiry",
+      Vary: "Origin",
+    };
+  }
+  
 
 export async function health() {
   return {
