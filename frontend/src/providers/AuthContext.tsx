@@ -21,7 +21,7 @@ export type AuthContextValue = {
   name: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: (silent?: boolean) => Promise<void>;
-  guestSignIn: () => Promise<void>; // ← 追加
+  guestSignIn: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -206,7 +206,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const startedAt = Date.now();
     const res = await api.post("guest/login");
 
-    // 1) ヘッダ発行型（devise_token_auth系）
+    // 1) ヘッダ発行型（標準）
     saveTokensFromHeaders(
       (res.headers as AxiosResponseHeaders) ||
         (res.headers as RawAxiosResponseHeaders),
@@ -216,7 +216,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       saveTokens
     );
 
-    // 2) ボディ発行型にも対応
+    // 2) 念のため：ボディ発行型にも対応（将来拡張）
     const b: any = res.data || {};
     if (b?.token && (b?.uid || b?.email) && b?.client) {
       saveTokens({
@@ -230,7 +230,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const t = loadTokens();
-    if (!t.at || !t.client || !t.uid) throw new Error("Guest token not issued");
+    if (!t.at || !t.client || !t.uid) {
+      throw new Error("Guest token not issued");
+    }
 
     setAuthed(true);
     setUid(t.uid!);

@@ -8,12 +8,11 @@ import type { InternalAxiosRequestConfig, AxiosResponse } from "axios";
 import { demoStore } from "./demoStore";
 
 /** ===== Base URL =====
- * .env: VITE_API_BASE_URL="http://localhost:3000"
- * → 実URLは `${VITE_API_BASE_URL}/api`
- * 未設定なら相対 "/api"
+ * .env: VITE_API_BASE_URL="https://xxxx.execute-api.ap-northeast-1.amazonaws.com/prod"
+ * ここでは末尾の / を除くだけ（/api は付けない）
  */
 const base = import.meta.env.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "")   // ← /api を足さない
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "")
   : "/";
 
 const api = axios.create({
@@ -27,10 +26,10 @@ const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
 /** 認証不要で通すパス */
 const AUTH_WHITELIST = [
-  /^\/auth\//,       // /auth/sign_in, /auth/sign_out など
+  /^\/auth\//,
   /^\/omniauth\//,
   /^\/healthz?$/,
-  /^\/guest\/login$/, 
+  /\/guest\/login$/, // ← 末尾が /guest/login なら許可（/prod/guest/login も通る）
 ];
 
 /** ===== Header helpers ===== */
@@ -67,15 +66,11 @@ export function saveAuthFromHeaders(headers: AxiosResponseHeaders | Headers) {
   }
 }
 
-/** ===== Request interceptor =====
- * - 未認証ブロック（ホワイトリストは許可）
- * - トークン付与
- * - x-auth-start で開始時刻埋め込み
- * - FormData のときは Content-Type を消す
- */
+/** ===== Request interceptor ===== */
 api.interceptors.request.use((config) => {
   const headers = AxiosHeaders.from(config.headers);
   const urlObj = new URL(config.url!, config.baseURL || window.location.origin);
+  // 以前のバックエンド互換のための /api 削除。API Gateway ではそのまま残る（/prod/...）
   const path = urlObj.pathname.replace(/^\/api(\/|$)/, "/");
 
   const at = localStorage.getItem("access-token");
@@ -85,7 +80,6 @@ api.interceptors.request.use((config) => {
   const authed = !!(at && client && uid);
   const isWhitelisted = AUTH_WHITELIST.some((re) => re.test(path));
 
-  // DEMO はブロックなし。通常は未認証でホワイト以外をブロック
   if (!DEMO && !authed && !isWhitelisted) {
     return Promise.reject(
       new axios.Cancel("unauthenticated: blocked by apiClient"),
@@ -102,17 +96,15 @@ api.interceptors.request.use((config) => {
 
   headers.set("x-auth-start", String(Date.now()));
 
-  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
-    headers.delete("Content-Type"); // ブラウザに任せる
+  if (typeof FormData !== "undefined" && (config as any).data instanceof FormData) {
+    headers.delete("Content-Type");
   }
 
   config.headers = headers;
   return config;
 });
 
-/** ===== Response interceptor =====
- * - 新トークンが来たら保存（DEMOは保存不要）
- */
+/** ===== Response interceptor ===== */
 api.interceptors.response.use(
   (res) => {
     if (!DEMO) saveAuthFromHeaders(res.headers as any);
