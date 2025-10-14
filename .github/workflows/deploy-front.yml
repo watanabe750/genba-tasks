@@ -25,7 +25,7 @@ jobs:
       # ここで pnpm をセットアップ（どちらか一方でOK）
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+            version: 10.17.0
       # or:
       # - run: npm install -g pnpm
 
