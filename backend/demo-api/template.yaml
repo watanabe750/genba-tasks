@@ -19,7 +19,6 @@ Globals:
     Tracing: Active
     Environment:
       Variables:
-        # Lambda から CORS の Origin を動的に返すために渡す
         ALLOWED_ORIGIN: !Ref AllowedOrigin
 
 Resources:
@@ -36,12 +35,11 @@ Resources:
           - PATCH
           - DELETE
           - OPTIONS
-        # ← Axios/ブラウザがプリフライトで申告しうるヘッダを網羅
+        # ← ここを *全部小文字* に
         AllowHeaders:
-          - Content-Type
-          - Authorization
-          - x-auth-start      # 小文字を入れる（重要）
-          - X-Auth-Start
+          - content-type
+          - authorization
+          - x-auth-start
           - access-token
           - client
           - uid
@@ -49,7 +47,6 @@ Resources:
           - expiry
         MaxAge: 86400
 
-  # /health
   HealthFn:
     Type: AWS::Serverless::Function
     Properties:
@@ -62,7 +59,6 @@ Resources:
             Path: /health
             Method: GET
 
-  # POST /guest/login
   GuestLoginFn:
     Type: AWS::Serverless::Function
     Properties:
