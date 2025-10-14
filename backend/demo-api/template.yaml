@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "Genba Tasks - Demo API (guest only)"
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: https://app.genba-tasks.com
+  StageName:
+    Type: String
+    Default: prod
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    MemorySize: 128
+    Timeout: 5
+    Architectures: [ arm64 ]
+    Tracing: Active
+    Handler: src/handler.health
+    Environment:
+      Variables:
+        ALLOWED_ORIGIN: !Ref AllowedOrigin
+
+Resources:
+  # HTTP API（安価・高速）
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref StageName
+      CorsConfiguration:
+        AllowOrigins: [ !Ref AllowedOrigin ]
+        AllowMethods: [ GET, POST, OPTIONS ]
+        AllowHeaders: [ Content-Type, Authorization ]
+        MaxAge: 86400
+
+  HealthFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.health
+      Events:
+        GetHealth:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /health
+            Method: GET
+        OptHealth:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /health
+            Method: OPTIONS
+
+  GuestLoginFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.guestLogin
+      Events:
+        PostGuestLogin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /guest/login
+            Method: POST
+        OptGuestLogin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /guest/login
+            Method: OPTIONS
+
+Outputs:
+  ApiInvokeUrl:
+    Description: "Invoke URL (base)"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"
