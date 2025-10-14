@@ -17,21 +17,32 @@ Globals:
     Timeout: 5
     Architectures: [ arm64 ]
     Tracing: Active
-    Handler: src/handler.health
     Environment:
       Variables:
         ALLOWED_ORIGIN: !Ref AllowedOrigin
 
 Resources:
-  # HTTP API（安価・高速）
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: !Ref StageName
       CorsConfiguration:
-        AllowOrigins: [ !Ref AllowedOrigin ]
-        AllowMethods: [ GET, POST, OPTIONS ]
-        AllowHeaders: [ Content-Type, Authorization ]
+        AllowOrigins:
+          - !Ref AllowedOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - access-token
+          - client
+          - uid
+          - token-type
+          - expiry
         MaxAge: 86400
 
   HealthFn:
@@ -45,12 +56,6 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /health
             Method: GET
-        OptHealth:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /health
-            Method: OPTIONS
 
   GuestLoginFn:
     Type: AWS::Serverless::Function
@@ -63,12 +68,6 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /guest/login
             Method: POST
-        OptGuestLogin:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /guest/login
-            Method: OPTIONS
 
 Outputs:
   ApiInvokeUrl:

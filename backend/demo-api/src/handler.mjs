@@ -1,12 +1,17 @@
 // Node.js 20 (ESM)
 const ORIGIN = process.env.ALLOWED_ORIGIN || "https://app.genba-tasks.com";
 
-// CORSヘッダ
+// 共通CORSヘッダ
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": ORIGIN,
-    "Access-Control-Allow-Headers": "Content-Type,Authorization",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    // ブラウザから送ってくる可能性のあるヘッダ
+    "Access-Control-Allow-Headers":
+      "Content-Type,Authorization,access-token,client,uid,token-type,expiry",
+    // ブラウザJSから読み取りを許可するレスポンスヘッダ
+    "Access-Control-Expose-Headers":
+      "access-token,client,uid,token-type,expiry",
     "Vary": "Origin",
   };
 }
@@ -19,21 +24,37 @@ export async function health() {
   };
 }
 
-// ※必要最小限の“ゲスト開始”API（POST /guest/login）
+// ゲスト開始（POST /guest/login）
 export async function guestLogin(event) {
-  // ここではダミーのトークンを返すだけ（書き込み不要・コスト0運用）
-  const body = {
-    token: "guest-demo-token",
-    user: { id: "guest", name: "Guest User" },
+  // デモ用の固定トークン（フロントはヘッダから保存）
+  const token = "guest-demo-token";
+  const client = "guest-demo-client";
+  const uid = "guest@example.com";
+  const tokenType = "Bearer";
+  const expiry = String(Math.floor(Date.now() / 1000) + 3600);
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...corsHeaders(),
+    // ← 実際に“認証系ヘッダ”をのせる
+    "access-token": token,
+    "client": client,
+    "uid": uid,
+    "token-type": tokenType,
+    "expiry": expiry,
   };
+
   return {
     statusCode: 200,
-    headers: { "Content-Type": "application/json", ...corsHeaders() },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify({
+      token, // デバッグ用（無くても可）
+      user: { id: "guest", name: "Guest User" },
+    }),
   };
 }
 
-// 事前フライト（OPTIONS）
+// 事前フライト（OPTIONS）※HttpApiのCORSが有効なら不要。残しても害はなし。
 export async function preflight() {
   return { statusCode: 204, headers: corsHeaders(), body: "" };
 }
