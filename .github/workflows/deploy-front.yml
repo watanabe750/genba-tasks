@@ -14,20 +14,20 @@ jobs:
     permissions:
       id-token: write
       contents: read
+
     steps:
       - uses: actions/checkout@v4
 
-      # Node を先に入れる（キャッシュ指定は外す）
+      # Node を .nvmrc で指定（.nvmrcが無いなら node-version: 20 に変更してOK）
       - uses: actions/setup-node@v4
         with:
           node-version-file: 'frontend/.nvmrc'
 
-      # ここで pnpm をセットアップ（どちらか一方でOK）
+      # pnpm は package.json の "packageManager" をソースオブトゥルースにする
       - uses: pnpm/action-setup@v4
         with:
-            version: 10.17.0
-      # or:
-      # - run: npm install -g pnpm
+          package_json_path: frontend/package.json
+          run_install: false
 
       - name: Install deps
         working-directory: frontend
