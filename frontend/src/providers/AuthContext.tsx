@@ -21,6 +21,7 @@ export type AuthContextValue = {
   name: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: (silent?: boolean) => Promise<void>;
+  guestSignIn: () => Promise<void>; // ← 追加
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -200,6 +201,42 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyTokensToAxios, saveTokens, fetchMe]
   );
 
+  // ---- 追加：ゲストログイン（/guest/login）----
+  const guestSignIn = useCallback(async () => {
+    const startedAt = Date.now();
+    const res = await api.post("guest/login");
+
+    // 1) ヘッダ発行型（devise_token_auth系）
+    saveTokensFromHeaders(
+      (res.headers as AxiosResponseHeaders) ||
+        (res.headers as RawAxiosResponseHeaders),
+      startedAt,
+      lastSavedAtRef,
+      applyTokensToAxios,
+      saveTokens
+    );
+
+    // 2) ボディ発行型にも対応
+    const b: any = res.data || {};
+    if (b?.token && (b?.uid || b?.email) && b?.client) {
+      saveTokens({
+        at: b.token,
+        client: b.client,
+        uid: b.uid || b.email,
+        tokenType: b.token_type || "Bearer",
+        expiry: b.expiry ? String(b.expiry) : undefined,
+      });
+      applyTokensToAxios(loadTokens());
+    }
+
+    const t = loadTokens();
+    if (!t.at || !t.client || !t.uid) throw new Error("Guest token not issued");
+
+    setAuthed(true);
+    setUid(t.uid!);
+    fetchMe();
+  }, [applyTokensToAxios, saveTokens, loadTokens, fetchMe]);
+
   const signOut = useCallback(
     async (silent = false) => {
       try {
@@ -273,7 +310,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         return res;
       },
       async (error) => {
-        // 401 → 最新トークンで 1 回だけ再送（devise_token_auth のトークンローテ対策）
+        // 401 → 最新トークンで 1 回だけ再送
         const status = error?.response?.status;
         const cfg = error?.config as any;
 
@@ -384,8 +421,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [applyTokensToAxios, clearTokens, loadTokens, fetchMe]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ authed, uid, name, signIn, signOut }),
-    [authed, uid, name, signIn, signOut]
+    () => ({ authed, uid, name, signIn, signOut, guestSignIn }),
+    [authed, uid, name, signIn, signOut, guestSignIn]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

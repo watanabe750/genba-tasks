@@ -13,8 +13,8 @@ import { demoStore } from "./demoStore";
  * 未設定なら相対 "/api"
  */
 const base = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "")}/api`
-  : "/api";
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "")   // ← /api を足さない
+  : "/";
 
 const api = axios.create({
   baseURL: base,
@@ -29,7 +29,8 @@ const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 const AUTH_WHITELIST = [
   /^\/auth\//,       // /auth/sign_in, /auth/sign_out など
   /^\/omniauth\//,
-  /^\/healthz?$/,    // /health or /healthz
+  /^\/healthz?$/,
+  /^\/guest\/login$/, 
 ];
 
 /** ===== Header helpers ===== */
