@@ -1,19 +1,20 @@
+// backend/demo-api/src/handler.mjs
 // Node.js 20 (ESM)
 const ORIGIN = process.env.ALLOWED_ORIGIN || "https://app.genba-tasks.com";
 
-// 共通CORSヘッダ
+// 共通 CORS ヘッダ（← ここに Expose-Headers を必ず入れる）
 function corsHeaders() {
-    return {
-      "Access-Control-Allow-Origin": ORIGIN,
-      "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-      "Access-Control-Allow-Headers":
-        "Content-Type,Authorization,x-auth-start,X-Auth-Start,access-token,client,uid,token-type,expiry",
-      "Access-Control-Expose-Headers":
-        "access-token,client,uid,token-type,expiry",
-      Vary: "Origin",
-    };
-  }
-  
+  return {
+    "Access-Control-Allow-Origin": ORIGIN,
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type,Authorization,x-auth-start,X-Auth-Start,access-token,client,uid,token-type,expiry",
+    // これが無いとブラウザ JS から access-token 等が読めません
+    "Access-Control-Expose-Headers":
+      "access-token,client,uid,token-type,expiry",
+    Vary: "Origin",
+  };
+}
 
 export async function health() {
   return {
@@ -25,7 +26,7 @@ export async function health() {
 
 // ゲスト開始（POST /guest/login）
 export async function guestLogin(event) {
-  // デモ用の固定トークン
+  // デモ用固定トークン（ヘッダで返す）
   const token = "guest-demo-token";
   const client = "guest-demo-client";
   const uid = "guest@example.com";
@@ -37,21 +38,26 @@ export async function guestLogin(event) {
     headers: {
       "Content-Type": "application/json",
       ...corsHeaders(),
-      // 認証系ヘッダを実際に載せる（フロントが保存）
+      // フロントが保存する認証系ヘッダ（Expose-Headers で公開済）
       "access-token": token,
       client,
       uid,
       "token-type": tokenType,
       expiry,
     },
+    // フォールバックとしてボディにも載せておくと更に堅牢（任意）
     body: JSON.stringify({
-      token, // 任意（デバッグ用）
+      token,
+      client,
+      uid,
+      token_type: tokenType,
+      expiry,
       user: { id: "guest", name: "Guest User" },
     }),
   };
 }
 
-// 任意：手動検証用 OPTIONS
+// 事前フライト（任意）
 export async function preflight() {
   return { statusCode: 204, headers: corsHeaders(), body: "" };
 }
