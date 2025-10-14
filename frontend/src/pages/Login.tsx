@@ -1,4 +1,3 @@
-// src/pages/Login.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../providers/useAuth";
@@ -17,7 +16,7 @@ function takeAuthFrom(): string | null {
 }
 
 export default function Login() {
-  const { authed, signIn } = useAuth();
+  const { authed, signIn, guestSignIn } = useAuth(); // ← 追加
   const nav = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -33,9 +32,7 @@ export default function Login() {
   useEffect(() => {
     try {
       if (sessionStorage.getItem("auth:expired") === "1") {
-        setErrTop(
-          "セッションの有効期限が切れました。もう一度ログインしてください。"
-        );
+        setErrTop("セッションの有効期限が切れました。もう一度ログインしてください。");
         sessionStorage.removeItem("auth:expired");
       }
     } catch {/* ignore */}
@@ -58,7 +55,7 @@ export default function Login() {
   }, [pw]);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // ← フォーム遷移を止める（ここ重要）
+    e.preventDefault();
     setErrTop(null);
 
     const eErr = emailInvalid;
@@ -69,10 +66,8 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      // useAuth.signIn は /api/auth/sign_in を axios で叩く前提
       await signIn(email.trim(), pw);
 
-      // 通常ログインはデモフラグ解除
       try {
         sessionStorage.removeItem("auth:demo");
         window.dispatchEvent(new Event("auth:refresh"));
@@ -93,38 +88,25 @@ export default function Login() {
 
   async function handleDemo() {
     setErrTop(null);
-    // デモを強制ON
+    setSubmitting(true);
     try {
-      sessionStorage.setItem("auth:demo", "1");
-      window.dispatchEvent(new Event("auth:refresh"));
-    } catch {}
-    // ここで API を呼ばない（VITE_DEMO_LOCAL=1 のとき）
-    if (import.meta.env.VITE_DEMO_LOCAL === "1") {
-      nav("/tasks", { replace: true });
-      return;
-    }
-    // 既存: バックエンドが生きてるときだけ本当のゲストログイン
-    const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
-    const demoPass  = import.meta.env.VITE_DEMO_PASS;
-    if (!demoEmail || !demoPass) return setErrTop("ゲストユーザーが未設定です。");
-    try {
-      await signIn(demoEmail, demoPass);
+      // 本番デモ：APIの /guest/login を叩いてトークン保存
+      await guestSignIn();
       nav("/tasks", { replace: true });
     } catch {
       setErrTop("ゲストログインに失敗しました。しばらくしてからお試しください。");
+    } finally {
+      setSubmitting(false);
     }
   }
-  
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="bg-white shadow rounded-2xl p-6">
-          {/* タイトル／説明 */}
           <h1 className="text-2xl font-bold text-gray-900 text-center">Genba Tasks</h1>
           <p className="text-sm text-gray-600 text-center mt-1">現場タスクを“見える化”</p>
 
-          {/* エラーバナー */}
           {errTop && (
             <div
               role="alert"
@@ -135,9 +117,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* フォーム（action を付けない / onSubmit で XHR 化） */}
           <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 メールアドレス
@@ -164,7 +144,6 @@ export default function Login() {
               )}
             </div>
 
-            {/* Password + 表示切替 */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 パスワード
@@ -200,7 +179,6 @@ export default function Login() {
               )}
             </div>
 
-            {/* Actions */}
             <div className="space-y-2 pt-2">
               <button
                 type="submit"
