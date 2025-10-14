@@ -8,7 +8,6 @@ on:
       - "backend/demo-api/**"
       - ".github/workflows/deploy-demo-api.yml"
 
-# OIDC 用
 permissions:
   id-token: write
   contents: read
@@ -16,10 +15,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production          # ★ 信頼ポリシーの条件と一致させる
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-
+      AWS_REGION: ap-northeast-1
     steps:
       - uses: actions/checkout@v4
 
@@ -27,14 +24,15 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}   # リポジトリ変数に設定したロール ARN
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-      # 必要ツール（SAM / AWS CLI）を最小インストール
+      # SAM & AWS CLI を pipx で入れる（GitHub Runner 向け）
       - name: Install SAM & AWS CLI
         env:
           PIPX_HOME: /opt/pipx
           PIPX_BIN_DIR: /opt/pipx_bin
+        shell: bash
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install --user pipx
@@ -43,14 +41,12 @@ jobs:
           pipx install awscli
           sam --version
           aws --version
-        shell: bash
 
-      # ビルド
+      # ビルド（コンテナは使わないのでオプションなし）
       - name: SAM build
         working-directory: backend/demo-api
-        run: sam build --use-container=false
+        run: sam build
 
-      # デプロイ（S3バケットは --resolve-s3 で自動作成/選択）
       - name: SAM deploy
         id: deploy
         working-directory: backend/demo-api
@@ -61,17 +57,17 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --no-fail-on-empty-changeset \
             --parameter-overrides AllowedOrigin=https://app.genba-tasks.com StageName=prod \
-            --region "${AWS_REGION}" \
+            --region ${{ env.AWS_REGION }} \
             --no-confirm-changeset
 
-      # API エンドポイントを取得してサマリーに表示
+      # エンドポイントをサマリーに表示
       - name: Show endpoint
+        working-directory: backend/demo-api
         run: |
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name genba-demo-api \
-            --region "${AWS_REGION}" \
             --query "Stacks[0].Outputs[?OutputKey=='ApiInvokeUrl'].OutputValue" \
             --output text)
           echo "API URL: ${API_URL}"
-          echo "### Demo API Endpoint" >> "$GITHUB_STEP_SUMMARY"
-          echo "${API_URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Demo API Endpoint" >> $GITHUB_STEP_SUMMARY
+          echo "${API_URL}" >> $GITHUB_STEP_SUMMARY
