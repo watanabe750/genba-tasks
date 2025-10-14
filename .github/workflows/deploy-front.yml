@@ -18,16 +18,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node を .nvmrc で指定（.nvmrcが無いなら node-version: 20 に変更してOK）
+      # Node を .nvmrc で指定（.nvmrcが無ければ node-version: 20 に変更）
       - uses: actions/setup-node@v4
         with:
           node-version-file: 'frontend/.nvmrc'
 
-      # pnpm は package.json の "packageManager" をソースオブトゥルースにする
+      # pnpm は package.json の "packageManager" を参照
       - uses: pnpm/action-setup@v4
         with:
-          package_json_path: frontend/package.json
+          package_json_file: frontend/package.json   # ← ここを修正
           run_install: false
+
+      # 必須の環境変数を先に検証（空なら即Failで原因が分かりやすい）
+      - name: Validate env vars
+        run: |
+          [ -n "${{ vars.S3_BUCKET }}" ] || { echo "S3_BUCKET is empty"; exit 1; }
+          [ -n "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" ] || { echo "CLOUDFRONT_DISTRIBUTION_ID is empty"; exit 1; }
+          [ -n "${{ vars.VITE_API_BASE_URL }}" ] || { echo "VITE_API_BASE_URL is empty"; exit 1; }
+          [ -n "${{ vars.AWS_REGION }}" ] || { echo "AWS_REGION is empty"; exit 1; }
 
       - name: Install deps
         working-directory: frontend
