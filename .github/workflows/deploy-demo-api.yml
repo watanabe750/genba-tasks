@@ -32,11 +32,15 @@ jobs:
 
       # 必要ツール（SAM / AWS CLI）を最小インストール
       - name: Install SAM & AWS CLI
+        env:
+          PIPX_HOME: /opt/pipx
+          PIPX_BIN_DIR: /opt/pipx_bin
         run: |
+          python3 -m pip install --upgrade pip
           python3 -m pip install --user pipx
-          python3 -m pipx ensurepath
-          ~/.local/bin/pipx install aws-sam-cli
-          ~/.local/bin/pipx install awscli
+          pipx ensurepath
+          pipx install aws-sam-cli
+          pipx install awscli
           sam --version
           aws --version
         shell: bash
