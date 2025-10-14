@@ -18,18 +18,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Nodeは .nvmrc を見る（無いなら node-version: 20 に変えてOK）
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
 
-      # pnpm のバージョンは package.json の "packageManager" を参照
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: frontend/package.json
           run_install: false
 
-      # 必須の環境変数チェック（空なら即Fail）
+      # ここで必須変数の存在チェック
       - name: Validate env vars
         run: |
           [ -n "${{ vars.S3_BUCKET }}" ] || { echo "S3_BUCKET is empty"; exit 1; }
@@ -41,10 +39,18 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      # <<< 重要：.env.production を毎回生成してビルド値を固定化 >>>
+      - name: Write .env.production
+        working-directory: frontend
+        run: |
+          echo "VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}" > .env.production
+          echo "VITE_DEMO_MODE=false" >> .env.production
+          # 任意：他の VITE_* を足すならここで
+          # echo "VITE_OG_IMAGE=https://genba-tasks.com/og-home.png" >> .env.production
+          echo "[env] VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}"
+
       - name: Build
         working-directory: frontend
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: pnpm build
 
       - name: Configure AWS credentials (OIDC)
@@ -68,6 +74,7 @@ jobs:
             --content-type "text/html" \
             --metadata-directive REPLACE
 
+      # index.html だけ無効化で十分（アセットはハッシュ名）
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \

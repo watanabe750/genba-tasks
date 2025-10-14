@@ -28,3 +28,7 @@ frontend/playwright-report/
 playwright-report/
 test-results/
 *.trace.zip
+
+# Env files (commit しない)
+.env*
+!.env*.example
