@@ -29,15 +29,12 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
-        AllowMethods:
-          - GET
-          - POST
-          - PATCH
-          - DELETE
-          - OPTIONS
+        AllowMethods: [ GET, POST, PATCH, DELETE, OPTIONS ]
+        # ブラウザが送る可能性のあるヘッダをすべて許可
         AllowHeaders:
           - Content-Type
           - Authorization
+          - X-Auth-Start        # ← これが重要（フロントが付ける）
           - access-token
           - client
           - uid
