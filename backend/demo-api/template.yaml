@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: "Genba Tasks - Demo API (guest only)"
+Description: "Genba Tasks - Demo API (guest only, demoStore equivalent)"
 
 Parameters:
   AllowedOrigin:
@@ -27,15 +27,9 @@ Resources:
     Properties:
       StageName: !Ref StageName
       CorsConfiguration:
-        AllowOrigins:
-          - !Ref AllowedOrigin
-        AllowMethods:
-          - GET
-          - POST
-          - PATCH
-          - DELETE
-          - OPTIONS
-        # ← ここを *全部小文字* に
+        AllowOrigins: [ !Ref AllowedOrigin ]
+        AllowMethods: [ GET, POST, PATCH, DELETE, OPTIONS ]
+        # 小文字で統一（APIGW の正規化に合わせる）
         AllowHeaders:
           - content-type
           - authorization
@@ -47,6 +41,7 @@ Resources:
           - expiry
         MaxAge: 86400
 
+  # ---- Routes ----
   HealthFn:
     Type: AWS::Serverless::Function
     Properties:
@@ -54,10 +49,7 @@ Resources:
       Events:
         GetHealth:
           Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /health
-            Method: GET
+          Properties: { ApiId: !Ref HttpApi, Path: /health, Method: GET }
 
   GuestLoginFn:
     Type: AWS::Serverless::Function
@@ -66,10 +58,107 @@ Resources:
       Events:
         PostGuestLogin:
           Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /guest/login
-            Method: POST
+          Properties: { ApiId: !Ref HttpApi, Path: /guest/login, Method: POST }
+
+  MeFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.me
+      Events:
+        GetMe:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /me, Method: GET }
+
+  TasksListFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.listTasks
+      Events:
+        GetTasks:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks, Method: GET }
+
+  TasksCreateFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.createTask
+      Events:
+        PostTasks:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks, Method: POST }
+
+  TaskGetFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.getTask
+      Events:
+        GetTask:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}, Method: GET }
+
+  TaskPatchFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.patchTask
+      Events:
+        PatchTask:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}, Method: PATCH }
+
+  TaskDeleteFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.deleteTask
+      Events:
+        DeleteTask:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}, Method: DELETE }
+
+  TasksPriorityFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.tasksPriority
+      Events:
+        GetPriority:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks/priority, Method: GET }
+
+  TaskSitesFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.taskSites
+      Events:
+        GetSites:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks/sites, Method: GET }
+
+  TaskImagePostFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.taskImagePost
+      Events:
+        PostImage:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}/image, Method: POST }
+
+  TaskImageDeleteFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.taskImageDelete
+      Events:
+        DeleteImage:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}/image, Method: DELETE }
+
+  # 任意: 未定義ルートにCORS付き404
+  DefaultFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.notFound
+      Events:
+        DefaultRoute:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: $default, Method: ANY }
 
 Outputs:
   ApiInvokeUrl:
