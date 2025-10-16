@@ -1,3 +1,4 @@
+// backend/demo-api/src/handler.mjs
 // Node.js 20 (ESM)
 const ORIGIN = process.env.ALLOWED_ORIGIN || "https://app.genba-tasks.com";
 
@@ -23,17 +24,15 @@ const noContent = (status = 204) => ({
   headers: { ...corsHeaders() },
   body: "",
 });
-const notFound = (msg = "Not Found") => ok({ error: msg }, 404);
+const notFoundResp = (msg = "Not Found") => ok({ error: msg }, 404);
 
 /* ===================== Utils ===================== */
 const iso = (d) => new Date(d).toISOString();
 
-/* ===================== DEMO DB（demoStore と同じデータ） ===================== */
-/** Task: {id,title,status,progress,deadline,site,parent_id} */
+/* ===================== DEMO DB（frontend の demoStore と同一） ===================== */
 let NEXT_ID = 1;
 const nextId = () => NEXT_ID++;
 
-// 画像URL（/public/demo 配布前提の相対パス）
 const IMG_A1_SURVEY   = "/demo/siteA_survey.jpg";
 const IMG_A2_ESTIMATE = "/demo/A2_estimate.jpeg";
 const IMG_A3_ORDERING = "/demo/A3_ordering.jpg";
@@ -57,7 +56,7 @@ const G = (pid, title, site, deadlineInDays, status, progress) => ({
 const TASKS = (() => {
   const items = [];
 
-  // --- 現場A（空調改修） ---
+  // 現場A
   const A1 = P("現場A 現場調査", "現場A", 1, "in_progress", 40); items.push(A1);
   const A1_c1 = C(A1.id, "平面・天伏図の確認", "現場A", 1, "in_progress", 50);
   const A1_c2 = C(A1.id, "既設配管ルートの把握", "現場A", 2, "not_started", 0);
@@ -94,7 +93,7 @@ const TASKS = (() => {
     G(A3_c2.id, "現物サンプル確認", "現場A", 3, "not_started", 0),
   );
 
-  // --- 現場B（新築・機器搬入） ---
+  // 現場B
   const B1 = P("現場B 機器搬入計画", "現場B", 6, "in_progress", 20); items.push(B1);
   const B1_c1 = C(B1.id, "搬入経路確認（幅/高さ/養生）", "現場B", 4, "in_progress", 30);
   const B1_c2 = C(B1.id, "人員・台車・荷エレ段取り", "現場B", 5, "not_started", 0);
@@ -108,7 +107,7 @@ const TASKS = (() => {
   const B2_c2 = C(B2.id, "改訂版の承認取得", "現場B", 1, "completed", 100);
   items.push(B2_c1, B2_c2);
 
-  // --- 現場C（是正対応） ---
+  // 現場C
   const C1p = P("現場C 是正対応", "現場C", 2, "in_progress", 60); items.push(C1p);
   const C1_c1 = C(C1p.id, "是正箇所の洗い出し（写真）", "現場C", 0, "completed", 100);
   const C1_c2 = C(C1p.id, "是正工事（配管勾配）", "現場C", 1, "in_progress", 40);
@@ -123,7 +122,6 @@ const TASKS = (() => {
   return items;
 })();
 
-// 画像の紐付け（親タスクの id -> 画像URL）
 const IMAGE_BY_PARENT_TITLE = {
   "現場A 現場調査":    IMG_A1_SURVEY,
   "現場A 見積もり":    IMG_A2_ESTIMATE,
@@ -176,13 +174,9 @@ export async function me() {
   return ok({ email: "guest@example.com", name: "Guest User" });
 }
 
-export async function listTasks() {
-  // demoStore と同じ：配列そのまま
-  return ok(TASKS);
-}
+export async function listTasks() { return ok(TASKS); }
 
 export async function createTask(event) {
-  // スタブ：作成できるようにする（メモリだけ・永続化なし）
   const body = event?.body ? JSON.parse(event.body) : {};
   const src = body?.task ?? body ?? {};
   const t = {
@@ -201,8 +195,7 @@ export async function createTask(event) {
 export async function getTask(event) {
   const id = Number(event?.pathParameters?.id);
   const t = TASKS.find(x => x.id === id);
-  if (!t) return notFound();
-  // 画像URLは個別取得時に付ける（親なら画像、子孫は親の画像を継承してもOK）
+  if (!t) return notFoundResp();
   const pid = t.parent_id ?? t.id;
   const image_url = PARENT_ID_TO_IMAGE[pid] ?? null;
   return ok({ ...t, image_url });
@@ -211,7 +204,7 @@ export async function getTask(event) {
 export async function patchTask(event) {
   const id = Number(event?.pathParameters?.id);
   const i = TASKS.findIndex(x => x.id === id);
-  if (i < 0) return notFound();
+  if (i < 0) return notFoundResp();
   const body = event?.body ? JSON.parse(event.body) : {};
   const patch = body?.task ?? body ?? {};
   TASKS[i] = { ...TASKS[i], ...patch };
@@ -224,7 +217,7 @@ export async function deleteTask(event) {
   for (let i = TASKS.length - 1; i >= 0; i--) {
     if (TASKS[i].id === id || TASKS[i].parent_id === id) TASKS.splice(i, 1);
   }
-  return before === TASKS.length ? notFound() : noContent();
+  return before === TASKS.length ? notFoundResp() : noContent();
 }
 
 export async function tasksPriority() {
@@ -238,14 +231,14 @@ export async function taskSites() {
   return ok(sites);
 }
 
-// 画像API（ダミー）
-export async function taskImagePost() {
-  return ok({ url: null }, 201);
-}
-export async function taskImageDelete() {
-  return noContent();
+export async function taskImagePost() { return ok({ url: null }, 201); }
+export async function taskImageDelete() { return noContent(); }
+
+/* ----- ここがポイント：$default で OPTIONS を握りつぶす ----- */
+export async function defaultRoute(event) {
+  const method = event?.requestContext?.http?.method;
+  if (method === "OPTIONS") return noContent(204);  // プリフライトは常に 204
+  return notFoundResp();
 }
 
-/* Optional */
 export async function preflight() { return noContent(204); }
-export async function notFound() { return ok({ error: "Not Found" }, 404); }
