@@ -8,6 +8,19 @@
 
 # local ECS task-def snapshots
 backend/td-*.json
+
+# Development patches
+*.patch
+
+# Test results
+test-results/
+frontend/test-results/
+playwright-report/
+
+# Playwright auth
+.auth.json
+tests/.auth/
+
 !docs/screens/readme-assets/*.svg
 !docs/screens/readme-assets/*.png
 node_modules/

@@ -29,6 +29,10 @@ playwright-report/
 test-results/
 *.trace.zip
 
+# Playwright auth files (E2E test credentials)
+.auth.json
+tests/.auth/
+
 # Env files (commit しない)
 .env*
 !.env*.example
