@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # ==== 事前に書き換える/エクスポートしておく値 ====
+# 環境変数で上書き可能。本番では必ず環境変数を設定してください
 REGION="${REGION:-ap-northeast-1}"
-ACCOUNT_ID="${ACCOUNT_ID:-711652947752}"
+ACCOUNT_ID="${ACCOUNT_ID:?Error: ACCOUNT_ID is required. Set via environment variable.}"
 REPO_API="${REPO_API:-genba-task-api}"
 CLUSTER="${CLUSTER:-genba-task-cluster}"
 SERVICE_API="${SERVICE_API:-genba-task-svc}"
