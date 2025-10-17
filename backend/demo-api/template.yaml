@@ -48,7 +48,10 @@ Resources:
       Events:
         GetHealth:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /health, Method: GET }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /health
+            Method: GET
 
   GuestLoginFn:
     Type: AWS::Serverless::Function
@@ -57,7 +60,10 @@ Resources:
       Events:
         PostGuestLogin:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /guest/login, Method: POST }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /guest/login
+            Method: POST
 
   MeFn:
     Type: AWS::Serverless::Function
@@ -66,7 +72,10 @@ Resources:
       Events:
         GetMe:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /me, Method: GET }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /me
+            Method: GET
 
   TasksListFn:
     Type: AWS::Serverless::Function
@@ -75,7 +84,10 @@ Resources:
       Events:
         GetTasks:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks, Method: GET }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks
+            Method: GET
 
   TasksCreateFn:
     Type: AWS::Serverless::Function
@@ -84,7 +96,10 @@ Resources:
       Events:
         PostTasks:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks, Method: POST }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks
+            Method: POST
 
   TaskGetFn:
     Type: AWS::Serverless::Function
@@ -93,7 +108,10 @@ Resources:
       Events:
         GetTask:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}, Method: GET }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/{id}
+            Method: GET
 
   TaskPatchFn:
     Type: AWS::Serverless::Function
@@ -102,7 +120,10 @@ Resources:
       Events:
         PatchTask:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}, Method: PATCH }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/{id}
+            Method: PATCH
 
   TaskDeleteFn:
     Type: AWS::Serverless::Function
@@ -111,7 +132,10 @@ Resources:
       Events:
         DeleteTask:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}, Method: DELETE }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/{id}
+            Method: DELETE
 
   TasksPriorityFn:
     Type: AWS::Serverless::Function
@@ -120,7 +144,10 @@ Resources:
       Events:
         GetPriority:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks/priority, Method: GET }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/priority
+            Method: GET
 
   TaskSitesFn:
     Type: AWS::Serverless::Function
@@ -129,7 +156,10 @@ Resources:
       Events:
         GetSites:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks/sites, Method: GET }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/sites
+            Method: GET
 
   TaskImagePostFn:
     Type: AWS::Serverless::Function
@@ -138,7 +168,10 @@ Resources:
       Events:
         PostImage:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}/image, Method: POST }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/{id}/image
+            Method: POST
 
   TaskImageDeleteFn:
     Type: AWS::Serverless::Function
@@ -147,7 +180,10 @@ Resources:
       Events:
         DeleteImage:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Path: /tasks/{id}/image, Method: DELETE }
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/{id}/image
+            Method: DELETE
 
 Outputs:
   ApiInvokeUrl:
