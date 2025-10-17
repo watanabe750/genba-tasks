@@ -23,17 +23,8 @@ module Backend
     config.load_defaults 8.0
     config.api_only = true
 
-    # === CORS（credentials を使うのでオリジンは * にしない） ===
-    config.middleware.insert_before 0, Rack::Cors do
-      allow do
-        origins "https://app.genba-tasks.com", "http://localhost:5173"
-        resource "*",
-          headers: :any,
-          methods: %i[get post put patch delete options head],
-          credentials: true,
-          expose: %w[access-token client uid expiry]
-      end
-    end
+    # === Rack::Attack (Rate Limiting) ===
+    # Configuration is in config/initializers/rack_attack.rb
 
     # === Cookie セッション（クロスサイト対応） ===
     config.middleware.use ActionDispatch::Cookies
