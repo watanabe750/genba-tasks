@@ -6,13 +6,15 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
 
 env:
   AWS_REGION: ap-northeast-1
-  ECR_REPOSITORY: genba-tasks-backend
-  ECS_CLUSTER: genba-tasks-cluster
+  ECR_REPOSITORY: genba-task-api
+  ECS_CLUSTER: genba-task-cluster
   ECS_SERVICE: genba-tasks-backend-service
-  CONTAINER_NAME: backend
+  ECS_TASK_DEFINITION: genba-task-api
+  CONTAINER_NAME: api
 
 jobs:
   deploy:
@@ -37,6 +39,9 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         working-directory: backend
@@ -44,16 +49,14 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Docker イメージをビルド
-          docker build \
+          # Docker イメージをビルド（AMD64アーキテクチャ指定）
+          docker buildx build \
+            --platform linux/amd64 \
             --build-arg GIT_SHA=${{ github.sha }} \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --push \
             .
-
-          # ECR にプッシュ
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
           # 次のステップで使用するため出力
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
@@ -61,7 +64,7 @@ jobs:
       - name: Download current task definition
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
             --query taskDefinition > task-definition.json
 
       - name: Fill in the new image ID in the Amazon ECS task definition
@@ -86,3 +89,21 @@ jobs:
           echo "Image: ${{ steps.build-image.outputs.image }}"
           echo "Service: ${{ env.ECS_SERVICE }}"
           echo "Cluster: ${{ env.ECS_CLUSTER }}"
+
+      - name: Health check
+        run: |
+          echo "🔍 Checking API health endpoint..."
+
+          # Wait for service to stabilize
+          sleep 30
+
+          # Test HTTPS endpoint
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://api.genba-tasks.com/up || echo "000")
+
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✅ Health check passed! API is healthy."
+            echo "🌐 API endpoint: https://api.genba-tasks.com"
+          else
+            echo "⚠️  Health check returned status: $RESPONSE"
+            echo "Note: Service may still be starting up. Check ECS console for details."
+          fi
