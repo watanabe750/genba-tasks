@@ -19,7 +19,7 @@ import ConfirmPopover from "../../../components/ConfirmPopover";
 import { brandIso } from "../../../lib/brandIso";
 import { demoImageStore } from "../../../lib/demoImageStore"; // ★追加
 
-const DBG = true;
+const DBG = import.meta.env.DEV;
 const log = (...a: any[]) => DBG && console.log("[DND:Row]", ...a);
 
 const toDateInputValue = (iso?: string | null) => {

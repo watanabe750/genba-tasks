@@ -61,7 +61,7 @@ const eqArray = (a?: number[], b?: number[]) => {
   return true;
 };
 
-const DBG = true;
+const DBG = import.meta.env.DEV;
 const log = (...a: any[]) => DBG && console.log("[DND:Ctx]", ...a);
 // ★ drop 直後の“上書き抑止”猶予時間(ms)
 const REGISTER_SUPPRESS_MS = 800;

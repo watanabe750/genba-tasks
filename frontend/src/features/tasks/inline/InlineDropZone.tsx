@@ -7,7 +7,7 @@ type Props = {
   showEmptyState: boolean;
 };
 
-const DBG = true;
+const DBG = import.meta.env.DEV;
 const log = (...a: any[]) => DBG && console.log("[DND:DropZone]", ...a);
 
 // 親IDの正規化 & 比較
