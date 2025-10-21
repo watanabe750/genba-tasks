@@ -49,6 +49,10 @@
 ### タスク管理
 - **親子タスクの CRUD**：深さ **無制限**、**子は各親につき最大4つ**
 - **並び替え（ドラッグ＆ドロップ）**：**親タスクのみ可能**（子タスクは不可）／**フィルタ中もDnD可**
+  - 実装: **HTML5 Drag & Drop API**（ネイティブ実装、外部ライブラリ不使用）
+  - カスタムDnDコンテキストで状態管理（`dndContext.tsx`）
+  - 楽観的UI更新 → API呼び出し → キャッシュ無効化のフロー
+  - データベースで`position`カラム（整数）による順序管理
 - **画像添付**：**親のみ1枚**、**jpeg/png/webp/gif**、**≤5MB**、置換可
 - **検索/絞り込み/並び替え**：
   - 絞り込み：**現場名**検索、**進捗状況**（未着手・進行中・完了）、**上位タスクのみ**表示
@@ -99,9 +103,9 @@
 ---
 
 ## 技術スタック / バージョン
-- **Frontend**：React **18.3.1** / TypeScript **5.9.2** / Vite / React Router / Axios  
-- **Backend**：Ruby **3.2.3** / Rails **8.0.2** / Devise / Devise Token Auth / rack-cors / Active Storage (+ S3)  
-- **Infra**：AWS（**ECS Fargate**, **ALB**(ACM), Route53, **RDS**(MySQL **8.0.43**), **S3**）
+- **Frontend**：React **18.3.1** / TypeScript **5.9.2** / Vite **7.1.7** / React Router **6.x** / Axios **1.11.0** / TanStack Query **5.85.5** / Tailwind CSS **3.4.17** / HTML5 Drag & Drop API（ネイティブ実装）
+- **Backend**：Ruby **3.2.3** / Rails **8.0.2** / Devise **4.9** / Devise Token Auth / rack-cors / rack-attack / Active Storage (+ S3)
+- **Infra**：AWS（**ECS Fargate**, **ALB**(ACM), **CloudFront**(OAC), Route53, **RDS**(MySQL **8.0.43**), **S3**, **NAT Gateway**） / **GitHub Actions** (CI/CD)
 - **Node / pnpm**：Node **v24.2.0** / pnpm **10.17.0**
 
 ---
@@ -178,7 +182,16 @@ VITE_API_BASE_URL=http://localhost:3000
 pnpm dev      # http://localhost:5173
 ```
 
-> Docker Compose 版がある場合は別途記載。現状は手動手順を最短として提示。
+**Docker Compose（すべて一括起動）**
+
+```bash
+docker-compose up
+```
+
+起動後:
+- フロントエンド: http://localhost:5173
+- バックエンド: http://localhost:3000
+- MySQL: localhost:3306 (初回起動時に自動マイグレーション)
 
 ---
 
