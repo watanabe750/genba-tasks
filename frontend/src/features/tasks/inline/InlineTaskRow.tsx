@@ -1,4 +1,4 @@
-// src/features/tasks/inline/InlineTaskRow.tsx
+// src/features/tasks/inline/InlineTaskRow.tsx (REFACTORED VERSION)
 import {
   useMemo,
   useState,
@@ -10,33 +10,19 @@ import type { TaskNode as Task } from "../../../types";
 import { useUpdateTask } from "../../tasks/useUpdateTask";
 import { useDeleteTask } from "../../tasks/useDeleteTask";
 import { useCreateTask } from "../../tasks/useCreateTask";
-import { MAX_CHILDREN_PER_NODE } from "../../tasks/constraints";
 import { useInlineDnd } from "./dndContext";
 import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 import TaskImagePanel from "../image/TaskImagePanel";
-// import CompactThumb from "./CompactThumb"; // ←使わない
-import ConfirmPopover from "../../../components/ConfirmPopover";
 import { brandIso } from "../../../lib/brandIso";
-import { demoImageStore } from "../../../lib/demoImageStore"; // ★追加
+import { demoImageStore } from "../../../lib/demoImageStore";
+
+// 新しく作成したコンポーネント
+import { TaskRowEdit } from "./TaskRowEdit";
+import { TaskRowDisplay } from "./TaskRowDisplay";
+import { TaskRowActions } from "./TaskRowActions";
 
 const DBG = import.meta.env.DEV;
 const log = (...a: any[]) => DBG && console.log("[DND:Row]", ...a);
-
-const toDateInputValue = (iso?: string | null) => {
-  if (!iso) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-};
-
-const STATUS_LABEL: Record<Task["status"], string> = {
-  not_started: "未着手",
-  in_progress: "進行中",
-  completed: "完了",
-};
 
 type RowProps = { task: Task; depth: number; prevId?: number | null };
 const INDENT_STEP = 24;
@@ -44,6 +30,16 @@ const INDENT_STEP = 24;
 const normPid = (v: number | null | undefined) => (v == null ? null : Number(v));
 const samePid = (a: number | null | undefined, b: number | null | undefined) =>
   normPid(a) === normPid(b);
+
+function toDateInputValue(iso?: string | null): string {
+  if (!iso) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
 
 /** 子タスクは固定: 期限昇順 -> 期限なし -> id昇順 */
 const sortChildrenFixed = (kids: Task[]) => {
@@ -54,6 +50,10 @@ const sortChildrenFixed = (kids: Task[]) => {
   return kids.slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
 };
 
+/**
+ * タスク1行を表示するメインコンポーネント（リファクタリング版）
+ * 編集・表示・アクションを別コンポーネントに分離し、シンプルに保つ
+ */
 export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) {
   const children = task.children ?? [];
   const isLeaf = children.length === 0;
@@ -66,72 +66,20 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
   const { mutate: remove } = useDeleteTask();
   const { mutate: createTask, isPending: creating } = useCreateTask();
 
+  // 状態管理（最小限に削減）
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(task.title);
-  const [deadline, setDeadline] = useState(toDateInputValue(task.deadline));
-  const [status, setStatus] = useState<Task["status"]>(task.status);
   const [expanded, setExpanded] = useState(true);
-
   const [addingChild, setAddingChild] = useState(false);
   const [childTitle, setChildTitle] = useState("");
   const [childDue, setChildDue] = useState<string>("");
   const [showImagePanel, setShowImagePanel] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const { open: openDrawer } = useTaskDrawer();
   const titleRef = useRef<HTMLSpanElement | null>(null);
 
-  // 親だけ画像データを取り出す（/public/demo/*.jpg のURLが入っている）
   const thumbSrc = isParent ? demoImageStore.get(task.id) : undefined;
 
-  // 子完了数
-  const leafStats = useMemo(() => {
-    const kids = task.children ?? [];
-    if (kids.length === 0) return null;
-    const total = kids.length;
-    const done = kids.filter((c) => c.status === "completed").length;
-    return { done, total };
-  }, [task.children]);
-
-  const save = () => {
-    const payload: Partial<Pick<Task, "title" | "deadline" | "status" | "progress">> = {
-      title: title.trim(),
-      deadline: brandIso(deadline ? new Date(`${deadline}T00:00:00`).toISOString() : null),
-      status,
-      progress: status === "completed" ? 100 : isLeaf ? 0 : task.progress ?? 0,
-    };
-    update({ id: task.id, data: payload });
-    setEditing(false);
-  };
-
-  const cancel = () => {
-    setTitle(task.title);
-    setDeadline(toDateInputValue(task.deadline));
-    setStatus(task.status);
-    setEditing(false);
-  };
-
-  const toggleDone = () => {
-    if (!isLeaf) return;
-    const nextDone = task.status !== "completed";
-    update({
-      id: task.id,
-      data: nextDone
-        ? { status: "completed", progress: 100 }
-        : { status: "in_progress", progress: 0 },
-    });
-  };
-
-  const createSiblingBelow = () => {
-    const isRoot = task.parent_id == null;
-    createTask({
-      title: "（新規）",
-      parentId: task.parent_id ?? null,
-      deadline: null,
-      site: isRoot ? task.site ?? "" : undefined,
-    });
-  };
-
+  // === 子タスク追加ロジック ===
   const submitChild = () => {
     const t = childTitle.trim();
     if (!t) return;
@@ -148,7 +96,33 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
     );
   };
 
-  // ---- 同一親内のドロップ処理（行/ハンドル共通） ----
+  // === 完了トグル（葉のみ） ===
+  const toggleDone = () => {
+    if (!isLeaf) return;
+    const nextDone = task.status !== "completed";
+    update({
+      id: task.id,
+      data: nextDone
+        ? { status: "completed", progress: 100 }
+        : { status: "in_progress", progress: 0 },
+    });
+  };
+
+  // === ドロワー開閉 ===
+  const handleTitleClick = () => {
+    if (isParent) openDrawer(task.id, titleRef.current || undefined);
+    else setEditing(true);
+  };
+
+  const handleTitleKeyDown = (e: any) => {
+    if (!isParent) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openDrawer(task.id, titleRef.current || undefined);
+    }
+  };
+
+  // === ドラッグ&ドロップ処理 ===
   const performDropHere = () => {
     const movingId = dnd.state.draggingId;
     log("performDropHere =>", {
@@ -175,25 +149,26 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
 
     let afterId: number | null;
     if (movingIdx != null && targetIdx != null && movingIdx < targetIdx) {
-      afterId = task.id; // target の“後ろ”
+      afterId = task.id;
     } else {
-      afterId = prevId ?? null; // target の“前”（= 直前の後ろ）
+      afterId = prevId ?? null;
     }
     log("call reorderWithinParent", { pid, movingId, afterId });
     dnd.reorderWithinParent(pid, movingId, afterId);
     dnd.onDragEnd();
   };
 
-  // ---- DnD（親のみ）----
   const onDragOver = (e: DragEvent) => {
     if (!isParent) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
   };
+
   const onDragEnter = (e: DragEvent) => {
     if (!isParent) return;
     e.preventDefault();
   };
+
   const onDrop = (e: DragEvent) => {
     if (!isParent) return;
     e.preventDefault();
@@ -214,19 +189,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
     dnd.state.draggingId !== task.id &&
     samePid(dnd.state.draggingParentId, task.parent_id ?? null);
 
-  const handleTitleClick = () => {
-    if (isParent) openDrawer(task.id, titleRef.current || undefined);
-    else setEditing(true);
-  };
-  const handleTitleKeyDown = (e: any) => {
-    if (!isParent) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      openDrawer(task.id, titleRef.current || undefined);
-    }
-  };
-
-  // ===== 1行表示 =====
+  // === レンダリング ===
   const Row = (
     <div
       onDragOver={onDragOver}
@@ -249,7 +212,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
       )}
 
       <div className="flex items-start gap-4">
-        {/* 開閉 */}
+        {/* 開閉ボタン */}
         {children.length > 0 ? (
           <button
             type="button"
@@ -307,7 +270,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
           </div>
         )}
 
-        {/* 親のみ：軽量サムネ（demoImageStoreから直接） */}
+        {/* 親のみ：軽量サムネ */}
         {isParent && (
           <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
             {thumbSrc ? (
@@ -338,214 +301,29 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
 
         {/* 左カラム：タイトル＆メタ */}
         <div className="min-w-0 flex-1">
-          {!editing ? (
-            <>
-              <div
-                className="flex min-w-0 items-center gap-2"
-                onClick={handleTitleClick}
-                onKeyDown={handleTitleKeyDown}
-              >
-                <span
-                  ref={titleRef}
-                  data-testid={`task-title-${task.id}`}
-                  role={isParent ? "button" : undefined}
-                  tabIndex={isParent ? 0 : undefined}
-                  aria-haspopup={isParent ? "dialog" : undefined}
-                  title={isParent ? "詳細を開く" : undefined}
-                  className={[
-                    "truncate hover:underline decoration-dotted",
-                    isParent
-                      ? "text-[18px] md:text-[20px] font-semibold leading-tight"
-                      : "text-[15px] font-medium",
-                    isParent ? "cursor-pointer" : "cursor-text",
-                    task.status === "completed" ? "text-gray-400 line-through" : "",
-                  ].join(" ")}
-                >
-                  {task.title}
-                </span>
-              </div>
-
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-600">
-                <span>期限: {task.deadline ? toDateInputValue(task.deadline) : "—"}</span>
-                <span data-testid={`task-status-${task.id}`} data-status={task.status}>
-                  ステータス: {STATUS_LABEL[task.status]}
-                </span>
-                {task.site ? <span>現場名: {task.site}</span> : null}
-              </div>
-            </>
+          {editing ? (
+            <TaskRowEdit task={task} onCancel={() => setEditing(false)} />
           ) : (
-            <form
-              className="grid max-sm:items-start grid-cols-1 gap-2 sm:grid-cols-[1fr,160px,140px]"
-              onSubmit={(e) => {
-                e.preventDefault();
-                save();
-              }}
-            >
-              <input
-                aria-label="タイトル"
-                className="w-full rounded border p-2"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="タイトル"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    cancel();
-                  }
-                  if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
-                    e.preventDefault();
-                    createSiblingBelow();
-                  }
-                }}
-              />
-              <input
-                type="date"
-                aria-label="期限"
-                className="w-full rounded border p-2"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                placeholder="期限"
-              />
-              <select
-                aria-label="ステータス"
-                className="w-full rounded border p-2 text-sm"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as Task["status"])}
-              >
-                <option value="not_started">未着手</option>
-                <option value="in_progress">進行中</option>
-                <option value="completed">完了</option>
-              </select>
-
-              <div className="flex gap-2 sm:col-span-3">
-                <button
-                  type="submit"
-                  className="rounded bg-gray-900 px-3 py-1.5 text-xs text-white"
-                  disabled={creating}
-                >
-                  保存
-                </button>
-                <button
-                  type="button"
-                  onClick={cancel}
-                  className="rounded border px-3 py-1.5 text-xs"
-                  disabled={creating}
-                >
-                  取消
-                </button>
-              </div>
-            </form>
+            <TaskRowDisplay
+              task={task}
+              isParent={isParent}
+              titleRef={titleRef}
+              onTitleClick={handleTitleClick}
+              onTitleKeyDown={handleTitleKeyDown}
+            />
           )}
         </div>
 
-        {/* 右カラム */}
+        {/* 右カラム：アクション */}
         {!editing && (
-          <div className="shrink-0 flex flex-col items-end gap-1">
-            <div className="flex flex-wrap justify-end gap-1">
-              {isParent && (
-                <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
-                  上位タスク
-                </span>
-              )}
-              {!isLeaf && (
-                <span
-                  data-testid={`leafstats-${task.id}`}
-                  className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600"
-                  title="子タスクの完了数 / 子タスク総数"
-                >
-                  自動 {leafStats?.done ?? 0}/{leafStats?.total ?? 0} OK
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1" data-testid={`row-actions-${task.id}`}>
-              <button
-                type="button"
-                data-testid={`task-add-child-${task.id}`}
-                className={[
-                  "inline-flex items-center justify-center text-xs text-white",
-                  "bg-blue-600 hover:bg-blue-700",
-                  "rounded px-2.5 h-8",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500/50",
-                  "disabled:opacity-60 disabled:cursor-not-allowed",
-                ].join(" ")}
-                disabled={(task.children?.length ?? 0) >= MAX_CHILDREN_PER_NODE}
-                onClick={() => setAddingChild(true)}
-                title={
-                  (task.children?.length ?? 0) >= MAX_CHILDREN_PER_NODE
-                    ? `最大${MAX_CHILDREN_PER_NODE}件まで`
-                    : "サブタスクを追加"
-                }
-                aria-label="サブタスクを追加"
-              >
-                ＋
-              </button>
-
-              <button
-                type="button"
-                className="h-8 rounded border px-2 text-xs hover:bg-gray-50"
-                onClick={() => setEditing(true)}
-                title="編集"
-              >
-                編集
-              </button>
-
-              {isParent && (
-                <button
-                  data-testid={`btn-image-${task.id}`}
-                  type="button"
-                  className="h-8 rounded border px-2 text-xs hover:bg-gray-50"
-                  onClick={() => setShowImagePanel((v) => !v)}
-                  title="画像の表示・アップロード・削除"
-                >
-                  画像
-                </button>
-              )}
-
-              <div className="relative inline-block">
-                <button
-                  type="button"
-                  className={[
-                    "h-8 rounded border px-2 text-xs",
-                    children.length > 0
-                      ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                      : "hover:bg-red-50 border-red-200 text-red-600",
-                  ].join(" ")}
-                  onClick={() => {
-                    if (children.length > 0) return;
-                    setConfirmOpen(true);
-                  }}
-                  title={
-                    children.length > 0
-                      ? "サブタスクがあるため削除できません\n（まずサブタスクを削除）"
-                      : "削除"
-                  }
-                  aria-haspopup="dialog"
-                  aria-expanded={confirmOpen}
-                  disabled={children.length > 0}
-                >
-                  削除
-                </button>
-                {confirmOpen && (
-                  <ConfirmPopover
-                    text={"このタスクを削除しますか？"}
-                    onCancel={() => setConfirmOpen(false)}
-                    onConfirm={() => {
-                      setConfirmOpen(false);
-                      remove(task.id);
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-
-            {(task.children?.length ?? 0) >= MAX_CHILDREN_PER_NODE && (
-              <div className="text-[12px] text-red-600 mt-1">
-                最大{MAX_CHILDREN_PER_NODE}件まで
-              </div>
-            )}
-          </div>
+          <TaskRowActions
+            task={task}
+            isParent={isParent}
+            onEdit={() => setEditing(true)}
+            onAddChild={() => setAddingChild(true)}
+            onShowImage={() => setShowImagePanel((v) => !v)}
+            onDelete={() => remove(task.id)}
+          />
         )}
       </div>
 
