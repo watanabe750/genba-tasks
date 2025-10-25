@@ -1,5 +1,6 @@
 // src/features/tasks/nest.ts
 import type { Task, TaskNode } from "../../types";
+import { toDateInputValue } from "../../utils/date";
 
 /** フラット配列を親子ツリー化（depth 付与・children 初期化） */
 export function nestTasks(flat: Task[]): TaskNode[] {
@@ -41,16 +42,7 @@ export function nestTasks(flat: Task[]): TaskNode[] {
  * order_by: "deadline" | "site" | "site,deadline" | "deadline,site"
  * dir は主キーのみに適用
  */
-const toDateInput = (iso?: string | null) => {
-  if (!iso) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-};
-const isNullDeadline = (t: { deadline?: string | null }) => !toDateInput(t.deadline);
+const isNullDeadline = (t: { deadline?: string | null }) => !toDateInputValue(t.deadline);
 
 const cmpSite = (a?: string | null, b?: string | null) => {
   const aa = (a ?? "").trim().toLowerCase();
@@ -87,10 +79,10 @@ export function sortRootNodes(
     if (primary === "site") {
       const ds = cmpSite(a.site, b.site);
       if (ds !== 0) return dir === "desc" ? -ds : ds;
-      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
+      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
       if (da !== db) return da < db ? -1 : 1;
     } else {
-      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
+      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
       if (da !== db) {
         const asc = da < db ? -1 : 1;
         return dir === "desc" ? -asc : asc;
@@ -122,10 +114,10 @@ export function sortFlatForUI(
     if (ob === "site") {
       const ds = cmpSite(a.site, b.site);
       if (ds !== 0) return dir === "desc" ? -ds : ds;
-      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
+      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
       if (da !== db) return da < db ? -1 : 1;
     } else {
-      const da = toDateInput(a.deadline), db = toDateInput(b.deadline);
+      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
       if (da !== db) {
         const asc = da < db ? -1 : 1;
         return dir === "desc" ? -asc : asc;
