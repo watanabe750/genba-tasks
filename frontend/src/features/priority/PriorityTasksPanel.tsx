@@ -4,19 +4,10 @@ import useAuth from "../../providers/useAuth";
 import { useUpdateTask } from "../tasks/useUpdateTask";
 import type { Task } from "../../types/task";
 import { useQueryClient } from "@tanstack/react-query";
+import { formatDeadlineForDisplay } from "../../utils/date";
 
 const clamp = (n: number, min = 0, max = 100) =>
   Math.min(Math.max(n ?? 0, min), max);
-
-function fmtDeadline(iso?: string | null) {
-  if (!iso) return "期限なし";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso ?? "";
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  const dow = "日月火水木金土"[d.getDay()];
-  return `${m}/${day}(${dow})`;
-}
 
 export default function PriorityTasksPanel() {
   const { authed } = useAuth();
@@ -109,7 +100,7 @@ export default function PriorityTasksPanel() {
                   {t.title}
                 </p>
                 <p className="text-xs text-blue-800/70 dark:text-blue-200/70">
-                  {fmtDeadline(t.deadline)}・進捗 {Math.round(t.progress ?? 0)}%
+                  {formatDeadlineForDisplay(t.deadline)}・進捗 {Math.round(t.progress ?? 0)}%
                 </p>
                 <div className="mt-1 h-2 w-full rounded bg-blue-200/70 dark:bg-blue-900/50">
                   <div

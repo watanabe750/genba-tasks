@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { TaskNode } from "../../../types";
 import { useUpdateTask } from "../useUpdateTask";
 import { brandIso } from "../../../lib/brandIso";
+import { toDateInputValue } from "../../../utils/date";
 
 /**
  * タスク編集用のカスタムフック
@@ -47,15 +48,4 @@ export function useTaskEditing(task: TaskNode) {
     save,
     cancel,
   };
-}
-
-// 日付を input[type="date"] 用の文字列に変換
-function toDateInputValue(iso?: string | null): string {
-  if (!iso) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
 }

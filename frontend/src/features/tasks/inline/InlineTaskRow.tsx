@@ -15,6 +15,7 @@ import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 import TaskImagePanel from "../image/TaskImagePanel";
 import { brandIso } from "../../../lib/brandIso";
 import { demoImageStore } from "../../../lib/demoImageStore";
+import { toDateInputValue } from "../../../utils/date";
 
 // 新しく作成したコンポーネント
 import { TaskRowEdit } from "./TaskRowEdit";
@@ -30,16 +31,6 @@ const INDENT_STEP = 24;
 const normPid = (v: number | null | undefined) => (v == null ? null : Number(v));
 const samePid = (a: number | null | undefined, b: number | null | undefined) =>
   normPid(a) === normPid(b);
-
-function toDateInputValue(iso?: string | null): string {
-  if (!iso) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
 
 /** 子タスクは固定: 期限昇順 -> 期限なし -> id昇順 */
 const sortChildrenFixed = (kids: Task[]) => {

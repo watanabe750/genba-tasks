@@ -1,4 +1,5 @@
 import type { TaskNode } from "../../../types";
+import { toDateInputValue } from "../../../utils/date";
 
 interface Props {
   task: TaskNode;
@@ -13,16 +14,6 @@ const STATUS_LABEL: Record<TaskNode["status"], string> = {
   in_progress: "進行中",
   completed: "完了",
 };
-
-function toDateInputValue(iso?: string | null): string {
-  if (!iso) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
 
 /**
  * タスク表示コンポーネント
