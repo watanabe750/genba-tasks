@@ -14,6 +14,7 @@ import {
   type AxiosResponseHeaders,
   type RawAxiosResponseHeaders,
 } from "axios";
+import { tokenStorage, type TokenBundle } from "../lib/tokenStorage";
 
 export type AuthContextValue = {
   authed: boolean;
@@ -34,14 +35,6 @@ const IS_E2E =
   typeof navigator !== "undefined" &&
   (((navigator as any).webdriver ?? false) ||
     /Playwright|Headless/i.test(navigator.userAgent));
-
-type TokenBundle = {
-  at?: string;
-  client?: string;
-  uid?: string;
-  tokenType?: string;
-  expiry?: string;
-};
 
 function getHeaderString(h: unknown, key: string): string | undefined {
   if (h instanceof AxiosHeaders) {
@@ -78,23 +71,9 @@ function saveTokensFromHeaders(
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   // ---- 初期トークン読み込み ----
-  const initialTokens: TokenBundle = (() => {
-    try {
-      return {
-        at: localStorage.getItem("access-token") ?? undefined,
-        client: localStorage.getItem("client") ?? undefined,
-        uid: localStorage.getItem("uid") ?? undefined,
-        tokenType: localStorage.getItem("token-type") ?? undefined,
-        expiry: localStorage.getItem("expiry") ?? undefined,
-      };
-    } catch {
-      return {};
-    }
-  })();
+  const initialTokens = tokenStorage.load();
 
-  const [authed, setAuthed] = useState<boolean>(
-    !!(initialTokens.at && initialTokens.client && initialTokens.uid)
-  );
+  const [authed, setAuthed] = useState<boolean>(tokenStorage.isValid(initialTokens));
   const [uid, setUid] = useState<string | null>(initialTokens.uid ?? null);
   const [name, setName] = useState<string | null>(null);
 
@@ -103,7 +82,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   // ---- ユーティリティ ----
   const applyTokensToAxios = useCallback((tokens: TokenBundle) => {
     const { at, client, uid, tokenType } = tokens;
-    const type = tokenType || localStorage.getItem("token-type") || "Bearer";
+    const type = tokenType || "Bearer";
 
     if (at) {
       (api.defaults.headers.common as any)["access-token"] = at;
@@ -122,40 +101,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     else delete (api.defaults.headers.common as any)["uid"];
   }, []);
 
-  const saveTokens = useCallback((tokens: TokenBundle) => {
-    if (tokens.at) localStorage.setItem("access-token", tokens.at);
-    else localStorage.removeItem("access-token");
-
-    if (tokens.client) localStorage.setItem("client", tokens.client);
-    else localStorage.removeItem("client");
-
-    if (tokens.uid) localStorage.setItem("uid", tokens.uid);
-    else localStorage.removeItem("uid");
-
-    if (tokens.tokenType) localStorage.setItem("token-type", tokens.tokenType);
-    else localStorage.removeItem("token-type");
-
-    if (tokens.expiry) localStorage.setItem("expiry", tokens.expiry);
-    else localStorage.removeItem("expiry");
-  }, []);
-
-  const loadTokens = useCallback((): TokenBundle => {
-    return {
-      at: localStorage.getItem("access-token") ?? undefined,
-      client: localStorage.getItem("client") ?? undefined,
-      uid: localStorage.getItem("uid") ?? undefined,
-      tokenType: localStorage.getItem("token-type") ?? undefined,
-      expiry: localStorage.getItem("expiry") ?? undefined,
-    };
-  }, []);
-
   const clearTokens = useCallback(() => {
-    saveTokens({});
+    tokenStorage.clear();
     applyTokensToAxios({});
     setAuthed(false);
     setUid(null);
     setName(null);
-  }, [saveTokens, applyTokensToAxios]);
+  }, [applyTokensToAxios]);
 
   // 初期トークンを axios に適用
   useEffect(() => {
@@ -186,7 +138,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         startedAt,
         lastSavedAtRef,
         applyTokensToAxios,
-        saveTokens
+        tokenStorage.save.bind(tokenStorage)
       );
 
       const headerUid =
@@ -198,7 +150,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       setUid(headerUid ?? email);
       fetchMe();
     },
-    [applyTokensToAxios, saveTokens, fetchMe]
+    [applyTokensToAxios, fetchMe]
   );
 
   // ---- 追加：ゲストログイン（/guest/login）----
@@ -213,23 +165,23 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       startedAt,
       lastSavedAtRef,
       applyTokensToAxios,
-      saveTokens
+      tokenStorage.save.bind(tokenStorage)
     );
 
     // 2) 念のため：ボディ発行型にも対応（将来拡張）
     const b: any = res.data || {};
     if (b?.token && (b?.uid || b?.email) && b?.client) {
-      saveTokens({
+      tokenStorage.save({
         at: b.token,
         client: b.client,
         uid: b.uid || b.email,
         tokenType: b.token_type || "Bearer",
         expiry: b.expiry ? String(b.expiry) : undefined,
       });
-      applyTokensToAxios(loadTokens());
+      applyTokensToAxios(tokenStorage.load());
     }
 
-    const t = loadTokens();
+    const t = tokenStorage.load();
     if (!t.at || !t.client || !t.uid) {
       throw new Error("Guest token not issued");
     }
@@ -237,7 +189,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthed(true);
     setUid(t.uid!);
     fetchMe();
-  }, [applyTokensToAxios, saveTokens, loadTokens, fetchMe]);
+  }, [applyTokensToAxios, fetchMe]);
 
   const signOut = useCallback(
     async (silent = false) => {
@@ -275,10 +227,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const reqId = api.interceptors.request.use((config) => {
       const headers = AxiosHeaders.from(config.headers);
 
-      const at = localStorage.getItem("access-token");
-      const client = localStorage.getItem("client");
-      const luid = localStorage.getItem("uid");
-      const tokenType = localStorage.getItem("token-type") || "Bearer";
+      const tokens = tokenStorage.load();
+      const { at, client, uid: luid, tokenType = "Bearer" } = tokens;
 
       if (at && client && luid) {
         headers.set("access-token", at);

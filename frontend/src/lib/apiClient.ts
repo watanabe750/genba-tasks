@@ -6,6 +6,7 @@ import axios, {
 } from "axios";
 import type { InternalAxiosRequestConfig, AxiosResponse } from "axios";
 import { demoStore } from "./demoStore";
+import { tokenStorage } from "./tokenStorage";
 
 /** ===== Base URL =====
  * .env: VITE_API_BASE_URL="https://xxxx.execute-api.ap-northeast-1.amazonaws.com/prod"
@@ -58,11 +59,7 @@ export function saveAuthFromHeaders(headers: AxiosResponseHeaders | Headers) {
   const expiry = getter("expiry");
 
   if (at && client && uid) {
-    localStorage.setItem("access-token", at);
-    localStorage.setItem("client", client);
-    localStorage.setItem("uid", uid);
-    if (tokenType) localStorage.setItem("token-type", tokenType);
-    if (expiry) localStorage.setItem("expiry", expiry);
+    tokenStorage.save({ at, client, uid, tokenType, expiry });
   }
 }
 
@@ -73,11 +70,9 @@ api.interceptors.request.use((config) => {
   // 以前のバックエンド互換のための /api 削除。API Gateway ではそのまま残る（/prod/...）
   const path = urlObj.pathname.replace(/^\/api(\/|$)/, "/");
 
-  const at = localStorage.getItem("access-token");
-  const client = localStorage.getItem("client");
-  const uid = localStorage.getItem("uid");
-  const tokenType = localStorage.getItem("token-type") || "Bearer";
-  const authed = !!(at && client && uid);
+  const tokens = tokenStorage.load();
+  const { at, client, uid, tokenType = "Bearer" } = tokens;
+  const authed = tokenStorage.isValid(tokens);
   const isWhitelisted = AUTH_WHITELIST.some((re) => re.test(path));
 
   if (!DEMO && !authed && !isWhitelisted) {
