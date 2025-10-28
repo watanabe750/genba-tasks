@@ -29,3 +29,22 @@ dist/
 build/
 coverage/
 /package-lock.json
+
+# === バックアップファイル ===
+*.bak
+*.backup
+*.old
+*~
+
+# === エディタの一時ファイル ===
+*.swp
+*.swo
+*.swn
+.*.sw[a-z]
+*.un~
+
+# === IDEの個人設定 ===
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
