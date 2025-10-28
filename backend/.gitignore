@@ -31,3 +31,15 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# === Kamal secrets ===
+/.kamal/secrets
+
+# === バックアップファイル ===
+*.bak
+*.old
+*~
+
+# === データベースダンプ ===
+*.sql
+*.dump
