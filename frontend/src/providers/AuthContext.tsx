@@ -101,6 +101,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     else delete (api.defaults.headers.common as any)["uid"];
   }, []);
 
+  const saveTokens = useCallback((tokens: TokenBundle) => {
+    tokenStorage.save(tokens);
+  }, []);
+
+  const loadTokens = useCallback(() => {
+    return tokenStorage.load();
+  }, []);
+
   const clearTokens = useCallback(() => {
     tokenStorage.clear();
     applyTokensToAxios({});
@@ -138,7 +146,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         startedAt,
         lastSavedAtRef,
         applyTokensToAxios,
-        tokenStorage.save.bind(tokenStorage)
+        saveTokens
       );
 
       const headerUid =
@@ -150,7 +158,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       setUid(headerUid ?? email);
       fetchMe();
     },
-    [applyTokensToAxios, fetchMe]
+    [applyTokensToAxios, saveTokens, fetchMe]
   );
 
   // ---- 追加：ゲストログイン（/guest/login）----
@@ -165,23 +173,23 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       startedAt,
       lastSavedAtRef,
       applyTokensToAxios,
-      tokenStorage.save.bind(tokenStorage)
+      saveTokens
     );
 
     // 2) 念のため：ボディ発行型にも対応（将来拡張）
     const b: any = res.data || {};
     if (b?.token && (b?.uid || b?.email) && b?.client) {
-      tokenStorage.save({
+      saveTokens({
         at: b.token,
         client: b.client,
         uid: b.uid || b.email,
         tokenType: b.token_type || "Bearer",
         expiry: b.expiry ? String(b.expiry) : undefined,
       });
-      applyTokensToAxios(tokenStorage.load());
+      applyTokensToAxios(loadTokens());
     }
 
-    const t = tokenStorage.load();
+    const t = loadTokens();
     if (!t.at || !t.client || !t.uid) {
       throw new Error("Guest token not issued");
     }
@@ -189,7 +197,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthed(true);
     setUid(t.uid!);
     fetchMe();
-  }, [applyTokensToAxios, fetchMe]);
+  }, [applyTokensToAxios, saveTokens, loadTokens, fetchMe]);
 
   const signOut = useCallback(
     async (silent = false) => {
@@ -227,7 +235,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const reqId = api.interceptors.request.use((config) => {
       const headers = AxiosHeaders.from(config.headers);
 
-      const tokens = tokenStorage.load();
+      const tokens = loadTokens();
       const { at, client, uid: luid, tokenType = "Bearer" } = tokens;
 
       if (at && client && luid) {
