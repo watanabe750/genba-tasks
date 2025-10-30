@@ -5,43 +5,32 @@ import useAuth from "../providers/useAuth";
 type FieldErr = string | null;
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function takeAuthFrom(): string | null {
-  try {
-    const v = sessionStorage.getItem("auth:from");
-    if (v) sessionStorage.removeItem("auth:from");
-    return v;
-  } catch {
-    return null;
-  }
-}
-
-export default function Login() {
-  const { authed, signIn, guestSignIn } = useAuth(); // ← 追加
+export default function Register() {
+  const { authed, signUp } = useAuth();
   const nav = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [errTop, setErrTop] = useState<string | null>(null);
+  const [errName, setErrName] = useState<FieldErr>(null);
   const [errEmail, setErrEmail] = useState<FieldErr>(null);
   const [errPw, setErrPw] = useState<FieldErr>(null);
-
-  // 期限切れ通知
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem("auth:expired") === "1") {
-        setErrTop("セッションの有効期限が切れました。もう一度ログインしてください。");
-        sessionStorage.removeItem("auth:expired");
-      }
-    } catch {/* ignore */}
-  }, []);
+  const [errPwConfirm, setErrPwConfirm] = useState<FieldErr>(null);
 
   // 既ログインなら /tasks
   useEffect(() => {
     if (authed) nav("/tasks", { replace: true });
   }, [authed, nav]);
+
+  const nameInvalid = useMemo(() => {
+    if (name.trim() === "") return "名前を入力してください。";
+    return null;
+  }, [name]);
 
   const emailInvalid = useMemo(() => {
     if (email.trim() === "") return "メールアドレスを入力してください。";
@@ -50,51 +39,43 @@ export default function Login() {
   }, [email]);
 
   const pwInvalid = useMemo(() => {
-    if (pw.trim() === "") return "パスワードを入力してください。";
+    if (password.trim() === "") return "パスワードを入力してください。";
+    if (password.length < 6) return "パスワードは6文字以上で入力してください。";
     return null;
-  }, [pw]);
+  }, [password]);
+
+  const pwConfirmInvalid = useMemo(() => {
+    if (passwordConfirmation.trim() === "") return "パスワード（確認）を入力してください。";
+    if (password !== passwordConfirmation) return "パスワードが一致しません。";
+    return null;
+  }, [password, passwordConfirmation]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrTop(null);
 
+    const nErr = nameInvalid;
     const eErr = emailInvalid;
     const pErr = pwInvalid;
+    const pcErr = pwConfirmInvalid;
+
+    setErrName(nErr);
     setErrEmail(eErr);
     setErrPw(pErr);
-    if (eErr || pErr) return;
+    setErrPwConfirm(pcErr);
+
+    if (nErr || eErr || pErr || pcErr) return;
 
     setSubmitting(true);
     try {
-      await signIn(email.trim(), pw);
-
-      try {
-        sessionStorage.removeItem("auth:demo");
-        window.dispatchEvent(new Event("auth:refresh"));
-      } catch {/* ignore */}
-
-      const dest = takeAuthFrom() || "/tasks";
-      nav(dest, { replace: true });
+      await signUp(name.trim(), email.trim(), password, passwordConfirmation);
+      nav("/tasks", { replace: true });
     } catch (err: any) {
       const msg =
-        err?.response?.data?.errors?.[0] ??
+        err?.response?.data?.errors?.full_messages?.[0] ??
         err?.message ??
-        "ログインに失敗しました。メールアドレスまたはパスワードをご確認ください。";
+        "登録に失敗しました。もう一度お試しください。";
       setErrTop(String(msg));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleDemo() {
-    setErrTop(null);
-    setSubmitting(true);
-    try {
-      // 本番デモ：APIの /guest/login を叩いてトークン保存
-      await guestSignIn();
-      nav("/tasks", { replace: true });
-    } catch {
-      setErrTop("ゲストログインに失敗しました。しばらくしてからお試しください。");
     } finally {
       setSubmitting(false);
     }
@@ -104,20 +85,46 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="bg-white shadow rounded-2xl p-6">
-          <h1 className="text-2xl font-bold text-gray-900 text-center">Genba Tasks</h1>
-          <p className="text-sm text-gray-600 text-center mt-1">現場タスクを“見える化”</p>
+          <h1 className="text-2xl font-bold text-gray-900 text-center">新規登録</h1>
+          <p className="text-sm text-gray-600 text-center mt-1">Genba Tasks アカウント作成</p>
 
           {errTop && (
             <div
               role="alert"
               className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-              data-testid="login-error-banner"
+              data-testid="register-error-banner"
             >
               {errTop}
             </div>
           )}
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                名前
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none
+                  ${errName ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                aria-invalid={!!errName}
+                aria-describedby={errName ? "name-error" : undefined}
+                disabled={submitting}
+                required
+                autoFocus
+              />
+              {errName && (
+                <p id="name-error" className="mt-1 text-xs text-red-600">
+                  {errName}
+                </p>
+              )}
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 メールアドレス
@@ -135,7 +142,6 @@ export default function Login() {
                 aria-describedby={errEmail ? "email-error" : undefined}
                 disabled={submitting}
                 required
-                autoFocus
               />
               {errEmail && (
                 <p id="email-error" className="mt-1 text-xs text-red-600">
@@ -153,11 +159,11 @@ export default function Login() {
                   id="password"
                   name="password"
                   type={showPw ? "text" : "password"}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   className={`block w-full rounded-md border px-3 py-2 pr-20 text-sm outline-none
                     ${errPw ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
-                  value={pw}
-                  onChange={(e) => setPw(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   aria-invalid={!!errPw}
                   aria-describedby={errPw ? "password-error" : undefined}
                   disabled={submitting}
@@ -179,7 +185,32 @@ export default function Login() {
               )}
             </div>
 
-            <div className="space-y-2 pt-2">
+            <div>
+              <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">
+                パスワード（確認）
+              </label>
+              <input
+                id="password_confirmation"
+                name="password_confirmation"
+                type={showPw ? "text" : "password"}
+                autoComplete="new-password"
+                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none
+                  ${errPwConfirm ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                value={passwordConfirmation}
+                onChange={(e) => setPasswordConfirmation(e.target.value)}
+                aria-invalid={!!errPwConfirm}
+                aria-describedby={errPwConfirm ? "password-confirm-error" : undefined}
+                disabled={submitting}
+                required
+              />
+              {errPwConfirm && (
+                <p id="password-confirm-error" className="mt-1 text-xs text-red-600">
+                  {errPwConfirm}
+                </p>
+              )}
+            </div>
+
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={submitting}
@@ -191,31 +222,21 @@ export default function Login() {
                     <path d="M22 12a10 10 0 0 1-10 10" fill="none" stroke="currentColor" strokeWidth="4" />
                   </svg>
                 )}
-                ログイン
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDemo}
-                disabled={submitting}
-                className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
-                data-testid="login-guest-button"
-              >
-                ゲストユーザーで試す
+                登録
               </button>
             </div>
           </form>
 
           <p className="mt-4 text-center text-xs text-gray-600">
-            アカウントをお持ちでない方は{" "}
-            <a href="/register" className="text-blue-600 hover:underline">
-              新規登録
+            すでにアカウントをお持ちですか？{" "}
+            <a href="/login" className="text-blue-600 hover:underline">
+              ログイン
             </a>
           </p>
         </div>
 
         <p className="mt-3 text-center text-xs text-gray-500">
-          このページは保護されています。未ログインの場合はログインが必要です。
+          登録することで、利用規約とプライバシーポリシーに同意したものとみなされます。
         </p>
       </div>
     </div>

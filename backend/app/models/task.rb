@@ -30,47 +30,25 @@ class Task < ApplicationRecord
   before_validation :set_position_at_end, on: :create
   before_validation :set_position_at_end_on_parent_change, on: :update, if: -> { will_save_change_to_parent_id? }
 
-  # 子のprogress変更 / 親付け替え / 削除 を拾う
-  after_save    :update_parent_progress_if_needed
-  after_destroy :update_parent_progress
-
-  # ---------- ロールアップ（確定後に実行） ----------
+  # ---------- 進捗ロールアップ（確定後に実行） ----------
+  # after_commitに統一することでレースコンディションを回避
   after_commit :recalc_new_parent,        on: [:create, :update]
   after_commit :recalc_old_parent,        on: :update, if: -> { saved_change_to_parent_id? }
   after_commit :recalc_parent_on_destroy, on: :destroy
 
   def recalc_new_parent
-    parent&.recalc_from_children!
+    TaskProgressService.recalculate_with_propagation!(parent) if parent.present?
   end
 
   def recalc_old_parent
     old_id = parent_id_before_last_save
-    Task.find_by(id: old_id)&.recalc_from_children! if old_id.present?
+    old_parent = Task.find_by(id: old_id)
+    TaskProgressService.recalculate_with_propagation!(old_parent) if old_parent.present?
   end
 
   def recalc_parent_on_destroy
-    Task.find_by(id: parent_id)&.recalc_from_children!
-  end
-
-  # 親自身を子のprogress平均で更新し、祖先へ伝播
-  def recalc_from_children!
-    if children.exists?
-      avg = children.average(:progress).to_f
-      all_done = !children.where.not(status: :completed).exists?
-  
-      updates = { progress: avg.round }
-      if all_done
-        updates[:status] = :completed unless status == "completed"
-      else
-        updates[:status] = :in_progress if status == "completed"
-      end
-      update_columns(updates) unless updates.empty?
-    else
-      # 子が居ない場合は progress だけ0に（status はユーザー操作優先）
-      update_columns(progress: 0) if (progress || 0) != 0
-    end
-  
-    parent&.recalc_from_children!
+    parent_task = Task.find_by(id: parent_id)
+    TaskProgressService.recalculate_with_propagation!(parent_task) if parent_task.present?
   end
   # -----------------------------------------------
 
@@ -155,20 +133,6 @@ class Task < ApplicationRecord
     }
   end
 
-  # 親のprogressを「子のprogressの平均」で更新（再帰）
-  def update_parent_progress
-    return unless parent
-
-    if parent.children.exists?
-      avg = parent.children.average(:progress).to_f
-      parent.update_column(:progress, avg.round)
-    else
-      parent.update_column(:progress, 0)
-    end
-
-    parent.update_parent_progress if parent.parent.present?
-  end
-
   # S3の署名付きURL（期限付き）を返す。未添付なら nil。
   def image_url(expires_in: 15.minutes)
     return nil unless image.attached?
@@ -211,16 +175,5 @@ class Task < ApplicationRecord
   # 新規 or 親付け替え時だけチェックする
   def validate_children_limit?
     parent_id.present? && (new_record? || will_save_change_to_parent_id?)
-  end
-
-  # progress/parent_id/status の変更で発火（親付け替え時は旧親も再計算）
-  def update_parent_progress_if_needed
-    if saved_change_to_progress? || saved_change_to_parent_id? || saved_change_to_status?
-      if saved_change_to_parent_id?
-        old_parent_id, _new_parent_id = saved_change_to_parent_id
-        Task.find_by(id: old_parent_id)&.update_parent_progress if old_parent_id.present?
-      end
-      parent&.update_parent_progress
-    end
   end
 end

@@ -21,6 +21,7 @@ export type AuthContextValue = {
   uid: string | null;
   name: string | null;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>;
   signOut: (silent?: boolean) => Promise<void>;
   guestSignIn: () => Promise<void>;
 };
@@ -156,6 +157,39 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setAuthed(true);
       setUid(headerUid ?? email);
+      fetchMe();
+    },
+    [applyTokensToAxios, saveTokens, fetchMe]
+  );
+
+  // ---- 追加：ユーザー登録（/auth）----
+  const signUp = useCallback(
+    async (name: string, email: string, password: string, passwordConfirmation: string) => {
+      const startedAt = Date.now();
+      const res = await api.post("auth", {
+        name,
+        email,
+        password,
+        password_confirmation: passwordConfirmation,
+      });
+
+      saveTokensFromHeaders(
+        (res.headers as AxiosResponseHeaders) ||
+          (res.headers as RawAxiosResponseHeaders),
+        startedAt,
+        lastSavedAtRef,
+        applyTokensToAxios,
+        saveTokens
+      );
+
+      const headerUid =
+        typeof (res.headers as any)["uid"] === "string"
+          ? (res.headers as any)["uid"]
+          : undefined;
+
+      setAuthed(true);
+      setUid(headerUid ?? email);
+      setName(name);
       fetchMe();
     },
     [applyTokensToAxios, saveTokens, fetchMe]
@@ -381,8 +415,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [applyTokensToAxios, clearTokens, loadTokens, fetchMe]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ authed, uid, name, signIn, signOut, guestSignIn }),
-    [authed, uid, name, signIn, signOut, guestSignIn]
+    () => ({ authed, uid, name, signIn, signUp, signOut, guestSignIn }),
+    [authed, uid, name, signIn, signUp, signOut, guestSignIn]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

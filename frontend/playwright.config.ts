@@ -33,6 +33,7 @@ export default defineConfig({
       testIgnore: [
         /tests\/\.auth\/setup\.spec\.ts/,
         /tests\/auth\.spec\.ts/,
+        /tests\/registration-ui-only\.spec\.ts/,
       ],
     },
 
@@ -42,6 +43,13 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["setup"],
       testMatch: [/tests\/auth\.spec\.ts/],
+    },
+
+    // 4) UI専用テスト（バックエンドAPIなし）
+    {
+      name: "chromium-ui-only",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: [/tests\/.*-ui-only\.spec\.ts/],
     },
   ],
 });
