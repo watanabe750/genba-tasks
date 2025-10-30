@@ -27,7 +27,7 @@ const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
 /** 認証不要で通すパス */
 const AUTH_WHITELIST = [
-  /^\/auth\//,
+  /^\/auth(?:\/|$)/, // /auth と /auth/ で始まるパスを許可（登録: POST /auth, ログイン: POST /auth/sign_in）
   /^\/omniauth\//,
   /^\/healthz?$/,
   /\/guest\/login$/, // ← 末尾が /guest/login なら許可（/prod/guest/login も通る）

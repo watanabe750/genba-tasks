@@ -148,10 +148,10 @@ export default function Home() {
 
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => nav("/login")}
+                    onClick={() => nav("/register")}
                     className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-white font-medium shadow-sm hover:bg-blue-700 active:scale-[0.99] transition"
                   >
-                    今すぐログイン
+                    今すぐ始める
                   </button>
                   <button
                     onClick={handleGuest}
@@ -161,6 +161,16 @@ export default function Home() {
                     ゲストユーザーで試す
                   </button>
                 </div>
+
+                <p className="mt-3 text-sm text-gray-600">
+                  すでにアカウントをお持ちの方は{" "}
+                  <button
+                    onClick={() => nav("/login")}
+                    className="text-blue-600 hover:underline"
+                  >
+                    ログイン
+                  </button>
+                </p>
 
                 <div className="mt-5 flex flex-wrap gap-2 text-xs text-gray-700">
                   {[
@@ -370,10 +380,10 @@ export default function Home() {
 
           <div className="mx-auto mt-10 max-w-6xl px-4 text-center">
             <button
-              onClick={() => nav("/login")}
+              onClick={() => nav("/register")}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-white font-medium shadow hover:bg-emerald-700 active:scale-[0.99] transition"
             >
-              開始
+              今すぐ始める
             </button>
           </div>
         </section>
