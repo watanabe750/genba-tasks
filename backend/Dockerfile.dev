@@ -21,4 +21,12 @@ COPY Gemfile Gemfile.lock ./
 RUN bundle config set force_ruby_platform true \
  && bundle install
 
+# アプリ本体を最後にCOPY
+COPY . .
+
+# エントリポイントを実行可能に
+RUN chmod +x ./bin/compose-entrypoint.sh
+
 EXPOSE 3000
+
+ENTRYPOINT ["bash", "-lc", "./bin/compose-entrypoint.sh"]

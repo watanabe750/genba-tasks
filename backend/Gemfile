@@ -41,8 +41,8 @@ gem 'rack-cors', require: 'rack/cors'
 gem 'rack-attack', require: 'rack/attack'
 
 group :development, :test do
-  # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  # Rails 8系ではdebug gemが必須。Docker環境ではplatform指定を外す！
+  gem "debug"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false

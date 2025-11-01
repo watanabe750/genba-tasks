@@ -1,3 +1,4 @@
+version: "3.9"
 
 services:
   db:
@@ -22,7 +23,7 @@ services:
   api:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev        # ← dev用Dockerfileを明示
+      dockerfile: Dockerfile.dev
     environment:
       RAILS_ENV: development
       DB_HOST: db
@@ -39,6 +40,7 @@ services:
     volumes:
       - ./backend:/rails
       - bundle-cache:/usr/local/bundle
+    # ENTRYPOINTでcompose-entrypoint.shを実行する構成
     command: ["bash", "-lc", "./bin/compose-entrypoint.sh"]
 
   front:
@@ -56,11 +58,13 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    command: ["sh","-lc","pnpm config set store-dir /root/.local/share/pnpm/store --global && pnpm install --no-frozen-lockfile && pnpm dev --host 0.0.0.0"]
-
-
+    command:
+      [
+        "sh",
+        "-lc",
+        "pnpm config set store-dir /root/.local/share/pnpm/store --global && pnpm install --no-frozen-lockfile && pnpm dev --host 0.0.0.0"
+      ]
 
 volumes:
   db-data:
   bundle-cache:
-
