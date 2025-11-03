@@ -20,10 +20,10 @@ Rails.application.configure do
   config.active_storage.service = :amazon
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = false
-  config.force_ssl  = false
-  # ※ 将来 HTTPS 化したら true に戻すか、/up だけ除外:
-  # config.ssl_options = { redirect: { exclude: ->(req) { req.path == "/up" } } }
+  config.assume_ssl = true
+  config.force_ssl  = true
+  # ヘルスチェックパスだけSSLリダイレクトから除外
+  config.ssl_options = { redirect: { exclude: ->(req) { req.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [:request_id]
