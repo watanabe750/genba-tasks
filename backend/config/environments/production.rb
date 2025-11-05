@@ -50,9 +50,12 @@ Rails.application.configure do
 
   # ===============================================================
 
-  # Mailer（必要に応じて設定）
+  # Mailer設定
   # config.action_mailer.raise_delivery_errors = false
-  config.action_mailer.default_url_options = { host: "example.com" }
+  config.action_mailer.default_url_options = {
+    host: ENV.fetch("APP_HOST", "app.genba-tasks.com"),
+    protocol: 'https'
+  }
   # config.action_mailer.smtp_settings = { ... }
 
   # I18n fallbacks
@@ -64,7 +67,11 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [:id]
 
-  # Host header protection（必要に応じて許可ホストを設定）
-  # config.hosts = ["example.com", /.*\.example\.com/]
-  # config.host_authorization = { exclude: ->(req) { req.path == "/up" } }
+  # Host header protection - Host Headerインジェクション攻撃を防止
+  config.hosts = [
+    ENV.fetch("APP_HOST", "app.genba-tasks.com"),
+    /.*\.genba-tasks\.com/  # サブドメインも許可 (例: staging.genba-tasks.com)
+  ]
+  # ヘルスチェックエンドポイントは例外（ロードバランサーからのアクセスを許可）
+  config.host_authorization = { exclude: ->(req) { req.path == "/up" } }
 end
