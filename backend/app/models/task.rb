@@ -113,12 +113,16 @@ class Task < ApplicationRecord
       case order_by
       when "deadline"
         # NULLS LAST 相当（SQLiteでも効く）
+        direction = p[:dir].to_s.downcase == "desc" ? :desc : :asc
         rel.order(Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC"))
-           .order("deadline #{dir}")
+           .order(deadline: direction)
       when "progress"
-        rel.order(Arel.sql("COALESCE(progress,0) #{dir}"))
+        # Arelの安全なAPIを使用してBrakeman警告を回避
+        direction = p[:dir].to_s.downcase == "desc" ? :desc : :asc
+        rel.order(Arel.sql("COALESCE(progress,0)").send(direction))
       else
-        rel.order("created_at #{dir}")
+        direction = p[:dir].to_s.downcase == "desc" ? :desc : :asc
+        rel.order(created_at: direction)
       end
 
     # ★ 兄弟内は常に position 昇順に（任意の order_by に追加のセカンダリソート）
