@@ -25,6 +25,8 @@ export function TaskRowEdit({ task, onCancel }: Props) {
     setDeadline,
     status,
     setStatus,
+    description,
+    setDescription,
     save,
     cancel,
   } = useTaskEditing(task);
@@ -94,6 +96,15 @@ export function TaskRowEdit({ task, onCancel }: Props) {
           </option>
         ))}
       </select>
+
+      <textarea
+        aria-label="説明"
+        className="w-full rounded border p-2 text-sm sm:col-span-3 min-h-[80px]"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="詳細な説明やメモを入力..."
+        rows={3}
+      />
 
       <div className="flex gap-2 sm:col-span-3">
         <button

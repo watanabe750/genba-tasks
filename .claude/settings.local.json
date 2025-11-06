@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/watanabe/Desktop/genba-task push -u origin refactor/unify-token-storage)",
+      "Bash(git -C /Users/watanabe/Desktop/genba-task fetch --prune)",
+      "Bash(bundle exec rails:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
