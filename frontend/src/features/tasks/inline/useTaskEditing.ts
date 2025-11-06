@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { TaskNode } from "../../../types";
 import { useUpdateTask } from "../useUpdateTask";
 import { brandIso } from "../../../lib/brandIso";
@@ -19,7 +19,7 @@ export function useTaskEditing(task: TaskNode) {
 
   const isLeaf = (task.children ?? []).length === 0;
 
-  const save = () => {
+  const save = useCallback(() => {
     const payload: Partial<Pick<TaskNode, "title" | "deadline" | "status" | "progress" | "description">> = {
       title: title.trim(),
       deadline: brandIso(deadline ? new Date(`${deadline}T00:00:00`).toISOString() : null),
@@ -29,15 +29,15 @@ export function useTaskEditing(task: TaskNode) {
     };
     update({ id: task.id, data: payload });
     setEditing(false);
-  };
+  }, [title, deadline, status, description, isLeaf, task.progress, task.id, update]);
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     setTitle(task.title);
     setDeadline(toDateInputValue(task.deadline));
     setStatus(task.status);
     setDescription(task.description ?? "");
     setEditing(false);
-  };
+  }, [task.title, task.deadline, task.status, task.description]);
 
   return {
     editing,

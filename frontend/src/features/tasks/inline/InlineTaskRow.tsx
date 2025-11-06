@@ -3,6 +3,7 @@ import {
   useMemo,
   useState,
   useLayoutEffect,
+  useCallback,
   type DragEvent,
   useRef,
 } from "react";
@@ -69,6 +70,11 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
   const titleRef = useRef<HTMLSpanElement | null>(null);
 
   const thumbSrc = isParent ? demoImageStore.get(task.id) : undefined;
+
+  // 編集モード終了のコールバックを安定化
+  const handleEditCancel = useCallback(() => {
+    setEditing(false);
+  }, []);
 
   // === 子タスク追加ロジック ===
   const submitChild = () => {
@@ -293,7 +299,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
         {/* 左カラム：タイトル＆メタ */}
         <div className="min-w-0 flex-1">
           {editing ? (
-            <TaskRowEdit task={task} onCancel={() => setEditing(false)} />
+            <TaskRowEdit task={task} onCancel={handleEditCancel} />
           ) : (
             <TaskRowDisplay
               task={task}
