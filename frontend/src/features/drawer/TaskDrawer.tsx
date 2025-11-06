@@ -225,6 +225,18 @@ function TaskDrawerInner({
                 </div>
               </div>
 
+              {/* 説明欄 */}
+              {data.description && (
+                <div className="mb-4 rounded-md bg-gray-50 p-3">
+                  <div className="mb-1 text-xs font-medium text-gray-500">
+                    説明
+                  </div>
+                  <div className="whitespace-pre-wrap text-[13px] text-gray-800">
+                    {data.description}
+                  </div>
+                </div>
+              )}
+
               {/* 3行目：子サマリ */}
               <div className="mb-3 text-[13px]">
                 <span className="text-gray-500">子タスク</span>{" "}

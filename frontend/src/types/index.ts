@@ -15,6 +15,7 @@ export type SortDir = "asc" | "desc";
 export type Task = {
   id: number;
   title: string;
+  description?: string | null;  // タスクの詳細説明
   status: Status;
   progress: number;             // 0..100
   deadline: IsoDateString | null;
@@ -52,7 +53,7 @@ export type CreateTaskPayload = {
 };
 
 export type UpdateTaskPayload = {
-  task: Partial<Pick<Task, "status" | "progress" | "title" | "deadline">>;
+  task: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "description">>;
 };
 
 // ==== ここから 詳細ドロワー用型を追加 ====
@@ -70,6 +71,7 @@ export type ChildPreview = {
 export type TaskDetail = {
   id: number;
   title: string;
+  description?: string | null;
   status: Status;
   site: string | null;
   deadline: IsoDateString | null;

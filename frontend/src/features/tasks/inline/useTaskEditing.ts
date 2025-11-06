@@ -13,17 +13,19 @@ export function useTaskEditing(task: TaskNode) {
   const [title, setTitle] = useState(task.title);
   const [deadline, setDeadline] = useState(toDateInputValue(task.deadline));
   const [status, setStatus] = useState<TaskNode["status"]>(task.status);
+  const [description, setDescription] = useState(task.description ?? "");
 
   const { mutate: update } = useUpdateTask();
 
   const isLeaf = (task.children ?? []).length === 0;
 
   const save = () => {
-    const payload: Partial<Pick<TaskNode, "title" | "deadline" | "status" | "progress">> = {
+    const payload: Partial<Pick<TaskNode, "title" | "deadline" | "status" | "progress" | "description">> = {
       title: title.trim(),
       deadline: brandIso(deadline ? new Date(`${deadline}T00:00:00`).toISOString() : null),
       status,
       progress: status === "completed" ? 100 : isLeaf ? 0 : task.progress ?? 0,
+      description: description.trim() || undefined,
     };
     update({ id: task.id, data: payload });
     setEditing(false);
@@ -33,6 +35,7 @@ export function useTaskEditing(task: TaskNode) {
     setTitle(task.title);
     setDeadline(toDateInputValue(task.deadline));
     setStatus(task.status);
+    setDescription(task.description ?? "");
     setEditing(false);
   };
 
@@ -45,6 +48,8 @@ export function useTaskEditing(task: TaskNode) {
     setDeadline,
     status,
     setStatus,
+    description,
+    setDescription,
     save,
     cancel,
   };
