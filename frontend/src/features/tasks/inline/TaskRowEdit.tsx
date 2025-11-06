@@ -55,11 +55,11 @@ export function TaskRowEdit({ task, onCancel }: Props) {
     });
   };
 
-  // クリックアウトサイドでキャンセル
+  // クリックアウトサイドで保存
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
-        handleCancel();
+        save();
       }
     };
 
@@ -68,7 +68,7 @@ export function TaskRowEdit({ task, onCancel }: Props) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [handleCancel]);
+  }, [save]);
 
   return (
     <form
