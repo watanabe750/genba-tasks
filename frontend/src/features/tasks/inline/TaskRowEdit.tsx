@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from "react";
 import type { TaskNode } from "../../../types";
 import { useTaskEditing } from "./useTaskEditing";
 import { useCreateTask } from "../useCreateTask";
@@ -32,16 +33,17 @@ export function TaskRowEdit({ task, onCancel }: Props) {
   } = useTaskEditing(task);
 
   const { mutate: createTask, isPending: creating } = useCreateTask();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     save();
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     cancel();
     onCancel();
-  };
+  }, [cancel, onCancel]);
 
   const createSiblingBelow = () => {
     const isRoot = task.parent_id == null;
@@ -53,8 +55,24 @@ export function TaskRowEdit({ task, onCancel }: Props) {
     });
   };
 
+  // クリックアウトサイドでキャンセル
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (formRef.current && !formRef.current.contains(event.target as Node)) {
+        handleCancel();
+      }
+    };
+
+    // mousedownで検知（clickだとフォーム内でmousedown→外でmouseupした場合に誤作動する）
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [handleCancel]);
+
   return (
     <form
+      ref={formRef}
       className="grid max-sm:items-start grid-cols-1 gap-2 sm:grid-cols-[1fr,160px,140px]"
       onSubmit={handleSubmit}
     >
