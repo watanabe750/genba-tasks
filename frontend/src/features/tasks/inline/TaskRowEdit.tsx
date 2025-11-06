@@ -60,6 +60,7 @@ export function TaskRowEdit({ task, onCancel }: Props) {
     const handleClickOutside = (event: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
         save();
+        onCancel(); // 編集モードを終了
       }
     };
 
@@ -68,7 +69,7 @@ export function TaskRowEdit({ task, onCancel }: Props) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [save]);
+  }, [save, onCancel]);
 
   return (
     <form
