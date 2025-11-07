@@ -46,6 +46,13 @@ const Sidebar = () => {
 
   const selectSite = (site: string) => {
     const next = new URLSearchParams(sp);
+
+    // 他のフィルターパラメータをクリア
+    next.delete("status");
+    next.delete("progress_min");
+    next.delete("progress_max");
+    next.delete("parents_only");
+
     if (site) {
       next.set("site", site);
     } else {
@@ -56,7 +63,7 @@ const Sidebar = () => {
     if (location.pathname !== "/tasks") {
       navigate(`/tasks?${next.toString()}`, { replace: false });
     } else {
-      navigate(`?${next.toString()}`, { replace: true });
+      navigate(`?${next.toString()}`, { replace: false });
     }
   };
 
