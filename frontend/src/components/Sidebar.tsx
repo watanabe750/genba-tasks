@@ -112,7 +112,7 @@ const Sidebar = () => {
             className="flex items-center gap-1 w-full text-left font-medium mb-2 hover:text-blue-700"
           >
             <span className="text-xs">{showSitesLinks ? "▼" : "▶"}</span>
-            <span>📍 現場一覧</span>
+            <span>現場一覧</span>
           </button>
           {showSitesLinks && (
             <div className="flex flex-col gap-1.5 ml-4">
