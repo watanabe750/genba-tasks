@@ -1,5 +1,5 @@
 // src/components/Sidebar.tsx
-import { NavLink, useSearchParams } from "react-router-dom";
+import { NavLink, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useFilteredTasks } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
@@ -9,7 +9,9 @@ const Sidebar = () => {
   const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
   const enabled = authed || DEMO;
 
-  const [sp, setSp] = useSearchParams();
+  const [sp] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showTasksLinks, setShowTasksLinks] = useState(true);
   const [showSitesLinks, setShowSitesLinks] = useState(true);
 
@@ -49,7 +51,13 @@ const Sidebar = () => {
     } else {
       next.delete("site");
     }
-    setSp(next, { replace: true });
+
+    // /tasksページ以外にいる場合は、/tasksに遷移する
+    if (location.pathname !== "/tasks") {
+      navigate(`/tasks?${next.toString()}`, { replace: false });
+    } else {
+      navigate(`?${next.toString()}`, { replace: true });
+    }
   };
 
   return (
