@@ -4,7 +4,7 @@ import useAuth from "../../providers/useAuth";
 import { useUpdateTask } from "../tasks/useUpdateTask";
 import type { Task } from "../../types/task";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatDeadlineForDisplay } from "../../utils/date";
+import { formatDeadlineForDisplay, getDeadlineUrgency, formatDaysUntilDeadline } from "../../utils/date";
 
 const clamp = (n: number, min = 0, max = 100) =>
   Math.min(Math.max(n ?? 0, min), max);
@@ -99,9 +99,27 @@ export default function PriorityTasksPanel() {
                 >
                   {t.title}
                 </p>
-                <p className="text-xs text-blue-800/70 dark:text-blue-200/70">
-                  {formatDeadlineForDisplay(t.deadline)}・進捗 {Math.round(t.progress ?? 0)}%
-                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-blue-800/70 dark:text-blue-200/70">
+                    {formatDeadlineForDisplay(t.deadline)}
+                  </p>
+                  <span
+                    className={[
+                      "text-xs px-1.5 py-0.5 rounded font-semibold",
+                      getDeadlineUrgency(t.deadline) === "overdue" && "bg-red-500 text-white",
+                      getDeadlineUrgency(t.deadline) === "urgent" && "bg-orange-500 text-white",
+                      getDeadlineUrgency(t.deadline) === "warning" && "bg-yellow-500 text-white",
+                      getDeadlineUrgency(t.deadline) === "normal" && "bg-blue-500 text-white",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {formatDaysUntilDeadline(t.deadline)}
+                  </span>
+                  <span className="text-xs text-blue-800/70 dark:text-blue-200/70">
+                    進捗 {Math.round(t.progress ?? 0)}%
+                  </span>
+                </div>
                 <div className="mt-1 h-2 w-full rounded bg-blue-200/70 dark:bg-blue-900/50">
                   <div
                     className="h-2 rounded bg-blue-600 dark:bg-blue-400"
