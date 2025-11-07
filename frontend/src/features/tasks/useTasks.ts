@@ -1,4 +1,5 @@
 // src/features/tasks/useTasks.ts
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
@@ -23,15 +24,18 @@ export function useTasksFromUrl(enabled: boolean = true) {
   const status =
     statusRaw.length ? Array.from(new Set(statusRaw)).sort() : undefined;
 
-  const params = clean({
-    site: sp.get("site") ?? undefined,
+  const siteValue = sp.get("site");
+
+  // useMemo で params を安定化させて、React Query が確実に変更を検知するようにする
+  const params = useMemo(() => clean({
+    site: siteValue && siteValue.trim() !== "" ? siteValue : undefined,
     status,
     progress_min: toNum(sp.get("progress_min")),
     progress_max: toNum(sp.get("progress_max")),
     order_by: sp.get("order_by") ?? undefined,
     dir: sp.get("dir") ?? undefined,
     parents_only: sp.get("parents_only") === "1" ? "1" : undefined,
-  });
+  }), [siteValue, status, sp]);
 
   return useQuery<Task[]>({
     queryKey: ["tasks", params],
