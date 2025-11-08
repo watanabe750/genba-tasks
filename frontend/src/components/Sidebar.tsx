@@ -45,6 +45,7 @@ const Sidebar = () => {
   const currentSite = sp.get("site") ?? "";
 
   const selectSite = (site: string) => {
+    console.log("[Sidebar] selectSite called with:", site);
     const next = new URLSearchParams(sp);
 
     // 他のフィルターパラメータをクリア
@@ -58,6 +59,8 @@ const Sidebar = () => {
     } else {
       next.delete("site");
     }
+
+    console.log("[Sidebar] Navigating to:", next.toString());
 
     // /tasksページ以外にいる場合は、/tasksに遷移する
     if (location.pathname !== "/tasks") {

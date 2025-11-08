@@ -175,7 +175,10 @@ if (DEMO) {
     if (path === "/tasks" && method === "get") {
       // クエリパラメータを取得
       const site = u.searchParams.get("site") || undefined;
-      return ok(demoStore.list({ site }));
+      console.log("[DEMO] Fetching tasks with site filter:", site);
+      const tasks = demoStore.list({ site });
+      console.log("[DEMO] Filtered tasks count:", tasks.length);
+      return ok(tasks);
     }
     if (path === "/tasks" && method === "post") {
       const payload =
