@@ -173,7 +173,9 @@ if (DEMO) {
 
     // ---- 3) タスク一覧／作成 ----
     if (path === "/tasks" && method === "get") {
-      return ok(demoStore.list());
+      // クエリパラメータを取得
+      const site = u.searchParams.get("site") || undefined;
+      return ok(demoStore.list({ site }));
     }
     if (path === "/tasks" && method === "post") {
       const payload =

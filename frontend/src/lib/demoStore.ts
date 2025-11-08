@@ -241,7 +241,11 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
 })();
 
 export const demoStore = {
-  list(): Task[] { return read(); },
+  list(filters?: { site?: string }): Task[] {
+    const all = read();
+    if (!filters?.site) return all;
+    return all.filter(t => t.site === filters.site);
+  },
   create(payload: Partial<Task>): Task {
     const all = read();
     const t: Task = {
