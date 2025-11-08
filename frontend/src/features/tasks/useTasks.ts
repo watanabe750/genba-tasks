@@ -49,7 +49,7 @@ export function useTasksFromUrl(enabled: boolean = true) {
     },
     staleTime: 0,
     refetchOnMount: "always",
-    placeholderData: (prev) => prev,
+    // placeholderData を削除 - フィルター変更時に古いデータを表示し続けないため
   });
 }
 
