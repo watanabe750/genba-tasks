@@ -44,10 +44,11 @@ jobs:
         working-directory: frontend
         run: |
           echo "VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}" > .env.production
-          echo "VITE_DEMO_MODE=false" >> .env.production
+          echo "VITE_DEMO_MODE=true" >> .env.production
           # 任意：他の VITE_* を足すならここで
           # echo "VITE_OG_IMAGE=https://genba-tasks.com/og-home.png" >> .env.production
           echo "[env] VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}"
+          echo "[env] VITE_DEMO_MODE=true"
 
       - name: Build
         working-directory: frontend
