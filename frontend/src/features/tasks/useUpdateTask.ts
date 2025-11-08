@@ -62,14 +62,14 @@ export function useUpdateTask() {
 
     mutationFn: async ({ id, data }) => {
       if ("after_id" in data) {
-        const res = await api.patch<Task>(`/tasks/${id}`, {
+        const res = await api.patch<Task>(`/api/tasks/${id}`, {
           after_id: data.after_id ?? null,
         });
         return res.data;
       } else {
         const n = normalize(data);
         const payload: UpdateTaskPayload = { task: n };
-        const res = await api.patch<Task>(`/tasks/${id}`, payload);
+        const res = await api.patch<Task>(`/api/tasks/${id}`, payload);
         return res.data;
       }
     },

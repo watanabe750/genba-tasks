@@ -9,7 +9,7 @@ export function useTaskDetail(taskId?: number | null) {
     enabled: !!taskId,
     retry: false,
     queryFn: async () => {
-      const { data } = await api.get(`/tasks/${taskId}`);
+      const { data } = await api.get(`/api/tasks/${taskId}`);
       return data as TaskDetail;
     },
   });

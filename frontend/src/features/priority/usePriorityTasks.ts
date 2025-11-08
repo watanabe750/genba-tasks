@@ -4,7 +4,7 @@ import api from "../../lib/apiClient";
 import type { Task } from "../../types/task";
 
 async function fetchPriorityTasks(): Promise<Task[]> {
-  const { data } = await api.get<Task[]>("/tasks/priority");
+  const { data } = await api.get<Task[]>("/api/tasks/priority");
   return data;
 }
 

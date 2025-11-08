@@ -41,7 +41,7 @@ export function useTasksFromUrl(enabled: boolean = true) {
     queryKey: ["tasks", params],
     enabled,
     queryFn: async () => {
-      const { data } = await api.get<Task[]>("/tasks", {
+      const { data } = await api.get<Task[]>("/api/tasks", {
         params,
         paramsSerializer: { indexes: false }, // status[]= の index 付与なし
       });

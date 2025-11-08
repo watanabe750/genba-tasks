@@ -7,5 +7,5 @@ export async function reorderWithinParentApi(
   afterId: number | null
 ) {
   // Rails 側は { after_id } を素で受け取る
-  await api.patch(`/tasks/${movingId}/reorder`, { after_id: afterId });
+  await api.patch(`/api/tasks/${movingId}/reorder`, { after_id: afterId });
 }

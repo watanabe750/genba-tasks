@@ -30,7 +30,7 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
     },
   };
 
-  const { data } = await api.post<Task>("/tasks", payloadNested);
+  const { data } = await api.post<Task>("/api/tasks", payloadNested);
   return data;
 }
 

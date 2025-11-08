@@ -5,7 +5,7 @@ export function useSites(enabled = true) {
   return useQuery<string[], Error>({
     queryKey: ["sites"],
     queryFn: async () => {
-      const { data } = await api.get<string[]>("/tasks/sites");
+      const { data } = await api.get<string[]>("/api/tasks/sites");
       return data;
     },
     enabled,
