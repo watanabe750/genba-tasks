@@ -29,7 +29,7 @@ export default function TaskImagePanel({ taskId }: Props) {
     setLoading(true);
     setErr(null);
     try {
-      const res = await api.get(`/api/tasks/${taskId}`);
+      const res = await api.get(`/tasks/${taskId}`);
       const json = res.data;
       setData({
         image_url: json.image_url ?? null,
@@ -84,7 +84,7 @@ export default function TaskImagePanel({ taskId }: Props) {
       const fd = new FormData();
       fd.append("image", f, f.name);
       // apiClient 側インターセプタで multipart の Content-Type 自動付与
-      await api.post(`/api/tasks/${taskId}/image`, fd);
+      await api.post(`/tasks/${taskId}/image`, fd);
       await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: any) {
       const msg =
@@ -103,7 +103,7 @@ export default function TaskImagePanel({ taskId }: Props) {
     setUploading(true);
     setErr(null);
     try {
-      await api.delete(`/api/tasks/${taskId}/image`);
+      await api.delete(`/tasks/${taskId}/image`);
       await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: any) {
       const msg =

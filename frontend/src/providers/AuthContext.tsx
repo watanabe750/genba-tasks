@@ -128,7 +128,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchMe = useCallback(async () => {
     try {
-      const res = await api.get("api/me");
+      const res = await api.get("me");
       setName(res.data?.name ?? null);
       if (typeof res.data?.email === "string" && !uid) setUid(res.data.email);
     } catch {
@@ -139,7 +139,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string) => {
       const startedAt = Date.now();
-      const res = await api.post("api/auth/sign_in", { email, password });
+      const res = await api.post("auth/sign_in", { email, password });
 
       saveTokensFromHeaders(
         (res.headers as AxiosResponseHeaders) ||
@@ -236,7 +236,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(
     async (silent = false) => {
       try {
-        await api.delete("api/auth/sign_out");
+        await api.delete("auth/sign_out");
       } catch {
         /* ignore */
       } finally {

@@ -3,7 +3,7 @@ import api from "../../lib/apiClient";
 import type { Task } from "../../types/task";
 
 async function deleteTaskApi(id: number): Promise<void> {
-  await api.delete(`/api/tasks/${id}`);
+  await api.delete(`/tasks/${id}`);
 }
 
 export function useDeleteTask() {
