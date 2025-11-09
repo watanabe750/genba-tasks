@@ -52,8 +52,3 @@ export function useTasksFromUrl(enabled: boolean = true) {
     // placeholderData を削除 - フィルター変更時に古いデータを表示し続けないため
   });
 }
-
-// 既存呼び出し互換ラッパー（filters は無視して URL 同期に委譲）
-export function useFilteredTasks(_filters?: unknown, enabled: boolean = true) {
-  return useTasksFromUrl(enabled);
-}

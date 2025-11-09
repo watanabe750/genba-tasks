@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useCreateTask } from "../features/tasks/useCreateTask";
 import { brandIso } from "../lib/brandIso";
-import { useFilteredTasks } from "../features/tasks/useTasks";
+import { useTasksFromUrl } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
 
 const toISOorNull = (v: string): string | null =>
@@ -25,7 +25,7 @@ export default function NewParentTaskForm() {
   const siteInputRef = useRef<HTMLInputElement>(null);
 
   // 既存タスクから現場名を取得
-  const { data: tasks = [] } = useFilteredTasks({}, enabled);
+  const { data: tasks = [] } = useTasksFromUrl(enabled);
   const existingSites = useMemo(() => {
     const sites = new Set<string>();
     tasks.forEach((task) => {

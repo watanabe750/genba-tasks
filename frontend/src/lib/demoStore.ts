@@ -50,14 +50,8 @@ const IMG_B1_MOVEPLAN = "/demo/B1_moveplan.jpg";     // 現場B 機器搬入計�
 const IMG_B2_PANEL    = "/demo/B2_panel.jpg";        // 現場B 盤ラベル更新（盤内配線）
 const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（天井配管）
 
-// 初回シード（空 or 旧verなら親子孫＋画像を投入）
-(function seed() {
-  const cur = read();
-  const ver = localStorage.getItem("demo:ver");
-  if (cur.length !== 0 && ver === REQUIRED_VER) return;
-
-  const daysMap: DeadlineDaysMap = {}; // 相対日数を記録
-
+// データ生成関数
+function createDemoTaskData(daysMap: DeadlineDaysMap): Task[] {
   // ダミーの期限（実際の値は applyRelativeDeadlines で計算される）
   const DUMMY_DEADLINE = "2025-01-01T00:00:00.000Z";
 
@@ -254,14 +248,13 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
   const Z2_c2 = C(Z2.id, "メンテナンス契約締結", "現場Y", -7, "completed", 100);
   items.push(Z2_c1, Z2_c2);
 
-  // 書き込み＋相対日数マップ＋バージョン保存
-  write(items);
-  writeDeadlineDays(daysMap);
-  localStorage.setItem("demo:ver", REQUIRED_VER);
+  return items;
+}
 
-
+// 画像添付関数
+function attachDemoImages(tasks: Task[]): void {
   try {
-    const parents = items.filter(t => t.parent_id == null);
+    const parents = tasks.filter(t => t.parent_id == null);
     const byTitle = Object.fromEntries(parents.map(t => [t.title, t]));
     const attach = (title: string, url: string) => { const t = byTitle[title]; if (t) demoImageStore.set(t.id, url); };
 
@@ -272,6 +265,27 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
     attach("現場B 盤ラベル更新", IMG_B2_PANEL);
     attach("現場C 是正対応",    IMG_C1_FIX);
   } catch {}
+}
+
+// 初期化関数（IIFEから呼ばれる）
+function initializeDemoData(): void {
+  const cur = read();
+  const ver = localStorage.getItem("demo:ver");
+  if (cur.length !== 0 && ver === REQUIRED_VER) return;
+
+  const daysMap: DeadlineDaysMap = {};
+  const tasks = createDemoTaskData(daysMap);
+
+  write(tasks);
+  writeDeadlineDays(daysMap);
+  localStorage.setItem("demo:ver", REQUIRED_VER);
+
+  attachDemoImages(tasks);
+}
+
+// 初回シード（空 or 旧verなら親子孫＋画像を投入）
+(function seed() {
+  initializeDemoData();
 })();
 
 // 親タスクの進捗を子タスクから自動計算（TaskProgressService相当）
