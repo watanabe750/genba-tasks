@@ -80,8 +80,8 @@ function TaskDrawerInner({
   // 401連動：ログアウト時に閉じる
   useEffect(() => {
     const onLogout = () => close();
-    window.addEventListener("auth:logout", onLogout as any);
-    return () => window.removeEventListener("auth:logout", onLogout as any);
+    window.addEventListener("auth:logout", onLogout as EventListener);
+    return () => window.removeEventListener("auth:logout", onLogout as EventListener);
   }, [close]);
 
   // オーバーレイクリック（外側のみ）
@@ -95,8 +95,8 @@ function TaskDrawerInner({
   // エラーUX：404→自動クローズ、401→クローズ、5xx→開いたまま再試行
   useEffect(() => {
     if (!isError) return;
-    const status =
-      (error as any)?.response?.status ?? (error as any)?.status ?? null;
+    const err = error as { response?: { status?: number }; status?: number } | null;
+    const status = err?.response?.status ?? err?.status ?? null;
 
     if (status === 404) {
       toast("タスクが見つかりません", "error");
@@ -274,8 +274,9 @@ function TaskDrawerInner({
                           setChildDue("");
                           // ドロワー内の情報を更新（子プレビュー/カウント）
                           refetch();
-                        } catch (err: any) {
-                          toast(err?.message ?? "作成に失敗しました", "error");
+                        } catch (err: unknown) {
+                          const error = err as { message?: string };
+                          toast(error?.message ?? "作成に失敗しました", "error");
                         }
                       }
                     }}
@@ -301,8 +302,9 @@ function TaskDrawerInner({
                         setChildTitle("");
                         setChildDue("");
                         refetch();
-                      } catch (err: any) {
-                        toast(err?.message ?? "作成に失敗しました", "error");
+                      } catch (err: unknown) {
+                        const error = err as { message?: string };
+                        toast(error?.message ?? "作成に失敗しました", "error");
                       }
                     }}
                     disabled={!childTitle.trim() || creating}

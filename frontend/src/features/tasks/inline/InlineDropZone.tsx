@@ -8,7 +8,7 @@ type Props = {
 };
 
 const DBG = import.meta.env.DEV;
-const log = (...a: any[]) => DBG && console.log("[DND:DropZone]", ...a);
+const log = (...args: unknown[]) => DBG && console.log("[DND:DropZone]", ...args);
 
 // 親IDの正規化 & 比較
 const normPid = (v: number | string | null | undefined) =>

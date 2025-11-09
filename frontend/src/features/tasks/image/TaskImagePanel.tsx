@@ -36,18 +36,20 @@ export default function TaskImagePanel({ taskId }: Props) {
         image_thumb_url: json.image_thumb_url ?? null,
       });
       // ✨ 取得結果をその場でキャッシュに反映（一覧のサムネが即時更新される）
-      qc.setQueryData(qk as unknown as readonly unknown[], (old: any) =>
-        old
+      qc.setQueryData(qk as unknown as readonly unknown[], (old: unknown) => {
+        const oldData = old as { image_url?: string | null; image_thumb_url?: string | null } | undefined;
+        return oldData
           ? {
-              ...old,
+              ...oldData,
               image_url: json.image_url ?? null,
               image_thumb_url: json.image_thumb_url ?? null,
             }
-          : old
-      );
+          : oldData;
+      });
       return json;
-    } catch (e: any) {
-      setErr(e?.message || "読み込みに失敗しました");
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      setErr(error?.message || "読み込みに失敗しました");
     } finally {
       setLoading(false);
     }
@@ -86,10 +88,11 @@ export default function TaskImagePanel({ taskId }: Props) {
       // apiClient 側インターセプタで multipart の Content-Type 自動付与
       await api.post(`/tasks/${taskId}/image`, fd);
       await Promise.all([fetchShow(), invalidateDetail()]);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { errors?: string[] } }; message?: string };
       const msg =
-        e?.response?.data?.errors?.join?.("、") ||
-        e?.message ||
+        error?.response?.data?.errors?.join?.("、") ||
+        error?.message ||
         "アップロードに失敗しました";
       setErr(msg);
     } finally {
@@ -105,10 +108,11 @@ export default function TaskImagePanel({ taskId }: Props) {
     try {
       await api.delete(`/tasks/${taskId}/image`);
       await Promise.all([fetchShow(), invalidateDetail()]);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { errors?: string[] } }; message?: string };
       const msg =
-        e?.response?.data?.errors?.join?.("、") ||
-        e?.message ||
+        error?.response?.data?.errors?.join?.("、") ||
+        error?.message ||
         "削除に失敗しました";
       setErr(msg);
     } finally {
