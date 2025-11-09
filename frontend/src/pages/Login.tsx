@@ -75,10 +75,11 @@ export default function Login() {
 
       const dest = takeAuthFrom() || "/tasks";
       nav(dest, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { errors?: string[] } }; message?: string };
       const msg =
-        err?.response?.data?.errors?.[0] ??
-        err?.message ??
+        error?.response?.data?.errors?.[0] ??
+        error?.message ??
         "ログインに失敗しました。メールアドレスまたはパスワードをご確認ください。";
       setErrTop(String(msg));
     } finally {

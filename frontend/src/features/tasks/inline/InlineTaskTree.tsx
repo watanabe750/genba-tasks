@@ -7,7 +7,7 @@ import type { TaskNode } from "../../../types";
 type Props = { tree: TaskNode[] };
 
 const DBG = import.meta.env.DEV;
-const log = (...a: any[]) => DBG && console.log("[DND:Tree]", ...a);
+const log = (...args: unknown[]) => DBG && console.log("[DND:Tree]", ...args);
 
 export default function InlineTaskTree({ tree }: Props) {
   const { registerChildren, getOrderedChildren } = useInlineDnd();

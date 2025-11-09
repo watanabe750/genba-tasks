@@ -65,9 +65,10 @@ export default function Home() {
         window.dispatchEvent(new Event("auth:refresh"));
       } catch {}
       nav("/tasks", { replace: true });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { errors?: string[] } } };
       setErr(
-        e?.response?.data?.errors?.[0] ??
+        error?.response?.data?.errors?.[0] ??
           "ゲストログインに失敗しました。/login からお試しください。"
       );
     } finally {

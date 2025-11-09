@@ -62,7 +62,7 @@ const eqArray = (a?: number[], b?: number[]) => {
 };
 
 const DBG = import.meta.env.DEV;
-const log = (...a: any[]) => DBG && console.log("[DND:Ctx]", ...a);
+const log = (...args: unknown[]) => DBG && console.log("[DND:Ctx]", ...args);
 // ★ drop 直後の“上書き抑止”猶予時間(ms)
 const REGISTER_SUPPRESS_MS = 800;
 
@@ -94,11 +94,11 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
       if (!state.draggingId) return;
       e.preventDefault();
     };
-    window.addEventListener("dragover", onDragOver as any, {
+    window.addEventListener("dragover", onDragOver as EventListener, {
       passive: false,
       capture: true,
     });
-    return () => window.removeEventListener("dragover", onDragOver as any, true);
+    return () => window.removeEventListener("dragover", onDragOver as EventListener, true);
   }, [state.draggingId]);
 
   // drag state
@@ -215,7 +215,7 @@ export function InlineDndProvider({ children }: { children: React.ReactNode }) {
     [qc]
   );
 
-  const moveAcrossParents = useCallback((_args: any) => {
+  const moveAcrossParents = useCallback((_args: unknown) => {
     /* 親またぎ不可（no-op） */
   }, []);
 

@@ -24,7 +24,7 @@ import { TaskRowDisplay } from "./TaskRowDisplay";
 import { TaskRowActions } from "./TaskRowActions";
 
 const DBG = import.meta.env.DEV;
-const log = (...a: any[]) => DBG && console.log("[DND:Row]", ...a);
+const log = (...args: unknown[]) => DBG && console.log("[DND:Row]", ...args);
 
 type RowProps = { task: Task; depth: number; prevId?: number | null };
 const INDENT_STEP = 24;
@@ -111,7 +111,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
     else setEditing(true);
   };
 
-  const handleTitleKeyDown = (e: any) => {
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
     if (!isParent) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();

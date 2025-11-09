@@ -102,11 +102,11 @@ export function useUpdateTask() {
       prevTasksEntries.forEach(([key, arr]) => {
         if (!arr) return;
         const next = patch(arr) ?? arr;
-        const k = key as any[];
+        const k = key as readonly unknown[];
         const params = (k?.[1] ?? {}) as { order_by?: string; dir?: "asc" | "desc" };
         const order_by = params.order_by ?? "deadline";
         const dir = (params.dir as "asc" | "desc") ?? "asc";
-        qc.setQueryData<Task[]>(key as any, sortFlatForUI(next, order_by, dir));
+        qc.setQueryData<Task[]>(key, sortFlatForUI(next, order_by, dir));
       });
 
       return { prevPriority, prevTasksEntries };
@@ -115,7 +115,9 @@ export function useUpdateTask() {
     onError: (_e, _v, ctx) => {
       if (ctx?.prevPriority) qc.setQueryData(["priorityTasks"], ctx.prevPriority);
       ctx?.prevTasksEntries?.forEach(([key, data]) => {
-        qc.setQueryData(key as any, data);
+        if (Array.isArray(key)) {
+          qc.setQueryData(key, data);
+        }
       });
       alert("更新に失敗しました");
     },
@@ -124,7 +126,7 @@ export function useUpdateTask() {
       // フィールド更新はローカルも同期、並び替えはinvalidateで再取得に任せる
       const sync = (arr?: Task[]) => arr?.map((t) => (t.id === fresh.id ? fresh : t));
       qc.setQueryData<Task[] | undefined>(["priorityTasks"], (old) => sync(old));
-      qc.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (old) => sync(old ?? undefined) as any);
+      qc.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (old) => sync(old ?? undefined));
     },
 
     onSettled: () => {

@@ -123,7 +123,7 @@ if (DEMO) {
     const path = u.pathname.replace(/^\/api(\/|$)/, "/");
 
     // 共通レスポンス
-    const ok = (data: any, status = 200, headers: Record<string, string> = {}): AxiosResponse => ({
+    const ok = <T = unknown>(data: T, status = 200, headers: Record<string, string> = {}): AxiosResponse<T> => ({
       data,
       status,
       statusText: status === 201 ? "Created" : "OK",

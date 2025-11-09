@@ -84,22 +84,23 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const applyTokensToAxios = useCallback((tokens: TokenBundle) => {
     const { at, client, uid, tokenType } = tokens;
     const type = tokenType || "Bearer";
+    const headers = api.defaults.headers.common as Record<string, string | undefined>;
 
     if (at) {
-      (api.defaults.headers.common as any)["access-token"] = at;
-      (api.defaults.headers.common as any)["Authorization"] = `${type} ${at}`;
-      (api.defaults.headers.common as any)["token-type"] = type;
+      headers["access-token"] = at;
+      headers["Authorization"] = `${type} ${at}`;
+      headers["token-type"] = type;
     } else {
-      delete (api.defaults.headers.common as any)["access-token"];
-      delete (api.defaults.headers.common as any)["Authorization"];
-      delete (api.defaults.headers.common as any)["token-type"];
+      delete headers["access-token"];
+      delete headers["Authorization"];
+      delete headers["token-type"];
     }
 
-    if (client) (api.defaults.headers.common as any)["client"] = client;
-    else delete (api.defaults.headers.common as any)["client"];
+    if (client) headers["client"] = client;
+    else delete headers["client"];
 
-    if (uid) (api.defaults.headers.common as any)["uid"] = uid;
-    else delete (api.defaults.headers.common as any)["uid"];
+    if (uid) headers["uid"] = uid;
+    else delete headers["uid"];
   }, []);
 
   const saveTokens = useCallback((tokens: TokenBundle) => {
@@ -150,9 +151,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         saveTokens
       );
 
+      const headersRecord = res.headers as Record<string, unknown>;
       const headerUid =
-        typeof (res.headers as any)["uid"] === "string"
-          ? (res.headers as any)["uid"]
+        typeof headersRecord["uid"] === "string"
+          ? headersRecord["uid"]
           : undefined;
 
       setAuthed(true);
@@ -182,9 +184,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         saveTokens
       );
 
+      const headersRecord2 = res.headers as Record<string, unknown>;
       const headerUid =
-        typeof (res.headers as any)["uid"] === "string"
-          ? (res.headers as any)["uid"]
+        typeof headersRecord2["uid"] === "string"
+          ? headersRecord2["uid"]
           : undefined;
 
       setAuthed(true);
@@ -211,7 +214,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // 2) 念のため：ボディ発行型にも対応（将来拡張）
-    const b: any = res.data || {};
+    const b = res.data as { token?: string; uid?: string; email?: string; client?: string; token_type?: string; expiry?: number | string } | undefined;
     if (b?.token && (b?.uid || b?.email) && b?.client) {
       saveTokens({
         at: b.token,
