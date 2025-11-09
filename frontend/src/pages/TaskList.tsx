@@ -2,7 +2,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
-import { useFilteredTasks } from "../features/tasks/useTasks";
+import { useTasksFromUrl } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
 import { usePriorityTasks } from "../features/priority/usePriorityTasks";
 import { nestTasks, sortRootNodes } from "../features/tasks/nest";
@@ -39,16 +39,11 @@ const TaskList: PageComponent = () => {
   const rawFilters = parseTaskFilters(sp);
   const filters = useDebouncedValue(rawFilters, 300);
 
-  // APIにも position をデフォルトで渡す
-  const effectiveFilters = useMemo(
-    () => ({ ...filters, order_by: filters.order_by ?? "position" }),
-    [filters]
-  );
-  const { data: tasksFlat = [] as Task[] } = useFilteredTasks(effectiveFilters, enabled);
+  const { data: tasksFlat = [] as Task[] } = useTasksFromUrl(enabled);
 
-  // 表示用の order/dir も一元化
-  const orderBy = effectiveFilters.order_by ?? "position";
-  const dir = effectiveFilters.dir ?? "asc";
+  // 表示用の order/dir
+  const orderBy = filters.order_by ?? "position";
+  const dir = filters.dir ?? "asc";
 
   const tasks: TaskNode[] = useMemo(() => {
     const incomplete: Task[] = [];

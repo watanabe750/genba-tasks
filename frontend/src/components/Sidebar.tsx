@@ -1,7 +1,7 @@
 // src/components/Sidebar.tsx
 import { NavLink, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { useFilteredTasks } from "../features/tasks/useTasks";
+import { useTasksFromUrl } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
 
 const Sidebar = () => {
@@ -16,7 +16,7 @@ const Sidebar = () => {
   const [showSitesLinks, setShowSitesLinks] = useState(true);
 
   // 全タスクを取得して現場一覧を作成
-  const { data: allTasks = [] } = useFilteredTasks({}, enabled);
+  const { data: allTasks = [] } = useTasksFromUrl(enabled);
 
   // 現場ごとのタスク数を集計（追加順=id順）
   const sitesWithCount = useMemo(() => {

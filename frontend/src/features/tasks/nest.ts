@@ -44,14 +44,59 @@ export function nestTasks(flat: Task[]): TaskNode[] {
  */
 const isNullDeadline = (t: { deadline?: string | null }) => !toDateInputValue(t.deadline);
 
-const cmpSite = (a?: string | null, b?: string | null) => {
-  const aa = (a ?? "").trim().toLowerCase();
-  const bb = (b ?? "").trim().toLowerCase();
-  const ae = aa === "";
-  const be = bb === "";
-  if (ae !== be) return ae ? 1 : -1; // 空 site は末尾
-  return aa < bb ? -1 : aa > bb ? 1 : 0;
+const compareSites = (a?: string | null, b?: string | null) => {
+  const normalizedA = (a ?? "").trim().toLowerCase();
+  const normalizedB = (b ?? "").trim().toLowerCase();
+  const isAEmpty = normalizedA === "";
+  const isBEmpty = normalizedB === "";
+  if (isAEmpty !== isBEmpty) return isAEmpty ? 1 : -1; // 空 site は末尾
+  return normalizedA < normalizedB ? -1 : normalizedA > normalizedB ? 1 : 0;
 };
+
+/**
+ * タスクのソート比較関数を生成
+ * ルール:
+ *  1) completed は常に末尾
+ *  2) 期限なしは常に末尾
+ *  3) 主キーでソート（order_by）
+ *  4) タイブレーク: id 昇順
+ */
+function createTaskComparator(order_by: string = "deadline", dir: "asc" | "desc" = "asc") {
+  const primaryKey = (order_by || "deadline").split(",")[0]?.trim();
+
+  return (a: Task | TaskNode, b: Task | TaskNode): number => {
+    // 1) completed 末尾
+    const isACompleted = a.status === "completed";
+    const isBCompleted = b.status === "completed";
+    if (isACompleted !== isBCompleted) return isACompleted ? 1 : -1;
+
+    // 2) 期限なし末尾
+    const isANullDeadline = isNullDeadline(a);
+    const isBNullDeadline = isNullDeadline(b);
+    if (isANullDeadline !== isBNullDeadline) return isANullDeadline ? 1 : -1;
+
+    // 3) 主キー
+    if (primaryKey === "site") {
+      const siteComparison = compareSites(a.site, b.site);
+      if (siteComparison !== 0) return dir === "desc" ? -siteComparison : siteComparison;
+      const deadlineA = toDateInputValue(a.deadline);
+      const deadlineB = toDateInputValue(b.deadline);
+      if (deadlineA !== deadlineB) return deadlineA < deadlineB ? -1 : 1;
+    } else {
+      const deadlineA = toDateInputValue(a.deadline);
+      const deadlineB = toDateInputValue(b.deadline);
+      if (deadlineA !== deadlineB) {
+        const asc = deadlineA < deadlineB ? -1 : 1;
+        return dir === "desc" ? -asc : asc;
+      }
+      const siteComparison = compareSites(a.site, b.site);
+      if (siteComparison !== 0) return siteComparison;
+    }
+
+    // 4) tie-break
+    return Number(a.id) - Number(b.id);
+  };
+}
 
 /** ★ UI最終順：TaskNode[]（ルート）を並び替え */
 export function sortRootNodes(
@@ -59,41 +104,7 @@ export function sortRootNodes(
   order_by: string = "deadline",
   dir: "asc" | "desc" = "asc"
 ): TaskNode[] {
-  const raw = (order_by || "deadline").split(",").map((s) => s.trim()).filter(Boolean) as Array<"site" | "deadline">;
-  const keys: Array<"site" | "deadline"> = [];
-  for (const k of raw) if (!keys.includes(k)) keys.push(k);
-  if (!keys.includes("deadline")) keys.push("deadline");
-
-  const primary = keys[0];
-
-  return tree.slice().sort((a, b) => {
-    // 1) completed 末尾
-    const ac = a.status === "completed", bc = b.status === "completed";
-    if (ac !== bc) return ac ? 1 : -1;
-
-    // 2) 期限なし末尾
-    const an = isNullDeadline(a), bn = isNullDeadline(b);
-    if (an !== bn) return an ? 1 : -1;
-
-    // 3) 主キー
-    if (primary === "site") {
-      const ds = cmpSite(a.site, b.site);
-      if (ds !== 0) return dir === "desc" ? -ds : ds;
-      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
-      if (da !== db) return da < db ? -1 : 1;
-    } else {
-      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
-      if (da !== db) {
-        const asc = da < db ? -1 : 1;
-        return dir === "desc" ? -asc : asc;
-      }
-      const ds = cmpSite(a.site, b.site);
-      if (ds !== 0) return ds;
-    }
-
-    // 4) tie-break
-    return Number(a.id) - Number(b.id);
-  });
+  return tree.slice().sort(createTaskComparator(order_by, dir));
 }
 
 /** ★ UI最終順：フラット Task[] を並び替え（楽観更新用） */
@@ -102,29 +113,5 @@ export function sortFlatForUI(
   order_by: string = "deadline",
   dir: "asc" | "desc" = "asc"
 ): Task[] {
-  // ルート/子の区別は不要（一覧は親のみを表示している前提）。規則は sortRootNodes と同じ。
-  return arr.slice().sort((a, b) => {
-    const ac = a.status === "completed", bc = b.status === "completed";
-    if (ac !== bc) return ac ? 1 : -1;
-
-    const an = isNullDeadline(a), bn = isNullDeadline(b);
-    if (an !== bn) return an ? 1 : -1;
-
-    const ob = (order_by || "deadline").split(",")[0]?.trim();
-    if (ob === "site") {
-      const ds = cmpSite(a.site, b.site);
-      if (ds !== 0) return dir === "desc" ? -ds : ds;
-      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
-      if (da !== db) return da < db ? -1 : 1;
-    } else {
-      const da = toDateInputValue(a.deadline), db = toDateInputValue(b.deadline);
-      if (da !== db) {
-        const asc = da < db ? -1 : 1;
-        return dir === "desc" ? -asc : asc;
-      }
-      const ds = cmpSite(a.site, b.site);
-      if (ds !== 0) return ds;
-    }
-    return Number(a.id) - Number(b.id);
-  });
+  return arr.slice().sort(createTaskComparator(order_by, dir));
 }
