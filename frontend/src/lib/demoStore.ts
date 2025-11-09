@@ -5,7 +5,7 @@ import { demoImageStore } from "../lib/demoImageStore";
 const KEY = "demo:tasks";
 const IDK = "demo:nextId";
 const DEADLINE_DAYS_KEY = "demo:deadlineDays"; // 相対日数を保存
-const REQUIRED_VER = "2025-11-09-relative-dates"; // ←上げると再seed
+const REQUIRED_VER = "2025-11-09-site-a-fix"; // ←上げると再seed
 
 // 相対日数のマップを保存/読み込み
 type DeadlineDaysMap = Record<number, number>; // { taskId: daysFromNow }
@@ -85,29 +85,29 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
   // ============================================================
   // 現場A（空調改修工事 - オフィスビル）
   // ============================================================
-  const A1 = P("現場A 現場調査", "現場A", -3, "in_progress", 65); items.push(A1); // 期限切れ
+  const A1 = P("現場A 現場調査", "現場A", -2, "completed", 100); items.push(A1); // 完了済み（2日前）
   const A1_c1 = C(A1.id, "平面・天伏図の確認", "現場A", -5, "completed", 100);
-  const A1_c2 = C(A1.id, "既設配管ルートの把握", "現場A", -3, "in_progress", 70);
+  const A1_c2 = C(A1.id, "既設配管ルートの把握", "現場A", -3, "completed", 100);
   const A1_c3 = C(A1.id, "安全掲示・KY更新", "現場A", -4, "completed", 100);
-  const A1_c4 = C(A1.id, "写真撮影（全景/天井裏）", "現場A", -3, "in_progress", 45);
-  const A1_c5 = C(A1.id, "電源・盤位置の現況確認", "現場A", -3, "in_progress", 80);
+  const A1_c4 = C(A1.id, "写真撮影（全景/天井裏）", "現場A", -2, "completed", 100);
+  const A1_c5 = C(A1.id, "電源・盤位置の現況確認", "現場A", -2, "completed", 100);
   items.push(A1_c1, A1_c2, A1_c3, A1_c4, A1_c5);
   items.push(
     G(A1_c2.id, "ダクト系統の凡例確認", "現場A", -5, "completed", 100),
-    G(A1_c2.id, "天井裏の干渉ポイント洗い出し", "現場A", -3, "in_progress", 60),
-    G(A1_c2.id, "是正箇所マーキング", "現場A", -3, "not_started", 0),
+    G(A1_c2.id, "天井裏の干渉ポイント洗い出し", "現場A", -3, "completed", 100),
+    G(A1_c2.id, "是正箇所マーキング", "現場A", -2, "completed", 100),
   );
 
-  const A2 = P("現場A 見積もり", "現場A", -1, "in_progress", 50); items.push(A2); // 期限切れ（昨日）
+  const A2 = P("現場A 見積もり", "現場A", 1, "in_progress", 50); items.push(A2); // 明日
   const A2_c1 = C(A2.id, "数量拾い（配管・ダクト・吊り材）", "現場A", 0, "in_progress", 60); // 今日
   const A2_c2 = C(A2.id, "外注見積徴収", "現場A", 1, "in_progress", 40); // 明日
-  const A2_c3 = C(A2.id, "原価積算・粗利試算", "現場A", 2, "not_started", 0); // 2日後
-  const A2_c4 = C(A2.id, "見積書ドラフト作成", "現場A", 2, "not_started", 0);
-  const A2_c5 = C(A2.id, "見積根拠の添付資料整理", "現場A", 2, "not_started", 0);
+  const A2_c3 = C(A2.id, "原価積算・粗利試算", "現場A", 1, "not_started", 0); // 明日
+  const A2_c4 = C(A2.id, "見積書ドラフト作成", "現場A", 1, "not_started", 0);
+  const A2_c5 = C(A2.id, "見積根拠の添付資料整理", "現場A", 1, "not_started", 0);
   items.push(A2_c1, A2_c2, A2_c3, A2_c4, A2_c5);
   items.push(
     G(A2_c1.id, "吊りボルト本数の確認", "現場A", 0, "in_progress", 30),
-    G(A2_c1.id, "ダクト角丸変換ロス補正", "現場A", 1, "not_started", 0),
+    G(A2_c1.id, "ダクト角丸変換ロス補正", "現場A", 0, "not_started", 0),
   );
 
   const A3 = P("現場A 資材発注", "現場A", 3, "not_started", 0); items.push(A3); // 3日後
