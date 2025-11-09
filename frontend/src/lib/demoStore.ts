@@ -4,7 +4,17 @@ import { demoImageStore } from "../lib/demoImageStore";
 
 const KEY = "demo:tasks";
 const IDK = "demo:nextId";
-const REQUIRED_VER = "2025-11-08-realistic-dates"; // ←上げると再seed
+const DEADLINE_DAYS_KEY = "demo:deadlineDays"; // 相対日数を保存
+const REQUIRED_VER = "2025-11-09-relative-dates"; // ←上げると再seed
+
+// 相対日数のマップを保存/読み込み
+type DeadlineDaysMap = Record<number, number>; // { taskId: daysFromNow }
+function readDeadlineDays(): DeadlineDaysMap {
+  try { return JSON.parse(localStorage.getItem(DEADLINE_DAYS_KEY) || "{}"); } catch { return {}; }
+}
+function writeDeadlineDays(map: DeadlineDaysMap) {
+  localStorage.setItem(DEADLINE_DAYS_KEY, JSON.stringify(map));
+}
 
 function read(): Task[] {
   try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
@@ -14,6 +24,21 @@ function nextId(): number {
   const n = Number(localStorage.getItem(IDK) || "1");
   localStorage.setItem(IDK, String(n + 1));
   return n;
+}
+
+// 今日を基準に期限を計算（相対日数マップから）
+function applyRelativeDeadlines(tasks: Task[]): Task[] {
+  const daysMap = readDeadlineDays();
+  const now = new Date();
+  const d = (days: number) => new Date(now.getTime() + days * 864e5).toISOString();
+
+  return tasks.map(t => {
+    const days = daysMap[t.id];
+    if (days !== undefined) {
+      return { ...t, deadline: brandIso(d(days)) };
+    }
+    return t;
+  });
 }
 
 // ---- ローカル配布画像（/public/demo 配下） ----
@@ -31,21 +56,29 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
   const ver = localStorage.getItem("demo:ver");
   if (cur.length !== 0 && ver === REQUIRED_VER) return;
 
-  const now = new Date();
-  const d = (days: number) => new Date(now.getTime() + days * 864e5).toISOString();
+  const daysMap: DeadlineDaysMap = {}; // 相対日数を記録
+
+  // ダミーの期限（実際の値は applyRelativeDeadlines で計算される）
+  const DUMMY_DEADLINE = "2025-01-01T00:00:00.000Z";
 
   // 親
-  const P = (title: string, site: string, deadlineInDays: number, status: Task["status"], progress: number): Task => ({
-    id: nextId(), title, status, progress, deadline: brandIso(d(deadlineInDays)), site, parent_id: null,
-  });
+  const P = (title: string, site: string, deadlineInDays: number, status: Task["status"], progress: number): Task => {
+    const id = nextId();
+    daysMap[id] = deadlineInDays; // 相対日数を記録
+    return { id, title, status, progress, deadline: DUMMY_DEADLINE, site, parent_id: null };
+  };
   // 子
-  const C = (parent_id: number, title: string, site: string, deadlineInDays: number, status: Task["status"], progress: number): Task => ({
-    id: nextId(), title, status, progress, deadline: brandIso(d(deadlineInDays)), site, parent_id,
-  });
+  const C = (parent_id: number, title: string, site: string, deadlineInDays: number, status: Task["status"], progress: number): Task => {
+    const id = nextId();
+    daysMap[id] = deadlineInDays; // 相対日数を記録
+    return { id, title, status, progress, deadline: DUMMY_DEADLINE, site, parent_id };
+  };
   // 孫
-  const G = (parent_id: number, title: string, site: string, deadlineInDays: number, status: Task["status"], progress: number): Task => ({
-    id: nextId(), title, status, progress, deadline: brandIso(d(deadlineInDays)), site, parent_id,
-  });
+  const G = (parent_id: number, title: string, site: string, deadlineInDays: number, status: Task["status"], progress: number): Task => {
+    const id = nextId();
+    daysMap[id] = deadlineInDays; // 相対日数を記録
+    return { id, title, status, progress, deadline: DUMMY_DEADLINE, site, parent_id };
+  };
 
   const items: Task[] = [];
 
@@ -221,8 +254,9 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
   const Z2_c2 = C(Z2.id, "メンテナンス契約締結", "現場Y", -7, "completed", 100);
   items.push(Z2_c1, Z2_c2);
 
-  // 書き込み＋バージョン保存
+  // 書き込み＋相対日数マップ＋バージョン保存
   write(items);
+  writeDeadlineDays(daysMap);
   localStorage.setItem("demo:ver", REQUIRED_VER);
 
 
@@ -290,7 +324,7 @@ function recalculateParentProgress(parentId: number, visited = new Set<number>()
 
 export const demoStore = {
   list(filters?: { site?: string }): Task[] {
-    const all = read();
+    const all = applyRelativeDeadlines(read()); // 今日基準で期限を計算
     if (!filters?.site) return all;
     return all.filter(t => t.site === filters.site);
   },
@@ -310,7 +344,10 @@ export const demoStore = {
     if (t.parent_id) recalculateParentProgress(t.parent_id);
     return t;
   },
-  get(id: number): Task | undefined { return read().find(t => t.id === id); },
+  get(id: number): Task | undefined {
+    const all = applyRelativeDeadlines(read()); // 今日基準で期限を計算
+    return all.find(t => t.id === id);
+  },
   update(id: number, patch: Partial<Task>): Task | undefined {
     const all = read();
     const i = all.findIndex(t => t.id === id);
@@ -342,12 +379,18 @@ export const demoStore = {
     if (parentId) recalculateParentProgress(parentId);
   },
   sites(): string[] {
-    return Array.from(new Set(read().map(t => t.site).filter(Boolean))) as string[];
+    const all = applyRelativeDeadlines(read());
+    return Array.from(new Set(all.map(t => t.site).filter(Boolean))) as string[];
   },
   priority(): Task[] {
-    const list = read();
+    const list = applyRelativeDeadlines(read()); // 今日基準で期限を計算
     const score = (t: Task) => (t.deadline ? Date.parse(t.deadline) : 9e15) + (t.progress ?? 0) * 1e10;
     return [...list].sort((a, b) => score(a) - score(b)).slice(0, 5);
   },
-  reset(): void { write([]); localStorage.removeItem(IDK); localStorage.removeItem("demo:ver"); },
+  reset(): void {
+    write([]);
+    localStorage.removeItem(IDK);
+    localStorage.removeItem("demo:ver");
+    localStorage.removeItem(DEADLINE_DAYS_KEY);
+  },
 };
