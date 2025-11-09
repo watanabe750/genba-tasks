@@ -240,6 +240,54 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
   } catch {}
 })();
 
+// 親タスクの進捗を子タスクから自動計算（TaskProgressService相当）
+function recalculateParentProgress(parentId: number, visited = new Set<number>()): void {
+  if (!parentId || visited.has(parentId)) return;
+  if (visited.size > 10) return; // 深さ制限（循環参照防止）
+
+  visited.add(parentId);
+  const all = read();
+  const parent = all.find(t => t.id === parentId);
+  if (!parent) return;
+
+  const children = all.filter(t => t.parent_id === parentId);
+  if (children.length === 0) {
+    // 子がいない場合: progressを0に
+    if ((parent.progress ?? 0) !== 0) {
+      parent.progress = 0;
+      write(all);
+    }
+  } else {
+    // 子がいる場合: 進捗を平均値で更新
+    const avgProgress = Math.round(
+      children.reduce((sum, c) => sum + (c.progress ?? 0), 0) / children.length
+    );
+    const allCompleted = children.every(c => c.status === "completed");
+
+    let updated = false;
+    if (parent.progress !== avgProgress) {
+      parent.progress = avgProgress;
+      updated = true;
+    }
+
+    // ステータスの自動更新
+    if (allCompleted && parent.status !== "completed") {
+      parent.status = "completed";
+      updated = true;
+    } else if (!allCompleted && parent.status === "completed") {
+      parent.status = "in_progress";
+      updated = true;
+    }
+
+    if (updated) write(all);
+  }
+
+  // 祖先へ再帰的に伝播
+  if (parent.parent_id) {
+    recalculateParentProgress(parent.parent_id, visited);
+  }
+}
+
 export const demoStore = {
   list(filters?: { site?: string }): Task[] {
     const all = read();
@@ -258,15 +306,41 @@ export const demoStore = {
       parent_id: payload.parent_id ?? null,
     };
     write([t, ...all]);
+    // 親の進捗を再計算
+    if (t.parent_id) recalculateParentProgress(t.parent_id);
     return t;
   },
   get(id: number): Task | undefined { return read().find(t => t.id === id); },
   update(id: number, patch: Partial<Task>): Task | undefined {
-    const all = read(); const i = all.findIndex(t => t.id === id);
+    const all = read();
+    const i = all.findIndex(t => t.id === id);
     if (i < 0) return;
-    all[i] = { ...all[i], ...patch }; write(all); return all[i];
+
+    const oldParentId = all[i].parent_id;
+    all[i] = { ...all[i], ...patch };
+    write(all);
+
+    // 親が変わった場合は旧親と新親の両方を再計算
+    if (patch.parent_id !== undefined && oldParentId !== patch.parent_id) {
+      if (oldParentId) recalculateParentProgress(oldParentId);
+      if (patch.parent_id) recalculateParentProgress(patch.parent_id);
+    } else if (all[i].parent_id) {
+      // 親が変わってない場合は現在の親を再計算
+      recalculateParentProgress(all[i].parent_id);
+    }
+
+    return all[i];
   },
-  remove(id: number): void { write(read().filter(t => t.id !== id)); },
+  remove(id: number): void {
+    const all = read();
+    const task = all.find(t => t.id === id);
+    const parentId = task?.parent_id;
+
+    write(all.filter(t => t.id !== id));
+
+    // 削除後に親の進捗を再計算
+    if (parentId) recalculateParentProgress(parentId);
+  },
   sites(): string[] {
     return Array.from(new Set(read().map(t => t.site).filter(Boolean))) as string[];
   },
