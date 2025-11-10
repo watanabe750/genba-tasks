@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
-import type { Task, CreateTaskPayload, IsoDateString } from "../../types";
+import type { Task, CreateTaskPayload, ISODateString } from "../../types";
 import { pushSiteHistory } from "../../lib/siteHistory";
 
 export type CreateTaskInput = {
   title: string;
-  deadline?: IsoDateString | null;
+  deadline?: ISODateString | null;
   parentId?: number | null;
   site?: string | null; // 親タスクでは必須
 };
@@ -24,7 +24,7 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
       title,
       status: "in_progress",
       progress: 0,
-      deadline: (input.deadline ?? null) as IsoDateString | null,
+      deadline: (input.deadline ?? null) as ISODateString | null,
       parent_id: input.parentId ?? null,
       ...(isParent ? { site: (input.site ?? "").trim() } : {}),
     },
@@ -55,7 +55,7 @@ export function useCreateTask() {
           title: input.title.trim(),
           status: "in_progress",
           progress: 0,
-          deadline: (input.deadline ?? null) as IsoDateString | null,
+          deadline: (input.deadline ?? null) as ISODateString | null,
           site: isParent ? (input.site ?? null) : null,
           parent_id: input.parentId ?? null,
         } as Task,

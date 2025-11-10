@@ -1,4 +1,4 @@
-import type { Task } from "../types";
+import type { Task, ISODateString } from "../types";
 import { brandIso } from "./brandIso";
 import { demoImageStore } from "../lib/demoImageStore";
 
@@ -53,7 +53,7 @@ const IMG_C1_FIX      = "/demo/C1_fix.jpg";          // 現場C 是正対応（�
 // データ生成関数
 function createDemoTaskData(daysMap: DeadlineDaysMap): Task[] {
   // ダミーの期限（実際の値は applyRelativeDeadlines で計算される）
-  const DUMMY_DEADLINE = "2025-01-01T00:00:00.000Z";
+  const DUMMY_DEADLINE = "2025-01-01T00:00:00.000Z" as ISODateString;
 
   // 親
   const P = (title: string, site: string, deadlineInDays: number, status: Task["status"], progress: number): Task => {
