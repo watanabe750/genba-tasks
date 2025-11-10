@@ -1,4 +1,5 @@
 // src/features/priority/PriorityTasksPanel.tsx
+import { useState, useEffect, useRef } from "react";
 import { usePriorityTasks } from "./usePriorityTasks";
 import useAuth from "../../providers/useAuth";
 import { useUpdateTask } from "../tasks/useUpdateTask";
@@ -9,12 +10,78 @@ import { formatDeadlineForDisplay, getDeadlineUrgency, formatDaysUntilDeadline }
 const clamp = (n: number, min = 0, max = 100) =>
   Math.min(Math.max(n ?? 0, min), max);
 
+const STORAGE_KEYS = {
+  COLLAPSED: "priorityPanel.collapsed",
+  LIMIT: "priorityPanel.limit",
+  WIDTH: "priorityPanel.width",
+};
+
+const DEFAULT_WIDTH = 320;
+const MIN_WIDTH = 240;
+const MAX_WIDTH = 600;
+
 export default function PriorityTasksPanel() {
   const { authed } = useAuth();
-  const { data: tasks = [], isLoading, error } = usePriorityTasks(authed);
+
+  // LocalStorageから初期値を取得
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.COLLAPSED);
+    return saved === "true";
+  });
+
+  const [limit, setLimit] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.LIMIT);
+    return saved ? parseInt(saved, 10) : 5;
+  });
+
+  const [width, setWidth] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.WIDTH);
+    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
+  });
+
+  const { data: tasks = [], isLoading, error } = usePriorityTasks(authed, limit);
   const { mutate: update } = useUpdateTask();
   const qc = useQueryClient();
-  const queryKey = ["priorityTasks", authed];
+  const queryKey = ["priorityTasks", limit];
+
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // LocalStorageに保存
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.COLLAPSED, String(isCollapsed));
+  }, [isCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LIMIT, String(limit));
+  }, [limit]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.WIDTH, String(width));
+  }, [width]);
+
+  // リサイズ処理
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      const clampedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
+      setWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
 
   // 完了チェック時に即非表示（楽観更新）
   const handleToggle = (t: Task) => {
@@ -42,38 +109,88 @@ export default function PriorityTasksPanel() {
 
   return (
     <div
+      ref={panelRef}
       data-testid="priority-panel"
+      style={{ width: `${width}px` }}
       className="
-        rounded-xl border border-blue-200 bg-blue-50/60 p-3 shadow-lg
+        relative rounded-xl border border-blue-200 bg-blue-50/60 shadow-lg
         dark:border-blue-900 dark:bg-blue-950/30
       "
     >
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <h2 className="font-semibold text-blue-700 dark:text-blue-300">
-            期限が近いタスク
-          </h2>
-          <span
-            className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]"
-            title="期限の近い順に表示します"
-            aria-label="説明"
-          >
-            i
-          </span>
+      {/* リサイザー */}
+      <div
+        onMouseDown={() => setIsResizing(true)}
+        className="
+          absolute left-0 top-0 bottom-0 w-1 cursor-col-resize
+          hover:bg-blue-400 active:bg-blue-500 transition-colors
+        "
+        title="ドラッグして幅を調整"
+      />
+
+      <div className="p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="
+                text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100
+                transition-transform
+              "
+              title={isCollapsed ? "展開" : "折りたたむ"}
+              aria-label={isCollapsed ? "展開" : "折りたたむ"}
+            >
+              <svg
+                className={`w-5 h-5 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <h2 className="font-semibold text-blue-700 dark:text-blue-300">
+              期限が近いタスク
+            </h2>
+            <span
+              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]"
+              title="期限の近い順に表示します"
+              aria-label="説明"
+            >
+              i
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="
+                text-xs px-2 py-1 rounded border border-blue-300 bg-white
+                dark:bg-blue-900 dark:border-blue-700 dark:text-blue-100
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+              "
+              title="表示件数"
+            >
+              <option value={3}>3件</option>
+              <option value={5}>5件</option>
+              <option value={10}>10件</option>
+              <option value={15}>15件</option>
+            </select>
+            <span className="text-xs text-blue-700/70 dark:text-blue-300/70">
+              {visible.length}件
+            </span>
+          </div>
         </div>
-        <span className="text-xs text-blue-700/70 dark:text-blue-300/70">
-          {visible.length}件
-        </span>
-      </div>
 
-      {isLoading && (
-        <p className="text-sm text-blue-700/70 dark:text-blue-300/70">
-          読み込み中…
-        </p>
-      )}
-      {error && <p className="text-sm text-red-600">読み込みに失敗しました</p>}
+        {!isCollapsed && (
+          <>
+            {isLoading && (
+              <p className="text-sm text-blue-700/70 dark:text-blue-300/70">
+                読み込み中…
+              </p>
+            )}
+            {error && <p className="text-sm text-red-600">読み込みに失敗しました</p>}
 
-      <ul className="space-y-2">
+            <ul className="space-y-2">
         {visible.map((t) => (
           <li
             key={t.id}
@@ -132,11 +249,14 @@ export default function PriorityTasksPanel() {
         ))}
       </ul>
 
-      {!isLoading && visible.length === 0 && (
-        <p className="text-sm text-blue-700/70 dark:text-blue-300/70">
-          未完了の優先タスクはありません
-        </p>
-      )}
+            {!isLoading && visible.length === 0 && (
+              <p className="text-sm text-blue-700/70 dark:text-blue-300/70">
+                未完了の優先タスクはありません
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
