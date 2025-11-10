@@ -12,6 +12,7 @@ import api from "../lib/apiClient";
 import {
   AxiosHeaders,
   type AxiosResponseHeaders,
+  type InternalAxiosRequestConfig,
   type RawAxiosResponseHeaders,
 } from "axios";
 import { tokenStorage, type TokenBundle } from "../lib/tokenStorage";
@@ -31,10 +32,16 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 /** リクエスト開始時刻（並行競合対策） */
 const REQ_TIME_HEADER = "x-auth-start";
 
+/** navigator型の拡張（webdriverプロパティ対応） */
+interface ExtendedNavigator {
+  webdriver?: boolean;
+  userAgent: string;
+}
+
 /** E2E 実行中かどうか（Playwright/Headless を検知） */
 const IS_E2E =
   typeof navigator !== "undefined" &&
-  (((navigator as any).webdriver ?? false) ||
+  (((navigator as ExtendedNavigator).webdriver ?? false) ||
     /Playwright|Headless/i.test(navigator.userAgent));
 
 function getHeaderString(h: unknown, key: string): string | undefined {
@@ -309,7 +316,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       async (error) => {
         // 401 → 最新トークンで 1 回だけ再送
         const status = error?.response?.status;
-        const cfg = error?.config as any;
+
+        interface AxiosConfigWithRetry extends InternalAxiosRequestConfig {
+          _retry?: boolean;
+        }
+        const cfg = error?.config as AxiosConfigWithRetry | undefined;
 
         if (status === 401 && cfg && !cfg._retry) {
           cfg._retry = true;
@@ -325,14 +336,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
                 `${t.tokenType || "Bearer"} ${t.at}`
               );
             } else {
-              cfg.headers = {
+              cfg.headers = AxiosHeaders.from({
                 ...(cfg.headers || {}),
                 "access-token": t.at,
                 client: t.client,
                 uid: t.uid,
                 "token-type": t.tokenType || "Bearer",
                 Authorization: `${t.tokenType || "Bearer"} ${t.at}`,
-              };
+              });
             }
             try {
               return await api.request(cfg);

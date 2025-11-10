@@ -3,6 +3,7 @@ import axios, {
   AxiosHeaders,
   isCancel,
   type AxiosResponseHeaders,
+  type RawAxiosResponseHeaders,
 } from "axios";
 import type { InternalAxiosRequestConfig, AxiosResponse } from "axios";
 import { demoStore } from "./demoStore";
@@ -45,12 +46,12 @@ function getHeader(h: unknown, key: string): string | undefined {
 }
 
 /** 任意の Headers/AxiosResponseHeaders からトークン保存 */
-export function saveAuthFromHeaders(headers: AxiosResponseHeaders | Headers) {
+export function saveAuthFromHeaders(headers: AxiosResponseHeaders | RawAxiosResponseHeaders | Headers) {
   const getter =
     headers instanceof Headers
       ? (k: string) =>
           headers.get(k) ?? headers.get(k.toLowerCase()) ?? undefined
-      : (k: string) => getHeader(headers as any, k);
+      : (k: string) => getHeader(headers as AxiosResponseHeaders | RawAxiosResponseHeaders, k);
 
   const at = getter("access-token");
   const client = getter("client");
@@ -91,7 +92,7 @@ api.interceptors.request.use((config) => {
 
   headers.set("x-auth-start", String(Date.now()));
 
-  if (typeof FormData !== "undefined" && (config as any).data instanceof FormData) {
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
     headers.delete("Content-Type");
   }
 
@@ -102,7 +103,7 @@ api.interceptors.request.use((config) => {
 /** ===== Response interceptor ===== */
 api.interceptors.response.use(
   (res) => {
-    if (!DEMO) saveAuthFromHeaders(res.headers as any);
+    if (!DEMO) saveAuthFromHeaders(res.headers as AxiosResponseHeaders | RawAxiosResponseHeaders);
     return res;
   },
   (error) => {
