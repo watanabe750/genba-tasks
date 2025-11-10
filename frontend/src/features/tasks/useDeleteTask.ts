@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
 import type { Task } from "../../types/task";
+import { useToast } from "../../components/ToastProvider";
 
 async function deleteTaskApi(id: number): Promise<void> {
   await api.delete(`/tasks/${id}`);
@@ -8,6 +9,7 @@ async function deleteTaskApi(id: number): Promise<void> {
 
 export function useDeleteTask() {
   const qc = useQueryClient();
+  const { push } = useToast();
 
   return useMutation({
     mutationFn: deleteTaskApi,
@@ -20,11 +22,11 @@ export function useDeleteTask() {
 
       return { prevTasks };
     },
-    onError: (_err, _id, ctx) => {
+    onError: (err, _id, ctx) => {
       if (ctx?.prevTasks) {
         qc.setQueryData(["tasks"], ctx.prevTasks);
       }
-      alert("削除に失敗しました");
+      push(err instanceof Error ? err.message : "削除に失敗しました", "error");
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });

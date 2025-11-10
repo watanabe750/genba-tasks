@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
 import type { Task, CreateTaskPayload, ISODateString } from "../../types";
 import { pushSiteHistory } from "../../lib/siteHistory";
+import { useToast } from "../../components/ToastProvider";
 
 export type CreateTaskInput = {
   title: string;
@@ -36,6 +37,7 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
 
 export function useCreateTask() {
   const qc = useQueryClient();
+  const { push } = useToast();
 
   return useMutation<Task, Error, CreateTaskInput, { prevTasks?: Task[]; tempId?: number }>({
     mutationKey: ["createTask"],
@@ -67,7 +69,7 @@ export function useCreateTask() {
 
     onError: (err, _vars, ctx) => {
       if (ctx?.prevTasks) qc.setQueryData(["tasks"], ctx.prevTasks);
-      alert(err instanceof Error ? err.message : "作成に失敗しました");
+      push(err instanceof Error ? err.message : "作成に失敗しました", "error");
     },
 
     onSuccess: (created, vars, ctx) => {

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/apiClient";
 import type { Task, UpdateTaskPayload } from "../../types";
 import { sortFlatForUI } from "../tasks/nest";
+import { useToast } from "../../components/ToastProvider";
 
 type UpdateInput = {
   id: number;
@@ -47,6 +48,7 @@ function normalize(data: UpdateInput["data"]) {
 
 export function useUpdateTask() {
   const qc = useQueryClient();
+  const { push } = useToast();
 
   return useMutation<
     Task,
@@ -112,14 +114,14 @@ export function useUpdateTask() {
       return { prevPriority, prevTasksEntries };
     },
 
-    onError: (_e, _v, ctx) => {
+    onError: (err, _v, ctx) => {
       if (ctx?.prevPriority) qc.setQueryData(["priorityTasks"], ctx.prevPriority);
       ctx?.prevTasksEntries?.forEach(([key, data]) => {
         if (Array.isArray(key)) {
           qc.setQueryData(key, data);
         }
       });
-      alert("更新に失敗しました");
+      push(err instanceof Error ? err.message : "更新に失敗しました", "error");
     },
 
     onSuccess: (fresh) => {
