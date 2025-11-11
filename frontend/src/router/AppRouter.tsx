@@ -8,6 +8,7 @@ import RequireAuth from "../components/RequireAuth";
 import Account from "../pages/Account";
 import Help from "../pages/Help";
 import Home from "../pages/Home";
+import CalendarPage from "../pages/CalendarPage";
 
 export const AppRouter = () => {
   return (
@@ -24,6 +25,7 @@ export const AppRouter = () => {
         <Route element={<RequireAuth />}>
           <Route element={<Layout />}>
             <Route path="/tasks" element={<TaskList />} />
+            <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/account" element={<Account />} />
             <Route path="/help" element={<Help />} />
             {/* 保護領域内のフォールバックは /tasks */}
