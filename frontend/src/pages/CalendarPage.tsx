@@ -1,12 +1,17 @@
 // src/pages/CalendarPage.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useTasksFromUrl } from "../features/tasks/useTasks";
+import { useUpdateTask } from "../features/tasks/useUpdateTask";
+import { useTaskDrawer } from "../features/drawer/useTaskDrawer";
 import useAuth from "../providers/useAuth";
-import type { Task } from "../types/task";
-import type { DateClickArg, EventClickArg } from "@fullcalendar/interaction";
+import type { DateClickArg } from "@fullcalendar/interaction";
+import type { EventClickArg, EventDropArg } from "@fullcalendar/core";
+import { useToast } from "../components/ToastProvider";
+import { brandIso } from "../lib/brandIso";
 
 // 期限に応じた色分けロジック
 function getColorByDeadline(deadline: string, status: string): string {
@@ -30,22 +35,54 @@ export default function CalendarPage() {
   const enabled = authed || DEMO;
 
   const { data: tasks = [] } = useTasksFromUrl(enabled);
+  const { mutateAsync: updateTask } = useUpdateTask();
+  const { open: openDrawer } = useTaskDrawer();
+  const { push: toast } = useToast();
+  const calendarRef = useRef<FullCalendar>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [selectedSite, setSelectedSite] = useState<string>("all");
+  const [calendarView, setCalendarView] = useState<"month" | "week">("month");
 
-  // 期限ありタスクをカレンダーイベント形式に変換
+  // ビューの切り替え
+  useEffect(() => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      calendarApi.changeView(
+        calendarView === "month" ? "dayGridMonth" : "timeGridWeek"
+      );
+    }
+  }, [calendarView]);
+
+  // 現場名の一覧を抽出
+  const sites = useMemo(() => {
+    const siteSet = new Set<string>();
+    tasks.forEach((task) => {
+      if (task.site) siteSet.add(task.site);
+    });
+    return Array.from(siteSet).sort();
+  }, [tasks]);
+
+  // 期限ありタスクをカレンダーイベント形式に変換（現場フィルター適用）
   const events = useMemo(() => {
-    return tasks
-      .filter((task) => task.deadline)
+    const filteredTasks =
+      selectedSite === "all"
+        ? tasks
+        : tasks.filter((task) => task.site === selectedSite);
+
+    return filteredTasks
+      .filter((task): task is typeof task & { deadline: string } =>
+        task.deadline !== null && task.deadline !== undefined
+      )
       .map((task) => ({
         id: String(task.id),
         title: task.title,
         date: task.deadline,
-        backgroundColor: getColorByDeadline(task.deadline!, task.status),
-        borderColor: getColorByDeadline(task.deadline!, task.status),
+        backgroundColor: getColorByDeadline(task.deadline, task.status),
+        borderColor: getColorByDeadline(task.deadline, task.status),
         extendedProps: { task },
       }));
-  }, [tasks]);
+  }, [tasks, selectedSite]);
 
   // 選択日のタスク一覧
   const tasksOnSelectedDate = useMemo(() => {
@@ -64,7 +101,34 @@ export default function CalendarPage() {
   const handleEventClick = (info: EventClickArg) => {
     const taskId = Number(info.event.id);
     setSelectedTaskId(taskId);
-    // TODO: タスク詳細ドロワーを開く実装（次のPRで対応）
+    openDrawer(taskId);
+  };
+
+  // ドラッグ&ドロップハンドラ
+  const handleEventDrop = async (info: EventDropArg) => {
+    const taskId = Number(info.event.id);
+    const newDate = info.event.start;
+
+    if (!newDate) {
+      info.revert();
+      return;
+    }
+
+    // YYYY-MM-DD形式に変換
+    const newDeadlineStr = newDate.toISOString().split("T")[0];
+    const newDeadline = brandIso(newDeadlineStr);
+
+    try {
+      await updateTask({
+        id: taskId,
+        data: { deadline: newDeadline },
+      });
+      toast("期限を更新しました", "success");
+    } catch (error) {
+      info.revert();
+      const err = error as { message?: string };
+      toast(err?.message ?? "期限の更新に失敗しました", "error");
+    }
   };
 
   return (
@@ -91,14 +155,64 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* フィルターとビュー切替 */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <label htmlFor="site-filter" className="text-sm font-medium text-gray-700">
+            現場:
+          </label>
+          <select
+            id="site-filter"
+            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm"
+            value={selectedSite}
+            onChange={(e) => setSelectedSite(e.target.value)}
+          >
+            <option value="all">すべて</option>
+            {sites.map((site) => (
+              <option key={site} value={site}>
+                {site}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            className={[
+              "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+              calendarView === "month"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+            ].join(" ")}
+            onClick={() => setCalendarView("month")}
+          >
+            月表示
+          </button>
+          <button
+            className={[
+              "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+              calendarView === "week"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+            ].join(" ")}
+            onClick={() => setCalendarView("week")}
+          >
+            週表示
+          </button>
+        </div>
+      </div>
+
       <div className="mb-6 rounded border bg-white p-4">
         <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
+          ref={calendarRef}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           locale="ja"
           events={events}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
+          eventDrop={handleEventDrop}
+          editable={true}
           height="auto"
           headerToolbar={{
             left: "prev,next today",
@@ -108,6 +222,9 @@ export default function CalendarPage() {
           buttonText={{
             today: "今日",
           }}
+          slotMinTime="06:00:00"
+          slotMaxTime="22:00:00"
+          allDaySlot={true}
         />
       </div>
 

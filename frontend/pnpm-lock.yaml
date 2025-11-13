@@ -17,6 +17,9 @@ importers:
       '@fullcalendar/react':
         specifier: ^6.1.19
         version: 6.1.19(@fullcalendar/core@6.1.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@fullcalendar/timegrid':
+        specifier: ^6.1.19
+        version: 6.1.19(@fullcalendar/core@6.1.19)
       '@tanstack/react-query':
         specifier: ^5.84.1
         version: 5.85.5(react@18.3.1)
@@ -406,6 +409,11 @@ packages:
       '@fullcalendar/core': ~6.1.19
       react: ^16.7.0 || ^17 || ^18 || ^19
       react-dom: ^16.7.0 || ^17 || ^18 || ^19
+
+  '@fullcalendar/timegrid@6.1.19':
+    resolution: {integrity: sha512-OuzpUueyO9wB5OZ8rs7TWIoqvu4v3yEqdDxZ2VcsMldCpYJRiOe7yHWKr4ap5Tb0fs7Rjbserc/b6Nt7ol6BRg==}
+    peerDependencies:
+      '@fullcalendar/core': ~6.1.19
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2358,6 +2366,11 @@ snapshots:
       '@fullcalendar/core': 6.1.19
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
+
+  '@fullcalendar/timegrid@6.1.19(@fullcalendar/core@6.1.19)':
+    dependencies:
+      '@fullcalendar/core': 6.1.19
+      '@fullcalendar/daygrid': 6.1.19(@fullcalendar/core@6.1.19)
 
   '@humanfs/core@0.19.1': {}
 
