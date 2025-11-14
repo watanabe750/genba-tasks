@@ -7,6 +7,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { useTasksFromUrl } from "../features/tasks/useTasks";
 import { useUpdateTask } from "../features/tasks/useUpdateTask";
 import { useTaskDrawer } from "../features/drawer/useTaskDrawer";
+import { useSiteList } from "../features/tasks/useSiteList";
 import useAuth from "../providers/useAuth";
 import type { DateClickArg } from "@fullcalendar/interaction";
 import type { EventClickArg, EventDropArg } from "@fullcalendar/core";
@@ -38,6 +39,7 @@ export default function CalendarPage() {
   const { mutateAsync: updateTask } = useUpdateTask();
   const { open: openDrawer } = useTaskDrawer();
   const { push: toast } = useToast();
+  const { sites } = useSiteList(tasks);
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -53,15 +55,6 @@ export default function CalendarPage() {
       );
     }
   }, [calendarView]);
-
-  // 現場名の一覧を抽出
-  const sites = useMemo(() => {
-    const siteSet = new Set<string>();
-    tasks.forEach((task) => {
-      if (task.site) siteSet.add(task.site);
-    });
-    return Array.from(siteSet).sort();
-  }, [tasks]);
 
   // 期限ありタスクをカレンダーイベント形式に変換（現場フィルター適用）
   const events = useMemo(() => {
