@@ -1,7 +1,8 @@
 // src/components/Sidebar.tsx
 import { NavLink, useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTasksFromUrl } from "../features/tasks/useTasks";
+import { useSiteList } from "../features/tasks/useSiteList";
 import useAuth from "../providers/useAuth";
 
 const Sidebar = () => {
@@ -17,30 +18,7 @@ const Sidebar = () => {
 
   // 全タスクを取得して現場一覧を作成
   const { data: allTasks = [] } = useTasksFromUrl(enabled);
-
-  // 現場ごとのタスク数を集計（追加順=id順）
-  const sitesWithCount = useMemo(() => {
-    const siteMap = new Map<string, { count: number; firstId: number }>();
-
-    allTasks.forEach((task) => {
-      if (task.site && task.site.trim()) {
-        const site = task.site.trim();
-        const existing = siteMap.get(site);
-        if (existing) {
-          existing.count++;
-          // より小さいIDを保持（追加順の早い方）
-          existing.firstId = Math.min(existing.firstId, task.id);
-        } else {
-          siteMap.set(site, { count: 1, firstId: task.id });
-        }
-      }
-    });
-
-    // 追加順（firstId昇順）でソート
-    return Array.from(siteMap.entries())
-      .map(([site, data]) => ({ site, count: data.count, firstId: data.firstId }))
-      .sort((a, b) => a.firstId - b.firstId);
-  }, [allTasks]);
+  const { sitesWithCount } = useSiteList(allTasks);
 
   const currentSite = sp.get("site") ?? "";
 
