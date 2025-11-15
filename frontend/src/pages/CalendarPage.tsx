@@ -11,8 +11,10 @@ import { useSiteList } from "../features/tasks/useSiteList";
 import useAuth from "../providers/useAuth";
 import type { DateClickArg } from "@fullcalendar/interaction";
 import type { EventClickArg, EventDropArg } from "@fullcalendar/core";
+import type { DayCellContentArg } from "@fullcalendar/core";
 import { useToast } from "../components/ToastProvider";
 import { brandIso } from "../lib/brandIso";
+import { isJapaneseHoliday } from "../utils/japaneseHolidays";
 
 // 期限に応じた色分けロジック
 function getColorByDeadline(deadline: string, status: string): string {
@@ -124,8 +126,30 @@ export default function CalendarPage() {
     }
   };
 
+  // 日付セルのカスタムレンダリング（土日祝日の背景色）
+  const dayCellClassNames = (arg: DayCellContentArg) => {
+    const date = arg.date;
+    const dayOfWeek = date.getDay();
+    const classes: string[] = [];
+
+    // 祝日判定
+    if (isJapaneseHoliday(date)) {
+      classes.push("fc-day-holiday");
+    }
+    // 日曜日
+    else if (dayOfWeek === 0) {
+      classes.push("fc-day-sunday");
+    }
+    // 土曜日
+    else if (dayOfWeek === 6) {
+      classes.push("fc-day-saturday");
+    }
+
+    return classes;
+  };
+
   return (
-    <div className="p-6">
+    <div className="flex h-[calc(100vh-4rem)] flex-col p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">カレンダー</h1>
         <div className="flex gap-3 text-sm">
@@ -195,88 +219,99 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="mb-6 rounded border bg-white p-4">
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          locale="ja"
-          events={events}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
-          eventDrop={handleEventDrop}
-          editable={true}
-          height="auto"
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "",
-          }}
-          buttonText={{
-            today: "今日",
-          }}
-          slotMinTime="06:00:00"
-          slotMaxTime="22:00:00"
-          allDaySlot={true}
-        />
-      </div>
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        <div className={[
+          "rounded border bg-white p-4",
+          selectedDate ? "w-2/3" : "w-full"
+        ].join(" ")}>
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            locale="ja"
+            events={events}
+            dateClick={handleDateClick}
+            eventClick={handleEventClick}
+            eventDrop={handleEventDrop}
+            editable={true}
+            height="100%"
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "",
+            }}
+            buttonText={{
+              today: "今日",
+            }}
+            slotMinTime="06:00:00"
+            slotMaxTime="22:00:00"
+            allDaySlot={true}
+            dayCellClassNames={dayCellClassNames}
+          />
+        </div>
 
-      {selectedDate && (
-        <div className="rounded border bg-white p-4">
-          <h2 className="mb-3 text-lg font-semibold">
-            {selectedDate.toLocaleDateString("ja-JP", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-            のタスク（{tasksOnSelectedDate.length}件）
-          </h2>
-          {tasksOnSelectedDate.length === 0 ? (
-            <p className="text-gray-500">この日のタスクはありません</p>
-          ) : (
-            <div className="space-y-2">
-              {tasksOnSelectedDate.map((task) => (
-                <div
-                  key={task.id}
-                  className={[
-                    "cursor-pointer rounded border p-3 transition-colors hover:bg-gray-50",
-                    selectedTaskId === task.id ? "ring-2 ring-blue-500" : "",
-                  ].join(" ")}
-                  onClick={() => setSelectedTaskId(task.id)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{task.title}</h3>
-                      {task.site && (
-                        <p className="text-sm text-gray-600">現場: {task.site}</p>
-                      )}
-                      <div className="mt-1 flex items-center gap-3 text-sm">
-                        <span className="text-gray-600">進捗: {task.progress}%</span>
-                        <span
-                          className={[
-                            "rounded px-2 py-0.5 text-xs",
-                            task.status === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : task.status === "in_progress"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800",
-                          ].join(" ")}
-                        >
-                          {task.status === "completed"
-                            ? "完了"
-                            : task.status === "in_progress"
-                              ? "進行中"
-                              : "未着手"}
-                        </span>
+        {selectedDate && (
+          <div className="flex w-1/3 flex-col rounded border bg-white p-4">
+            <h2 className="mb-3 flex items-center justify-between text-lg font-semibold">
+              <span>
+                {selectedDate.toLocaleDateString("ja-JP", {
+                  month: "long",
+                  day: "numeric",
+                })}
+              </span>
+              <span className="text-sm font-normal text-gray-600">
+                {tasksOnSelectedDate.length}件
+              </span>
+            </h2>
+            <div className="flex-1 overflow-y-auto">
+              {tasksOnSelectedDate.length === 0 ? (
+                <p className="text-gray-500">この日のタスクはありません</p>
+              ) : (
+                <div className="space-y-2">
+                  {tasksOnSelectedDate.map((task) => (
+                    <div
+                      key={task.id}
+                      className={[
+                        "cursor-pointer rounded border p-3 transition-colors hover:bg-gray-50",
+                        selectedTaskId === task.id ? "ring-2 ring-blue-500" : "",
+                      ].join(" ")}
+                      onClick={() => setSelectedTaskId(task.id)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium">{task.title}</h3>
+                          {task.site && (
+                            <p className="text-sm text-gray-600">現場: {task.site}</p>
+                          )}
+                          <div className="mt-1 flex items-center gap-3 text-sm">
+                            <span className="text-gray-600">進捗: {task.progress}%</span>
+                            <span
+                              className={[
+                                "rounded px-2 py-0.5 text-xs",
+                                task.status === "completed"
+                                  ? "bg-green-100 text-green-800"
+                                  : task.status === "in_progress"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-gray-100 text-gray-800",
+                              ].join(" ")}
+                            >
+                              {task.status === "completed"
+                                ? "完了"
+                                : task.status === "in_progress"
+                                  ? "進行中"
+                                  : "未着手"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
