@@ -31,3 +31,16 @@ body.is-dragging [data-testid^="task-item-"] {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* カレンダーの土日祝日の背景色 */
+.fc-day-sunday {
+  background-color: #fef2f2 !important; /* 薄い赤 */
+}
+
+.fc-day-saturday {
+  background-color: #eff6ff !important; /* 薄い青 */
+}
+
+.fc-day-holiday {
+  background-color: #fef2f2 !important; /* 薄い赤（祝日） */
+}
