@@ -149,7 +149,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col p-6">
+    <div className="flex h-[calc(100vh-4rem)] flex-col p-3 md:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">カレンダー</h1>
         <div className="flex gap-3 text-sm">
@@ -173,7 +173,7 @@ export default function CalendarPage() {
       </div>
 
       {/* フィルターとビュー切替 */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
           <label htmlFor="site-filter" className="text-sm font-medium text-gray-700">
             現場:
@@ -219,10 +219,10 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
+      <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row">
         <div className={[
           "rounded border bg-white p-4",
-          selectedDate ? "w-2/3" : "w-full"
+          selectedDate ? "md:w-2/3" : "w-full"
         ].join(" ")}>
           <FullCalendar
             ref={calendarRef}
@@ -251,7 +251,7 @@ export default function CalendarPage() {
         </div>
 
         {selectedDate && (
-          <div className="flex w-1/3 flex-col rounded border bg-white p-4">
+          <div className="flex flex-col rounded border bg-white p-4 md:w-1/3">
             <h2 className="mb-3 flex items-center justify-between text-lg font-semibold">
               <span>
                 {selectedDate.toLocaleDateString("ja-JP", {
