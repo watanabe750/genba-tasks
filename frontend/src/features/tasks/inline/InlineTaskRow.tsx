@@ -27,7 +27,13 @@ const DBG = import.meta.env.DEV;
 const log = (...args: unknown[]) => DBG && console.log("[DND:Row]", ...args);
 
 type RowProps = { task: Task; depth: number; prevId?: number | null };
-const INDENT_STEP = 24;
+
+// レスポンシブインデント: 小画面12px、中画面以上24px
+const getIndentPx = (depth: number): string => {
+  const step = depth <= 1 ? 0 : depth - 1;
+  // Tailwind CSSのブレークポイントに合わせてCSSカスタムプロパティで制御
+  return `calc(${step} * var(--indent-step, 24px))`;
+};
 
 const normPid = (v: number | null | undefined) => (v == null ? null : Number(v));
 const samePid = (a: number | null | undefined, b: number | null | undefined) =>
@@ -199,7 +205,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
         "hover:bg-gray-50/60 transition-colors",
         canDropHere ? "ring-1 ring-blue-300" : "",
       ].join(" ")}
-      style={{ paddingLeft: `${(depth - 1) * INDENT_STEP}px` }}
+      style={{ paddingLeft: getIndentPx(depth) }}
     >
       {depth > 1 && (
         <span
@@ -267,9 +273,9 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
           </div>
         )}
 
-        {/* 親のみ：軽量サムネ */}
+        {/* 親のみ：軽量サムネ（レスポンシブ：小画面48px、中画面以上64px） */}
         {isParent && (
-          <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
             {thumbSrc ? (
               <img
                 src={thumbSrc}
@@ -279,7 +285,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <span className="text-gray-400">未</span>
+              <span className="text-gray-400 text-xs sm:text-base">未</span>
             )}
           </div>
         )}
@@ -338,7 +344,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
       {/* 子追加フォーム */}
       {!editing && addingChild && (
         <form
-          className="mt-2 flex flex-wrap items-center gap-2"
+          className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"
           onSubmit={(e) => {
             e.preventDefault();
             submitChild();
@@ -355,26 +361,28 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
           <input
             type="date"
             aria-label="期限"
-            className="w-[160px] rounded border p-2"
+            className="w-full sm:w-[160px] rounded border p-2"
             value={childDue}
             onChange={(e) => setChildDue(e.target.value)}
           />
-          <button
-            type="submit"
-            data-testid="child-create-submit"
-            className="rounded bg-gray-900 px-2 py-1 text-xs text-white disabled:opacity-60"
-            disabled={creating || !childTitle.trim()}
-          >
-            作成
-          </button>
-          <button
-            type="button"
-            className="rounded border px-2 py-1 text-xs"
-            onClick={() => setAddingChild(false)}
-            disabled={creating}
-          >
-            取消
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              data-testid="child-create-submit"
+              className="flex-1 sm:flex-none rounded bg-gray-900 px-2 py-1 text-xs text-white disabled:opacity-60"
+              disabled={creating || !childTitle.trim()}
+            >
+              作成
+            </button>
+            <button
+              type="button"
+              className="flex-1 sm:flex-none rounded border px-2 py-1 text-xs"
+              onClick={() => setAddingChild(false)}
+              disabled={creating}
+            >
+              取消
+            </button>
+          </div>
         </form>
       )}
     </div>
