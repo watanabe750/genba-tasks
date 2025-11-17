@@ -7,6 +7,7 @@ import { AppRouter } from "./router/AppRouter";
 import AuthProvider from "./providers/AuthContext";
 import { TaskDrawerProvider } from "./features/drawer/useTaskDrawer";
 import { ToastProvider } from "./components/ToastProvider";
+import { SidebarProvider } from "./contexts/SidebarContext";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -28,11 +29,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TaskDrawerProvider>
-          <ToastProvider>
-            <AppRouter />
-          </ToastProvider>
-        </TaskDrawerProvider>
+        <SidebarProvider>
+          <TaskDrawerProvider>
+            <ToastProvider>
+              <AppRouter />
+            </ToastProvider>
+          </TaskDrawerProvider>
+        </SidebarProvider>
       </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>
