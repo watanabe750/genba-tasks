@@ -35,6 +35,26 @@ const TaskList: PageComponent = () => {
     };
   }, []);
 
+  // 優先パネルの表示状態（小画面用）
+  const [showPriorityPanel, setShowPriorityPanel] = useState(() => {
+    try {
+      const saved = localStorage.getItem("priority-panel-visible");
+      return saved ? JSON.parse(saved) : false; // 小画面デフォルト非表示
+    } catch {
+      return false;
+    }
+  });
+
+  const togglePriorityPanel = () => {
+    setShowPriorityPanel((prev: boolean) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("priority-panel-visible", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const [sp] = useSearchParams();
   const rawFilters = parseTaskFilters(sp);
   const filters = useDebouncedValue(rawFilters, 300);
@@ -74,7 +94,18 @@ const TaskList: PageComponent = () => {
           </div>
         )}
 
-        <TaskFilterBar summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`} />
+        <div className="flex items-center justify-between mb-4">
+          <TaskFilterBar summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`} />
+
+          {/* 優先パネル表示切替ボタン（小画面のみ） */}
+          <button
+            onClick={togglePriorityPanel}
+            className="lg:hidden rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 transition-colors"
+            aria-label={showPriorityPanel ? "優先タスクを非表示" : "優先タスクを表示"}
+          >
+            {showPriorityPanel ? "優先タスクを隠す" : "優先タスク"}
+          </button>
+        </div>
 
         {filters.progress_min != null &&
           filters.progress_max != null &&
@@ -89,7 +120,11 @@ const TaskList: PageComponent = () => {
             <NewParentTaskForm />
             <InlineTaskTree tree={tasks} />
           </section>
-          <aside className="priority-panel self-start lg:sticky lg:top-20 border-l pl-4 z-0">
+          <aside className={[
+            "priority-panel self-start border-l pl-4 z-0",
+            "lg:block lg:sticky lg:top-20", // 大画面は常に表示＆sticky
+            showPriorityPanel ? "block" : "hidden" // 小画面は状態で切り替え
+          ].join(" ")}>
             <PriorityTasksPanel />
           </aside>
         </div>
