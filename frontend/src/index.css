@@ -5,6 +5,17 @@
 html, body, #root { height: 100%; }
 body { margin: 0; }
 
+/* タスクリストのレスポンシブインデント */
+:root {
+  --indent-step: 12px; /* 小画面デフォルト */
+}
+
+@media (min-width: 640px) {
+  :root {
+    --indent-step: 24px; /* 中画面以上 */
+  }
+}
+
 /* 右ペインはドラッグ準備中/ドラッグ中は無効化 */
 body.pre-drag .priority-panel,
 body.is-dragging .priority-panel {
