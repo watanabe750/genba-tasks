@@ -1,20 +1,27 @@
 // src/components/Sidebar.tsx
 import { NavLink, useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTasksFromUrl } from "../features/tasks/useTasks";
 import { useSiteList } from "../features/tasks/useSiteList";
 import useAuth from "../providers/useAuth";
+import { useSidebar } from "../contexts/SidebarContext";
 
 const Sidebar = () => {
   const { authed } = useAuth();
   const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
   const enabled = authed || DEMO;
+  const { isOpen, close } = useSidebar();
 
   const [sp] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [showTasksLinks, setShowTasksLinks] = useState(true);
   const [showSitesLinks, setShowSitesLinks] = useState(true);
+
+  // ページ遷移時にサイドバーを閉じる（モバイルのみ）
+  useEffect(() => {
+    close();
+  }, [location.pathname, close]);
 
   // 全タスクを取得して現場一覧を作成
   const { data: allTasks = [] } = useTasksFromUrl(enabled);
@@ -49,18 +56,32 @@ const Sidebar = () => {
   };
 
   return (
-    <aside
-      className={[
-        "fixed left-0 top-14",
-        "w-44 md:w-48 lg:w-52",
-        "h-[calc(100vh-3.5rem)]",
-        "bg-gray-100/80 backdrop-blur-0",
-        "border-r shadow-md",
-        "overflow-y-auto",
-        "p-3 md:p-3.5",
-        "z-40",
-      ].join(" ")}
-    >
+    <>
+      {/* モバイル用オーバーレイ */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={close}
+          aria-label="サイドバーを閉じる"
+        />
+      )}
+
+      {/* サイドバー本体 */}
+      <aside
+        className={[
+          "fixed left-0 top-14",
+          "w-64 md:w-48 lg:w-52",
+          "h-[calc(100vh-3.5rem)]",
+          "bg-gray-100/80 backdrop-blur-0",
+          "border-r shadow-md",
+          "overflow-y-auto",
+          "p-3 md:p-3.5",
+          "z-40",
+          "transition-transform duration-300 ease-in-out",
+          // モバイル: デフォルトで隠す、isOpenで表示
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        ].join(" ")}
+      >
       <nav className="flex flex-col gap-3 text-[14px] md:text-[15px]">
         {/* タスクセクション - 折りたたみ可能 */}
         <div>
@@ -155,7 +176,19 @@ const Sidebar = () => {
           )}
         </div>
       </nav>
+
+      {/* モバイル用閉じるボタン */}
+      <button
+        onClick={close}
+        className="md:hidden absolute top-2 right-2 p-2 hover:bg-gray-200 rounded transition-colors"
+        aria-label="閉じる"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </aside>
+    </>
   );
 };
 
