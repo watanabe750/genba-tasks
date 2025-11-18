@@ -75,10 +75,10 @@ export function TaskFilterBar({ summary }: Props) {
   return (
     <section className="mb-4" data-testid="filter-bar">
       {/* 見出し＋絞り込み状況／件数表示／全解除 */}
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex items-center gap-2 flex-wrap">
           <h2 className="text-sm font-medium text-gray-700 shrink-0">フィルター &amp; 並び替え</h2>
-          <span aria-hidden className="h-4 w-px bg-gray-300/70 mx-1" />
+          <span aria-hidden className="hidden sm:inline h-4 w-px bg-gray-300/70 mx-1" />
           <span className="text-xs text-gray-500 shrink-0">絞り込み：</span>
           <div className="min-w-0 flex items-center gap-1 flex-wrap">
             {filterChips.length ? filterChips : <span className="text-xs text-gray-400">なし</span>}
@@ -124,7 +124,7 @@ export function TaskFilterBar({ summary }: Props) {
                     type="button"
                     aria-pressed={active}
                     onClick={() => toggleStatus(s)}
-                    className={["px-3 py-1 text-xs rounded-full transition", active ? "bg-white shadow border" : "text-gray-600 hover:bg-white/70"].join(" ")}
+                    className={["px-2 sm:px-3 py-1 text-[11px] sm:text-xs rounded-full transition", active ? "bg-white shadow border" : "text-gray-600 hover:bg-white/70"].join(" ")}
                   >
                     {label}
                   </button>
@@ -134,12 +134,14 @@ export function TaskFilterBar({ summary }: Props) {
           </div>
 
           {/* 3) 進捗（2） */}
-          <div className="sm:col-span-2 flex items-center justify-start text-xs text-gray-600">
-            <label className="flex items-center gap-2">
-              <span>進捗</span>
-              <input type="number" min={0} max={100} step={1} data-testid="progress-min" className="w-16 rounded border px-2 py-1" value={progress_min} onChange={onChangeProgress("progress_min")} placeholder="min" />
-              <span>–</span>
-              <input type="number" min={0} max={100} step={1} data-testid="progress-max" className="w-16 rounded border px-2 py-1" value={progress_max} onChange={onChangeProgress("progress_max")} placeholder="max" />
+          <div className="sm:col-span-2 text-xs text-gray-600">
+            <label className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <span className="shrink-0">進捗</span>
+              <div className="flex items-center gap-2">
+                <input type="number" min={0} max={100} step={1} data-testid="progress-min" className="w-full sm:w-16 rounded border px-2 py-1" value={progress_min} onChange={onChangeProgress("progress_min")} placeholder="min" />
+                <span className="shrink-0">–</span>
+                <input type="number" min={0} max={100} step={1} data-testid="progress-max" className="w-full sm:w-16 rounded border px-2 py-1" value={progress_max} onChange={onChangeProgress("progress_max")} placeholder="max" />
+              </div>
             </label>
           </div>
 
