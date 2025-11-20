@@ -212,7 +212,7 @@ function TaskDrawerInner({
               </div>
 
               {/* 2行目：site / deadline */}
-              <div className="mb-3 grid grid-cols-2 gap-3 text-[13px]">
+              <div className="mb-3 grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
                 <div>
                   <div className="text-gray-500">現場名</div>
                   <div className="font-medium">{data.site ?? "—"}</div>
@@ -256,7 +256,7 @@ function TaskDrawerInner({
                 <div className="mb-2 text-[13px] text-gray-500">
                   子タスクを作成
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <input
                     className="input input-bordered flex-1"
                     placeholder="子タスク名（必須）"
@@ -284,13 +284,13 @@ function TaskDrawerInner({
                   />
                   <input
                     type="date"
-                    className="input input-bordered w-40"
+                    className="input input-bordered w-full sm:w-40"
                     value={childDue}
                     onChange={(e) => setChildDue(e.target.value)}
                     aria-label="期限"
                   />
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-primary w-full sm:w-auto"
                     onClick={async () => {
                       if (!childTitle.trim()) return;
                       try {
@@ -330,7 +330,7 @@ function TaskDrawerInner({
               )}
 
               {/* 監査情報 */}
-              <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-gray-600">
+              <div className="mt-4 grid grid-cols-1 gap-3 text-[12px] text-gray-600 sm:grid-cols-2">
                 <div>
                   作成者:{" "}
                   <span className="font-medium text-gray-800">
