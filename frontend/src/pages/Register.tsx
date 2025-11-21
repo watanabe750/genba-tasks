@@ -83,16 +83,16 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white shadow rounded-2xl p-6">
-          <h1 className="text-2xl font-bold text-gray-900 text-center">新規登録</h1>
-          <p className="text-sm text-gray-600 text-center mt-1">Genba Tasks アカウント作成</p>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-2xl p-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center">新規登録</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mt-1">Genba Tasks アカウント作成</p>
 
           {errTop && (
             <div
               role="alert"
-              className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="mt-4 rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 px-3 py-2 text-sm text-red-700 dark:text-red-400"
               data-testid="register-error-banner"
             >
               {errTop}
@@ -101,7 +101,7 @@ export default function Register() {
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 名前
               </label>
               <input
@@ -109,8 +109,8 @@ export default function Register() {
                 name="name"
                 type="text"
                 autoComplete="name"
-                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none
-                  ${errName ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                  ${errName ? "border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900" : "border-gray-300 dark:border-gray-600 focus:ring-blue-200 dark:focus:ring-blue-900"}`}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 aria-invalid={!!errName}
@@ -120,14 +120,14 @@ export default function Register() {
                 autoFocus
               />
               {errName && (
-                <p id="name-error" className="mt-1 text-xs text-red-600">
+                <p id="name-error" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {errName}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 メールアドレス
               </label>
               <input
@@ -135,8 +135,8 @@ export default function Register() {
                 name="email"
                 type="email"
                 autoComplete="email"
-                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none
-                  ${errEmail ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                  ${errEmail ? "border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900" : "border-gray-300 dark:border-gray-600 focus:ring-blue-200 dark:focus:ring-blue-900"}`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 aria-invalid={!!errEmail}
@@ -145,14 +145,14 @@ export default function Register() {
                 required
               />
               {errEmail && (
-                <p id="email-error" className="mt-1 text-xs text-red-600">
+                <p id="email-error" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {errEmail}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 パスワード
               </label>
               <div className="mt-1 relative">
@@ -161,8 +161,8 @@ export default function Register() {
                   name="password"
                   type={showPw ? "text" : "password"}
                   autoComplete="new-password"
-                  className={`block w-full rounded-md border px-3 py-2 pr-20 text-sm outline-none
-                    ${errPw ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                  className={`block w-full rounded-md border px-3 py-2 pr-20 text-sm outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                    ${errPw ? "border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900" : "border-gray-300 dark:border-gray-600 focus:ring-blue-200 dark:focus:ring-blue-900"}`}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   aria-invalid={!!errPw}
@@ -173,21 +173,21 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  className="absolute inset-y-0 right-2 my-auto text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50"
+                  className="absolute inset-y-0 right-2 my-auto text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600"
                   aria-pressed={showPw}
                 >
                   {showPw ? "隠す" : "表示"}
                 </button>
               </div>
               {errPw && (
-                <p id="password-error" className="mt-1 text-xs text-red-600">
+                <p id="password-error" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {errPw}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 パスワード（確認）
               </label>
               <input
@@ -195,8 +195,8 @@ export default function Register() {
                 name="password_confirmation"
                 type={showPw ? "text" : "password"}
                 autoComplete="new-password"
-                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none
-                  ${errPwConfirm ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                  ${errPwConfirm ? "border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900" : "border-gray-300 dark:border-gray-600 focus:ring-blue-200 dark:focus:ring-blue-900"}`}
                 value={passwordConfirmation}
                 onChange={(e) => setPasswordConfirmation(e.target.value)}
                 aria-invalid={!!errPwConfirm}
@@ -205,7 +205,7 @@ export default function Register() {
                 required
               />
               {errPwConfirm && (
-                <p id="password-confirm-error" className="mt-1 text-xs text-red-600">
+                <p id="password-confirm-error" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {errPwConfirm}
                 </p>
               )}
@@ -215,7 +215,7 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white text-sm font-medium disabled:opacity-60"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 dark:bg-blue-700 px-4 py-2 text-white text-sm font-medium disabled:opacity-60 hover:bg-blue-700 dark:hover:bg-blue-600"
               >
                 {submitting && (
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
@@ -228,15 +228,15 @@ export default function Register() {
             </div>
           </form>
 
-          <p className="mt-4 text-center text-xs text-gray-600">
+          <p className="mt-4 text-center text-xs text-gray-600 dark:text-gray-400">
             すでにアカウントをお持ちですか？{" "}
-            <a href="/login" className="text-blue-600 hover:underline">
+            <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
               ログイン
             </a>
           </p>
         </div>
 
-        <p className="mt-3 text-center text-xs text-gray-500">
+        <p className="mt-3 text-center text-xs text-gray-500 dark:text-gray-400">
           登録することで、利用規約とプライバシーポリシーに同意したものとみなされます。
         </p>
       </div>

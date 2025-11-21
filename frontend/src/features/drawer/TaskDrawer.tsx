@@ -154,18 +154,18 @@ function TaskDrawerInner({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
-        className="fixed inset-y-0 right-0 z-[1001] w-full max-w-[560px] bg-white shadow-xl outline-none"
+        className="fixed inset-y-0 right-0 z-[1001] w-full max-w-[560px] bg-white dark:bg-gray-800 shadow-xl outline-none"
       >
         {/* ヘッダー */}
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 id={titleId} className="truncate text-base font-semibold">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+          <h2 id={titleId} className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
             {data?.title ?? "タスク詳細"}
           </h2>
           <button
             ref={closeBtnRef}
             type="button"
             aria-label="閉じる"
-            className="rounded px-2 py-1 text-sm hover:bg-gray-100"
+            className="rounded px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={close}
           >
             ✕
@@ -178,18 +178,18 @@ function TaskDrawerInner({
 
           {!isLoading && isError && (
             <div className="p-4 text-sm">
-              <p className="mb-2 text-red-700">読み込みに失敗しました。</p>
+              <p className="mb-2 text-red-700 dark:text-red-400">読み込みに失敗しました。</p>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="rounded border px-3 py-1 text-xs"
+                  className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-1 text-xs hover:bg-gray-50 dark:hover:bg-gray-600"
                   onClick={() => refetch()}
                 >
                   再試行
                 </button>
                 <button
                   type="button"
-                  className="rounded border px-3 py-1 text-xs"
+                  className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-1 text-xs hover:bg-gray-50 dark:hover:bg-gray-600"
                   onClick={close}
                 >
                   閉じる
@@ -199,11 +199,11 @@ function TaskDrawerInner({
           )}
 
           {!isLoading && !isError && data && (
-            <div className="p-4 text-sm text-gray-800">
+            <div className="p-4 text-sm text-gray-800 dark:text-gray-200">
               {/* 1行目：ステータス + 進捗％ */}
               <div className="mb-3 flex items-center gap-2">
                 <StatusPill status={data.status} />
-                <span className="text-xs text-gray-600">進捗: {prog}%</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">進捗: {prog}%</span>
               </div>
 
               {/* 進捗バー */}
@@ -214,12 +214,12 @@ function TaskDrawerInner({
               {/* 2行目：site / deadline */}
               <div className="mb-3 grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
                 <div>
-                  <div className="text-gray-500">現場名</div>
-                  <div className="font-medium">{data.site ?? "—"}</div>
+                  <div className="text-gray-500 dark:text-gray-400">現場名</div>
+                  <div className="font-medium text-gray-900 dark:text-gray-100">{data.site ?? "—"}</div>
                 </div>
                 <div>
-                  <div className="text-gray-500">期限</div>
-                  <div className="font-medium">
+                  <div className="text-gray-500 dark:text-gray-400">期限</div>
+                  <div className="font-medium text-gray-900 dark:text-gray-100">
                     {toYmd(data.deadline) ?? "未設定"}
                   </div>
                 </div>
@@ -227,11 +227,11 @@ function TaskDrawerInner({
 
               {/* 説明欄 */}
               {data.description && (
-                <div className="mb-4 rounded-md bg-gray-50 p-3">
-                  <div className="mb-1 text-xs font-medium text-gray-500">
+                <div className="mb-4 rounded-md bg-gray-50 dark:bg-gray-900 p-3">
+                  <div className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
                     説明
                   </div>
-                  <div className="whitespace-pre-wrap text-[13px] text-gray-800">
+                  <div className="whitespace-pre-wrap text-[13px] text-gray-800 dark:text-gray-200">
                     {data.description}
                   </div>
                 </div>
@@ -239,8 +239,8 @@ function TaskDrawerInner({
 
               {/* 3行目：子サマリ */}
               <div className="mb-3 text-[13px]">
-                <span className="text-gray-500">子タスク</span>{" "}
-                <span className="font-medium">
+                <span className="text-gray-500 dark:text-gray-400">子タスク</span>{" "}
+                <span className="font-medium text-gray-900 dark:text-gray-100">
                   完了 {data.children_done_count}/{data.children_count}
                 </span>
               </div>
@@ -252,8 +252,8 @@ function TaskDrawerInner({
               />
 
               {/* 子タスク作成（タイトル＋期限） */}
-              <div className="mt-3 rounded-md border p-3">
-                <div className="mb-2 text-[13px] text-gray-500">
+              <div className="mt-3 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-3">
+                <div className="mb-2 text-[13px] text-gray-500 dark:text-gray-400">
                   子タスクを作成
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -330,22 +330,22 @@ function TaskDrawerInner({
               )}
 
               {/* 監査情報 */}
-              <div className="mt-4 grid grid-cols-1 gap-3 text-[12px] text-gray-600 sm:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-3 text-[12px] text-gray-600 dark:text-gray-400 sm:grid-cols-2">
                 <div>
                   作成者:{" "}
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-gray-800 dark:text-gray-200">
                     {data.created_by_name}
                   </span>
                 </div>
                 <div>
                   作成日:{" "}
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-gray-800 dark:text-gray-200">
                     {toYmd(data.created_at) ?? "—"}
                   </span>
                 </div>
                 <div>
                   更新日:{" "}
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-gray-800 dark:text-gray-200">
                     {toYmd(data.updated_at) ?? "—"}
                   </span>
                 </div>

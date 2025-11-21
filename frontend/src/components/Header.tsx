@@ -41,7 +41,7 @@ export default function Header({ showDemoBadge = true }: HeaderProps) {
   const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
   return (
-    <header className={`fixed inset-x-0 top-0 z-50 bg-blue-600 text-white ${HEADER_H} border-b border-white/10 shadow-[0_10px_30px_-6px_rgba(0,0,0,0.35)]`}>
+    <header className={`fixed inset-x-0 top-0 z-50 bg-blue-600 dark:bg-blue-800 text-white ${HEADER_H} border-b border-white/10 shadow-[0_10px_30px_-6px_rgba(0,0,0,0.35)]`}>
       <div className="flex h-full items-center justify-between px-4">
         <div className="flex items-center gap-3">
           {authed && (

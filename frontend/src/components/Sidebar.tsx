@@ -72,8 +72,8 @@ const Sidebar = () => {
           "fixed left-0 top-14",
           "w-64 md:w-48 lg:w-52",
           "h-[calc(100vh-3.5rem)]",
-          "bg-gray-100/80 backdrop-blur-0",
-          "border-r shadow-md",
+          "bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-0",
+          "border-r border-gray-200 dark:border-gray-700 shadow-md",
           "overflow-y-auto",
           "p-3 md:p-3.5",
           "z-40",
@@ -82,12 +82,12 @@ const Sidebar = () => {
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         ].join(" ")}
       >
-      <nav className="flex flex-col gap-3 text-[14px] md:text-[15px]">
+      <nav className="flex flex-col gap-3 text-[14px] md:text-[15px] text-gray-900 dark:text-gray-100">
         {/* タスクセクション - 折りたたみ可能 */}
         <div>
           <button
             onClick={() => setShowTasksLinks(!showTasksLinks)}
-            className="flex items-center gap-1 w-full text-left font-medium mb-2 hover:text-blue-700"
+            className="flex items-center gap-1 w-full text-left font-medium mb-2 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <span className="text-xs">{showTasksLinks ? "▼" : "▶"}</span>
             <span>ページ</span>
@@ -97,7 +97,7 @@ const Sidebar = () => {
               <NavLink
                 to="/tasks"
                 className={({ isActive }) =>
-                  isActive ? "font-semibold text-blue-700" : "hover:underline"
+                  isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"
                 }
               >
                 タスク
@@ -105,7 +105,7 @@ const Sidebar = () => {
               <NavLink
                 to="/calendar"
                 className={({ isActive }) =>
-                  isActive ? "font-semibold text-blue-700" : "hover:underline"
+                  isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"
                 }
               >
                 カレンダー
@@ -113,7 +113,7 @@ const Sidebar = () => {
               <NavLink
                 to="/account"
                 className={({ isActive }) =>
-                  isActive ? "font-semibold text-blue-700" : "hover:underline"
+                  isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"
                 }
               >
                 アカウント
@@ -121,7 +121,7 @@ const Sidebar = () => {
               <NavLink
                 to="/help"
                 className={({ isActive }) =>
-                  isActive ? "font-semibold text-blue-700" : "hover:underline"
+                  isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"
                 }
               >
                 ヘルプ
@@ -131,10 +131,10 @@ const Sidebar = () => {
         </div>
 
         {/* 現場一覧セクション - 折りたたみ可能 */}
-        <div className="border-t pt-3">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
           <button
             onClick={() => setShowSitesLinks(!showSitesLinks)}
-            className="flex items-center gap-1 w-full text-left font-medium mb-2 hover:text-blue-700"
+            className="flex items-center gap-1 w-full text-left font-medium mb-2 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <span className="text-xs">{showSitesLinks ? "▼" : "▶"}</span>
             <span>現場一覧</span>
@@ -145,12 +145,12 @@ const Sidebar = () => {
               <button
                 onClick={() => selectSite("")}
                 className={[
-                  "text-left px-2 py-1 rounded text-sm hover:bg-gray-200 transition-colors",
-                  !currentSite ? "bg-blue-100 font-semibold text-blue-700" : "",
+                  "text-left px-2 py-1 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors",
+                  !currentSite ? "bg-blue-100 dark:bg-blue-900/50 font-semibold text-blue-700 dark:text-blue-400" : "",
                 ].join(" ")}
               >
                 <span className="block truncate">すべての現場</span>
-                <span className="text-xs text-gray-500">({allTasks.length})</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">({allTasks.length})</span>
               </button>
 
               {/* 各現場（追加順） */}
@@ -159,18 +159,18 @@ const Sidebar = () => {
                   key={site}
                   onClick={() => selectSite(site)}
                   className={[
-                    "text-left px-2 py-1 rounded text-sm hover:bg-gray-200 transition-colors",
-                    currentSite === site ? "bg-blue-100 font-semibold text-blue-700" : "",
+                    "text-left px-2 py-1 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors",
+                    currentSite === site ? "bg-blue-100 dark:bg-blue-900/50 font-semibold text-blue-700 dark:text-blue-400" : "",
                   ].join(" ")}
                   title={site}
                 >
                   <span className="block truncate">{site}</span>
-                  <span className="text-xs text-gray-500">({count})</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">({count})</span>
                 </button>
               ))}
 
               {sitesWithCount.length === 0 && (
-                <p className="text-xs text-gray-500 px-2">現場がありません</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 px-2">現場がありません</p>
               )}
             </div>
           )}
@@ -180,7 +180,7 @@ const Sidebar = () => {
       {/* モバイル用閉じるボタン */}
       <button
         onClick={close}
-        className="md:hidden absolute top-2 right-2 p-2 hover:bg-gray-200 rounded transition-colors"
+        className="md:hidden absolute top-2 right-2 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
         aria-label="閉じる"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

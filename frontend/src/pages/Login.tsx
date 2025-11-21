@@ -102,11 +102,11 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white shadow rounded-2xl p-6">
-          <h1 className="text-2xl font-bold text-gray-900 text-center">Genba Tasks</h1>
-          <p className="text-sm text-gray-600 text-center mt-1">現場タスクを“見える化”</p>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-2xl p-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center">Genba Tasks</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mt-1">現場タスクを"見える化"</p>
 
           {errTop && (
             <div
@@ -120,7 +120,7 @@ export default function Login() {
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 メールアドレス
               </label>
               <input
@@ -128,8 +128,8 @@ export default function Login() {
                 name="email"
                 type="email"
                 autoComplete="email"
-                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none
-                  ${errEmail ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                  ${errEmail ? "border-red-300 focus:ring-red-200 dark:border-red-600 dark:focus:ring-red-800" : "border-gray-300 dark:border-gray-600 focus:ring-blue-200 dark:focus:ring-blue-800"}`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 aria-invalid={!!errEmail}
@@ -146,7 +146,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 パスワード
               </label>
               <div className="mt-1 relative">
@@ -155,8 +155,8 @@ export default function Login() {
                   name="password"
                   type={showPw ? "text" : "password"}
                   autoComplete="current-password"
-                  className={`block w-full rounded-md border px-3 py-2 pr-20 text-sm outline-none
-                    ${errPw ? "border-red-300 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"}`}
+                  className={`block w-full rounded-md border px-3 py-2 pr-20 text-sm outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                    ${errPw ? "border-red-300 focus:ring-red-200 dark:border-red-600 dark:focus:ring-red-800" : "border-gray-300 dark:border-gray-600 focus:ring-blue-200 dark:focus:ring-blue-800"}`}
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
                   aria-invalid={!!errPw}
@@ -167,7 +167,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  className="absolute inset-y-0 right-2 my-auto text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50"
+                  className="absolute inset-y-0 right-2 my-auto text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                   aria-pressed={showPw}
                 >
                   {showPw ? "隠す" : "表示"}
@@ -199,7 +199,7 @@ export default function Login() {
                 type="button"
                 onClick={handleDemo}
                 disabled={submitting}
-                className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-60"
                 data-testid="login-guest-button"
               >
                 ゲストユーザーで試す
@@ -207,15 +207,15 @@ export default function Login() {
             </div>
           </form>
 
-          <p className="mt-4 text-center text-xs text-gray-600">
+          <p className="mt-4 text-center text-xs text-gray-600 dark:text-gray-400">
             アカウントをお持ちでない方は{" "}
-            <a href="/register" className="text-blue-600 hover:underline">
+            <a href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
               新規登録
             </a>
           </p>
         </div>
 
-        <p className="mt-3 text-center text-xs text-gray-500">
+        <p className="mt-3 text-center text-xs text-gray-500 dark:text-gray-400">
           このページは保護されています。未ログインの場合はログインが必要です。
         </p>
       </div>

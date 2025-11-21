@@ -123,7 +123,7 @@ export default function NewParentTaskForm() {
           ref={titleInputRef}
           data-testid="new-parent-title"
           aria-label="タイトル"
-          className="w-full rounded border px-3 py-2"
+          className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
           placeholder="タイトル（必須）"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -141,7 +141,7 @@ export default function NewParentTaskForm() {
           data-testid="new-parent-deadline"
           type="date"
           aria-label="期限"
-          className="w-full rounded border px-3 py-2"
+          className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
           value={deadline}
           onChange={(e) => setDeadline(e.target.value)}
         />
@@ -151,7 +151,7 @@ export default function NewParentTaskForm() {
             ref={siteInputRef}
             data-testid="new-parent-site"
             aria-label="現場名"
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
             placeholder="現場名（必須）"
             value={site}
             onChange={(e) => setSite(e.target.value)}
@@ -160,11 +160,11 @@ export default function NewParentTaskForm() {
             autoComplete="off"
           />
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full rounded border bg-white shadow-lg max-h-40 overflow-y-auto">
+            <ul className="absolute z-10 mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg max-h-40 overflow-y-auto">
               {suggestions.slice(0, 5).map((suggestion, idx) => (
                 <li
                   key={idx}
-                  className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                  className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100"
                   onClick={() => selectSuggestion(suggestion)}
                 >
                   {suggestion}
@@ -177,7 +177,7 @@ export default function NewParentTaskForm() {
         <button
           data-testid="new-parent-submit"
           type="submit"
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 hover:bg-blue-700 transition-colors"
+          className="rounded bg-blue-600 dark:bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           disabled={!canSubmit}
           aria-disabled={!canSubmit}
           title="上位タスクを作成（Enter）"

@@ -17,11 +17,11 @@ const STATUS_LABEL: Record<TaskNode["status"], string> = {
 
 // 期限の緊急度に応じたスタイル
 const URGENCY_STYLES = {
-  overdue: "bg-red-100 text-red-800 border-red-300 font-semibold",
-  urgent: "bg-orange-100 text-orange-800 border-orange-300 font-semibold",
-  warning: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  normal: "bg-gray-100 text-gray-700 border-gray-300",
-  none: "bg-gray-100 text-gray-500 border-gray-300",
+  overdue: "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700 font-semibold",
+  urgent: "bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 font-semibold",
+  warning: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700",
+  normal: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600",
+  none: "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600",
 };
 
 /**
@@ -53,7 +53,7 @@ export function TaskRowDisplay({ task, isParent, titleRef, onTitleClick, onTitle
               ? "text-[18px] md:text-[20px] font-semibold leading-tight"
               : "text-[15px] font-medium",
             isParent ? "cursor-pointer" : "cursor-text",
-            task.status === "completed" ? "text-gray-400 line-through" : "",
+            task.status === "completed" ? "text-gray-400 dark:text-gray-500 line-through" : "text-gray-900 dark:text-gray-100",
           ].join(" ")}
         >
           {task.title}
@@ -77,16 +77,16 @@ export function TaskRowDisplay({ task, isParent, titleRef, onTitleClick, onTitle
           </span>
         )}
         {!deadlineDate && (
-          <span className="text-gray-500">期限: —</span>
+          <span className="text-gray-500 dark:text-gray-400">期限: —</span>
         )}
 
         {/* ステータス */}
-        <span data-testid={`task-status-${task.id}`} data-status={task.status} className="text-gray-600">
+        <span data-testid={`task-status-${task.id}`} data-status={task.status} className="text-gray-600 dark:text-gray-400">
           ステータス: {STATUS_LABEL[task.status]}
         </span>
 
         {/* 現場名 */}
-        {task.site ? <span className="text-gray-600">現場名: {task.site}</span> : null}
+        {task.site ? <span className="text-gray-600 dark:text-gray-400">現場名: {task.site}</span> : null}
       </div>
     </>
   );
