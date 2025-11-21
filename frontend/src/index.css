@@ -43,15 +43,122 @@ body.is-dragging [data-testid^="task-item-"] {
   -webkit-user-select: none;
 }
 
-/* カレンダーの土日祝日の背景色 */
-.fc-day-sunday {
-  background-color: #fef2f2 !important; /* 薄い赤 */
+/* カレンダーの土日祝日の日付色（背景色は削除） */
+.fc-day-sunday .fc-daygrid-day-number {
+  color: #dc2626 !important; /* 赤色 */
 }
 
-.fc-day-saturday {
-  background-color: #eff6ff !important; /* 薄い青 */
+.fc-day-saturday .fc-daygrid-day-number {
+  color: #2563eb !important; /* 青色 */
 }
 
-.fc-day-holiday {
-  background-color: #fef2f2 !important; /* 薄い赤（祝日） */
+.fc-day-holiday .fc-daygrid-day-number {
+  color: #dc2626 !important; /* 赤色（祝日） */
+}
+
+/* ダークモード時のカレンダー背景とテキスト */
+.dark .fc {
+  --fc-border-color: #374151;
+  --fc-page-bg-color: #1f2937;
+  --fc-neutral-bg-color: #1f2937;
+  --fc-neutral-text-color: #f3f4f6;
+  --fc-event-text-color: #ffffff;
+}
+
+/* カレンダーのタイトル（年月）を見やすく */
+.fc-toolbar-title {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.dark .fc-toolbar-title {
+  color: #f3f4f6 !important;
+  font-weight: 600 !important;
+}
+
+/* カレンダーのイベント（タスク）の文字色を白に */
+.fc-event-title {
+  color: #ffffff !important;
+}
+
+.dark .fc-event-title {
+  color: #ffffff !important;
+}
+
+.dark .fc-theme-standard td,
+.dark .fc-theme-standard th {
+  border-color: #374151;
+}
+
+.dark .fc-col-header-cell {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+.dark .fc-daygrid-day-number {
+  color: #f3f4f6;
+}
+
+.dark .fc .fc-button {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+.dark .fc .fc-button:hover {
+  background-color: #4b5563;
+}
+
+.dark .fc .fc-button-primary:not(:disabled):active,
+.dark .fc .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.dark .fc-daygrid-day {
+  background-color: #1f2937;
+}
+
+.dark .fc-day-today {
+  background-color: #1e3a5f !important;
+}
+
+/* 時間軸の表示を見やすく */
+.dark .fc-timegrid-slot-label {
+  color: #f3f4f6;
+}
+
+.dark .fc-timegrid-axis {
+  color: #f3f4f6;
+}
+
+.fc-timegrid-slot-label {
+  font-size: 0.875rem;
+}
+
+/* 週表示のイベント（タスク）の文字色 */
+.dark .fc-timegrid-event {
+  color: #ffffff !important;
+}
+
+.fc-timegrid-event .fc-event-title {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+.fc-timegrid-event .fc-event-time {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+}
+
+/* 月表示のイベント時間も見やすく */
+.fc-daygrid-event .fc-event-time {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* 日付の「日」を非表示 */
+.fc-daygrid-day-number::after {
+  content: none !important;
 }
