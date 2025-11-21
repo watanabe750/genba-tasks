@@ -127,9 +127,9 @@ export default function TaskImagePanel({ taskId }: Props) {
       className="mt-2 rounded-md border p-3 bg-white"
       data-testid={`image-panel-${taskId}`}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-sm font-medium">画像</h3>
-        <div className="space-x-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:space-x-2">
           <button
             data-testid="btn-pick"
             type="button"
@@ -171,11 +171,11 @@ export default function TaskImagePanel({ taskId }: Props) {
       {loading ? (
         <div className="text-xs text-gray-500">読み込み中…</div>
       ) : hasImage ? (
-        <div className="flex items-start gap-3">
+        <div className="flex flex-col items-start gap-3 sm:flex-row">
           <img
             src={data.image_thumb_url || data.image_url!}
             alt="サムネイル"
-            className="h-24 w-24 rounded object-cover ring-1 ring-gray-200"
+            className="h-32 w-32 rounded object-cover ring-1 ring-gray-200 sm:h-24 sm:w-24"
           />
           <a
             href={data.image_url!}
