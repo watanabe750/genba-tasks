@@ -6,7 +6,7 @@ import TaskDrawer from "../features/drawer/TaskDrawer";
 
 const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
       {/* fixed ヘッダー分の余白を上に、fixed サイドバー分を左に */}
       <div className="flex flex-1 pt-14">

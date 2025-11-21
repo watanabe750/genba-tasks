@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git -C /Users/watanabe/Desktop/genba-task push -u origin refactor/unify-token-storage)",
       "Bash(git -C /Users/watanabe/Desktop/genba-task fetch --prune)",
-      "Bash(bundle exec rails:*)"
+      "Bash(bundle exec rails:*)",
+      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task diff main...HEAD)"
     ],
     "deny": [],
     "ask": []
