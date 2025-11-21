@@ -149,10 +149,10 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col p-3 md:p-6">
+    <div className="flex h-[calc(100vh-4rem)] flex-col p-3 md:p-6 bg-gray-50 dark:bg-gray-900">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">カレンダー</h1>
-        <div className="flex gap-3 text-sm">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">カレンダー</h1>
+        <div className="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
           <div className="flex items-center gap-1">
             <div className="h-3 w-3 rounded" style={{ backgroundColor: "#ef4444" }}></div>
             <span>期限切れ</span>
@@ -175,12 +175,12 @@ export default function CalendarPage() {
       {/* フィルターとビュー切替 */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <label htmlFor="site-filter" className="text-sm font-medium text-gray-700">
+          <label htmlFor="site-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             現場:
           </label>
           <select
             id="site-filter"
-            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm"
+            className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm"
             value={selectedSite}
             onChange={(e) => setSelectedSite(e.target.value)}
           >
@@ -199,7 +199,7 @@ export default function CalendarPage() {
               "rounded px-3 py-1.5 text-sm font-medium transition-colors",
               calendarView === "month"
                 ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600",
             ].join(" ")}
             onClick={() => setCalendarView("month")}
           >
@@ -210,7 +210,7 @@ export default function CalendarPage() {
               "rounded px-3 py-1.5 text-sm font-medium transition-colors",
               calendarView === "week"
                 ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600",
             ].join(" ")}
             onClick={() => setCalendarView("week")}
           >
@@ -221,7 +221,7 @@ export default function CalendarPage() {
 
       <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row">
         <div className={[
-          "rounded border bg-white p-4",
+          "rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4",
           selectedDate ? "md:w-2/3" : "w-full"
         ].join(" ")}>
           <FullCalendar
@@ -247,52 +247,53 @@ export default function CalendarPage() {
             slotMaxTime="22:00:00"
             allDaySlot={true}
             dayCellClassNames={dayCellClassNames}
+            dayCellContent={(arg) => arg.dayNumberText.replace('日', '')}
           />
         </div>
 
         {selectedDate && (
-          <div className="flex flex-col rounded border bg-white p-4 md:w-1/3">
-            <h2 className="mb-3 flex items-center justify-between text-lg font-semibold">
+          <div className="flex flex-col rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:w-1/3">
+            <h2 className="mb-3 flex items-center justify-between text-lg font-semibold text-gray-900 dark:text-gray-100">
               <span>
                 {selectedDate.toLocaleDateString("ja-JP", {
                   month: "long",
                   day: "numeric",
                 })}
               </span>
-              <span className="text-sm font-normal text-gray-600">
+              <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
                 {tasksOnSelectedDate.length}件
               </span>
             </h2>
             <div className="flex-1 overflow-y-auto">
               {tasksOnSelectedDate.length === 0 ? (
-                <p className="text-gray-500">この日のタスクはありません</p>
+                <p className="text-gray-500 dark:text-gray-400">この日のタスクはありません</p>
               ) : (
                 <div className="space-y-2">
                   {tasksOnSelectedDate.map((task) => (
                     <div
                       key={task.id}
                       className={[
-                        "cursor-pointer rounded border p-3 transition-colors hover:bg-gray-50",
+                        "cursor-pointer rounded border border-gray-200 dark:border-gray-700 p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700",
                         selectedTaskId === task.id ? "ring-2 ring-blue-500" : "",
                       ].join(" ")}
                       onClick={() => setSelectedTaskId(task.id)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium">{task.title}</h3>
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">{task.title}</h3>
                           {task.site && (
-                            <p className="text-sm text-gray-600">現場: {task.site}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">現場: {task.site}</p>
                           )}
                           <div className="mt-1 flex items-center gap-3 text-sm">
-                            <span className="text-gray-600">進捗: {task.progress}%</span>
+                            <span className="text-gray-600 dark:text-gray-400">進捗: {task.progress}%</span>
                             <span
                               className={[
                                 "rounded px-2 py-0.5 text-xs",
                                 task.status === "completed"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300"
                                   : task.status === "in_progress"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-gray-100 text-gray-800",
+                                    ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300"
+                                    : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300",
                               ].join(" ")}
                             >
                               {task.status === "completed"
