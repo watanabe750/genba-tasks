@@ -38,14 +38,14 @@ export function TaskRowActions({ task, isParent, onEdit, onAddChild, onShowImage
       {/* バッジ */}
       <div className="flex flex-wrap justify-end gap-1">
         {isParent && (
-          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+          <span className="rounded-full bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-300">
             上位タスク
           </span>
         )}
         {childrenCount > 0 && (
           <span
             data-testid={`leafstats-${task.id}`}
-            className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600"
+            className="rounded-full bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-600 dark:text-gray-300"
             title="子タスクの完了数 / 子タスク総数"
           >
             自動 {children.filter((c: TaskNode) => c.status === "completed").length}/{childrenCount} OK
@@ -81,7 +81,7 @@ export function TaskRowActions({ task, isParent, onEdit, onAddChild, onShowImage
         {/* 編集 */}
         <button
           type="button"
-          className="h-8 rounded border px-2 text-xs hover:bg-gray-50"
+          className="h-8 rounded border border-gray-300 dark:border-gray-600 px-2 text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
           onClick={onEdit}
           title="編集"
         >
@@ -93,7 +93,7 @@ export function TaskRowActions({ task, isParent, onEdit, onAddChild, onShowImage
           <button
             data-testid={`btn-image-${task.id}`}
             type="button"
-            className="h-8 rounded border px-2 text-xs hover:bg-gray-50"
+            className="h-8 rounded border border-gray-300 dark:border-gray-600 px-2 text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
             onClick={onShowImage}
             title="画像の表示・アップロード・削除"
           >
@@ -108,8 +108,8 @@ export function TaskRowActions({ task, isParent, onEdit, onAddChild, onShowImage
             className={[
               "h-8 rounded border px-2 text-xs",
               !canDelete
-                ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                : "hover:bg-red-50 border-red-200 text-red-600",
+                ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed bg-white dark:bg-gray-800"
+                : "hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 bg-white dark:bg-gray-800",
             ].join(" ")}
             onClick={handleDeleteClick}
             title={
