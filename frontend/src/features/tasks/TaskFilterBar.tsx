@@ -23,13 +23,13 @@ export function TaskFilterBar({ summary }: Props) {
       const label = status
         .map((s) => (s === "not_started" ? "未着手" : s === "in_progress" ? "進行中" : "完了"))
         .join(" , ");
-      chips.push(<span key="status" className="px-2 py-0.5 text-[11px] rounded-full bg-gray-100 dark:bg-gray-700">status: {label}</span>);
+      chips.push(<span key="status" className="px-3 py-1 text-[11px] rounded-full bg-sky-400/20 text-sky-200 border border-sky-400/30 font-medium backdrop-blur-sm">status: {label}</span>);
     }
-    if (site) chips.push(<span key="site" className="px-2 py-0.5 text-[11px] rounded-full bg-gray-100 dark:bg-gray-700">site: {site}</span>);
-    if (parents_only) chips.push(<span key="parents" className="px-2 py-0.5 text-[11px] rounded-full bg-gray-100 dark:bg-gray-700">上位タスクのみ</span>);
+    if (site) chips.push(<span key="site" className="px-3 py-1 text-[11px] rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 font-medium backdrop-blur-sm">site: {site}</span>);
+    if (parents_only) chips.push(<span key="parents" className="px-3 py-1 text-[11px] rounded-full bg-purple-400/20 text-purple-200 border border-purple-400/30 font-medium backdrop-blur-sm">上位タスクのみ</span>);
     if (progress_min || progress_max) {
       chips.push(
-        <span key="progress" className="px-2 py-0.5 text-[11px] rounded-full bg-gray-100 dark:bg-gray-700">
+        <span key="progress" className="px-3 py-1 text-[11px] rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30 font-medium backdrop-blur-sm">
           progress: {progress_min || 0}–{progress_max || 100}
         </span>
       );
@@ -75,21 +75,20 @@ export function TaskFilterBar({ summary }: Props) {
   return (
     <section className="mb-4" data-testid="filter-bar">
       {/* 見出し＋絞り込み状況／件数表示／全解除 */}
-      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex items-center gap-2 flex-wrap">
-          <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0">フィルター &amp; 並び替え</h2>
-          <span aria-hidden className="hidden sm:inline h-4 w-px bg-gray-300/70 dark:bg-gray-600/70 mx-1" />
-          <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">絞り込み：</span>
+          <h2 className="text-sm font-semibold text-white shrink-0">フィルター &amp; 並び替え</h2>
+          <span aria-hidden className="hidden sm:inline h-4 w-px bg-white/20 mx-1" />
+          <span className="text-xs text-slate-400 shrink-0">絞り込み：</span>
           <div className="min-w-0 flex items-center gap-1 flex-wrap">
-            {filterChips.length ? filterChips : <span className="text-xs text-gray-400">なし</span>}
+            {filterChips.length ? filterChips : <span className="text-xs text-slate-500">なし</span>}
           </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {summary && <span className="text-xs text-gray-600 dark:text-gray-400">{summary}</span>}
           <button
             type="button"
-            className="text-xs text-gray-600 dark:text-gray-400 underline decoration-dotted"
+            className="text-xs text-sky-400 hover:text-sky-300 font-medium underline decoration-sky-400/30 hover:decoration-sky-300/50 underline-offset-2 transition-colors"
             data-testid="filter-reset"
             onClick={() => setSp({}, { replace: true })}
           >
@@ -99,14 +98,14 @@ export function TaskFilterBar({ summary }: Props) {
       </div>
 
       {/* 本体：12カラム（横一列 / 等間隔気味の割り当て） */}
-      <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
+      <div className="w-full rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-md px-4 py-3 shadow-xl">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
           {/* 1) 現場名（3） */}
           <div className="sm:col-span-3">
             <input
               data-testid="filter-site"
               placeholder="現場名"
-              className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
+              className="w-full rounded-lg border border-white/20 bg-white/10 text-white placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all backdrop-blur-sm"
               value={site}
               onChange={(e) => setOrDelete("site", e.target.value)}
             />
@@ -114,7 +113,7 @@ export function TaskFilterBar({ summary }: Props) {
 
           {/* 2) ステータス（3） */}
           <div className="sm:col-span-3 flex justify-start min-w-0">
-            <div role="group" aria-label="ステータスで絞り込み" className="inline-flex rounded-full bg-gray-100 dark:bg-gray-700 p-1 flex-nowrap whitespace-nowrap">
+            <div role="group" aria-label="ステータスで絞り込み" className="inline-flex rounded-full bg-white/10 p-1 flex-nowrap whitespace-nowrap backdrop-blur-sm">
               {allStatuses.map((s) => {
                 const active = status.includes(s);
                 const label = s === "not_started" ? "未着手" : s === "in_progress" ? "進行中" : "完了";
@@ -124,7 +123,7 @@ export function TaskFilterBar({ summary }: Props) {
                     type="button"
                     aria-pressed={active}
                     onClick={() => toggleStatus(s)}
-                    className={["px-2 sm:px-3 py-1 text-[11px] sm:text-xs rounded-full transition", active ? "bg-white dark:bg-gray-800 shadow border border-gray-300 dark:border-gray-600" : "text-gray-600 dark:text-gray-400 hover:bg-white/70 dark:hover:bg-gray-600"].join(" ")}
+                    className={["px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs rounded-full transition-all font-medium", active ? "bg-gradient-to-r from-sky-400 to-emerald-400 text-slate-900 shadow-lg" : "text-slate-300 hover:bg-white/15 hover:text-white"].join(" ")}
                   >
                     {label}
                   </button>
@@ -134,39 +133,39 @@ export function TaskFilterBar({ summary }: Props) {
           </div>
 
           {/* 3) 進捗（2） */}
-          <div className="sm:col-span-2 text-xs text-gray-600 dark:text-gray-400">
+          <div className="sm:col-span-2 text-xs text-slate-300">
             <label className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <span className="shrink-0">進捗</span>
+              <span className="shrink-0 font-medium">進捗</span>
               <div className="flex items-center gap-2">
-                <input type="number" min={0} max={100} step={1} data-testid="progress-min" className="w-full sm:w-16 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1" value={progress_min} onChange={onChangeProgress("progress_min")} placeholder="min" />
-                <span className="shrink-0">–</span>
-                <input type="number" min={0} max={100} step={1} data-testid="progress-max" className="w-full sm:w-16 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1" value={progress_max} onChange={onChangeProgress("progress_max")} placeholder="max" />
+                <input type="number" min={0} max={100} step={1} data-testid="progress-min" className="w-full sm:w-16 rounded-lg border border-white/20 bg-white/10 text-white placeholder:text-slate-500 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 backdrop-blur-sm" value={progress_min} onChange={onChangeProgress("progress_min")} placeholder="min" />
+                <span className="shrink-0 text-slate-400">–</span>
+                <input type="number" min={0} max={100} step={1} data-testid="progress-max" className="w-full sm:w-16 rounded-lg border border-white/20 bg-white/10 text-white placeholder:text-slate-500 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 backdrop-blur-sm" value={progress_max} onChange={onChangeProgress("progress_max")} placeholder="max" />
               </div>
             </label>
           </div>
 
           {/* 4) 上位タスクのみ（2） */}
           <div className="sm:col-span-2 flex items-center justify-start">
-            <label className="inline-flex items-center gap-1 text-sm whitespace-nowrap" title="上位タスク（親）だけを表示">
-              <input type="checkbox" checked={parents_only} onChange={toggleParentsOnly} className="accent-blue-600" data-testid="filter-parents-only" />
-              <span>上位タスクのみ</span>
+            <label className="inline-flex items-center gap-2 text-sm whitespace-nowrap text-slate-200 font-medium cursor-pointer hover:text-white transition-colors" title="上位タスク（親）だけを表示">
+              <input type="checkbox" checked={parents_only} onChange={toggleParentsOnly} className="accent-sky-400 w-4 h-4 rounded cursor-pointer" data-testid="filter-parents-only" />
+              <span>上位のみ</span>
             </label>
           </div>
 
           {/* 5) 並び基準（1） */}
           <div className="sm:col-span-1 flex justify-start">
-            <select data-testid="order_by" className="w-full max-w-[9rem] rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm" value={order_by} onChange={(e) => setOrDelete("order_by", e.target.value)}>
-              <option value="deadline">期限</option>
-              <option value="progress">進捗</option>
-              <option value="created_at">作成日</option>
+            <select data-testid="order_by" className="w-full max-w-[9rem] rounded-lg border border-white/20 bg-white/10 text-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 backdrop-blur-sm font-medium cursor-pointer" value={order_by} onChange={(e) => setOrDelete("order_by", e.target.value)}>
+              <option value="deadline" className="bg-slate-800">期限</option>
+              <option value="progress" className="bg-slate-800">進捗</option>
+              <option value="created_at" className="bg-slate-800">作成日</option>
             </select>
           </div>
 
           {/* 6) 昇降（1） */}
           <div className="sm:col-span-1 flex justify-start">
-            <select data-testid="dir" className="w-full max-w-[7rem] rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm" value={dir} onChange={(e) => setOrDelete("dir", e.target.value)}>
-              <option value="asc">昇順</option>
-              <option value="desc">降順</option>
+            <select data-testid="dir" className="w-full max-w-[7rem] rounded-lg border border-white/20 bg-white/10 text-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 backdrop-blur-sm font-medium cursor-pointer" value={dir} onChange={(e) => setOrDelete("dir", e.target.value)}>
+              <option value="asc" className="bg-slate-800">昇順</option>
+              <option value="desc" className="bg-slate-800">降順</option>
             </select>
           </div>
         </div>

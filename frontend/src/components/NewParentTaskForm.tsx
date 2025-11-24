@@ -99,21 +99,24 @@ export default function NewParentTaskForm() {
   return (
     <section
       data-testid="new-parent-form"
-      className={[
-        "rounded-xl border border-blue-300 bg-blue-50/60",
-        "shadow-sm p-3 dark:border-blue-600 dark:bg-blue-950/20",
-      ].join(" ")}
+      className="rounded-2xl border border-white/20 bg-gradient-to-br from-sky-500/15 via-emerald-500/10 to-sky-500/15 backdrop-blur-md shadow-2xl p-4 animate-[fadeIn_0.8s_ease-out]"
       aria-label="上位タスクを作成"
     >
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-semibold text-blue-700 dark:text-blue-300">上位タスクを作成</h2>
-        <div className="flex items-center gap-2 text-xs text-blue-700/70 dark:text-blue-300/70">
-          <span>💡 Enterで連続追加</span>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-bold text-white text-base flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-sky-400 shadow-lg shadow-sky-400/50"></span>
+          上位タスクを作成
+        </h2>
+        <div className="flex items-center gap-2 text-xs text-sky-200 font-medium">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 backdrop-blur-sm border border-white/15">
+            <span className="text-sky-300">⚡</span>
+            Enterで連続追加
+          </span>
         </div>
       </div>
 
       <form
-        className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr,160px,160px,auto]"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr,160px,160px,auto]"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -123,7 +126,7 @@ export default function NewParentTaskForm() {
           ref={titleInputRef}
           data-testid="new-parent-title"
           aria-label="タイトル"
-          className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
+          className="w-full rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all backdrop-blur-sm font-medium"
           placeholder="タイトル（必須）"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -141,7 +144,7 @@ export default function NewParentTaskForm() {
           data-testid="new-parent-deadline"
           type="date"
           aria-label="期限"
-          className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
+          className="w-full rounded-xl border border-white/20 bg-white/10 text-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all backdrop-blur-sm font-medium [color-scheme:dark]"
           value={deadline}
           onChange={(e) => setDeadline(e.target.value)}
         />
@@ -151,7 +154,7 @@ export default function NewParentTaskForm() {
             ref={siteInputRef}
             data-testid="new-parent-site"
             aria-label="現場名"
-            className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
+            className="w-full rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all backdrop-blur-sm font-medium"
             placeholder="現場名（必須）"
             value={site}
             onChange={(e) => setSite(e.target.value)}
@@ -160,11 +163,11 @@ export default function NewParentTaskForm() {
             autoComplete="off"
           />
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg max-h-40 overflow-y-auto">
+            <ul className="absolute z-10 mt-2 w-full rounded-xl border border-white/20 bg-slate-900/95 backdrop-blur-xl shadow-2xl max-h-40 overflow-y-auto">
               {suggestions.slice(0, 5).map((suggestion, idx) => (
                 <li
                   key={idx}
-                  className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100"
+                  className="px-4 py-2.5 hover:bg-sky-500/20 cursor-pointer text-sm text-white font-medium transition-colors border-b border-white/10 last:border-b-0"
                   onClick={() => selectSuggestion(suggestion)}
                 >
                   {suggestion}
@@ -177,12 +180,13 @@ export default function NewParentTaskForm() {
         <button
           data-testid="new-parent-submit"
           type="submit"
-          className="rounded bg-blue-600 dark:bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+          className="group relative rounded-xl bg-gradient-to-r from-sky-400 via-emerald-300 to-emerald-500 px-6 py-2.5 text-sm font-bold text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-sky-500/30 hover:scale-105 active:scale-100 transition-all duration-300"
           disabled={!canSubmit}
           aria-disabled={!canSubmit}
           title="上位タスクを作成（Enter）"
         >
-          作成
+          <span className="relative z-10">作成</span>
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 to-sky-400 opacity-0 group-hover:opacity-100 transition-opacity blur-lg" />
         </button>
       </form>
     </section>

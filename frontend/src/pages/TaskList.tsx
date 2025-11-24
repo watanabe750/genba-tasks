@@ -87,46 +87,99 @@ const TaskList: PageComponent = () => {
 
   return (
     <InlineDndProvider>
-      <div className="max-w-6xl mx-auto p-4" data-testid="task-list-root">
-        {isGuest && (
-          <div className="mb-3 rounded border border-amber-2 00 bg-amber-50 px-3 py-2 text-xs text-amber-800" role="note">
-            これは<strong className="mx-1">ゲスト環境</strong>です。データは定期的に初期化される場合があります。
-          </div>
-        )}
+      <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+        {/* Enhanced Background Layers */}
+        <div
+          aria-hidden
+          className="fixed inset-0 opacity-40 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at 20% 10%, rgba(56,189,248,0.15), transparent 40%), radial-gradient(circle at 80% 20%, rgba(16,185,129,0.12), transparent 35%), radial-gradient(circle at 40% 90%, rgba(99,102,241,0.1), transparent 40%), linear-gradient(180deg, #020617 0%, #0f172a 100%)",
+          }}
+        />
 
-        <div className="flex items-center justify-between mb-4">
-          <TaskFilterBar summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`} />
+        {/* Animated Grid */}
+        <div
+          aria-hidden
+          className="fixed inset-0 bg-[linear-gradient(rgba(56,189,248,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.03)_1px,transparent_1px)] bg-[size:80px_80px] pointer-events-none opacity-50"
+        />
 
-          {/* 優先パネル表示切替ボタン（小画面のみ） */}
-          <button
-            onClick={togglePriorityPanel}
-            className="lg:hidden rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 transition-colors"
-            aria-label={showPriorityPanel ? "優先タスクを非表示" : "優先タスクを表示"}
-          >
-            {showPriorityPanel ? "優先タスクを隠す" : "優先タスク"}
-          </button>
-        </div>
-
-        {filters.progress_min != null &&
-          filters.progress_max != null &&
-          filters.progress_min === filters.progress_max && (
-            <div className="mb-2 inline-flex items-center gap-2 rounded bg-blue-50 px-2 py-1 text-xs text-blue-700">
-              進捗: {filters.progress_min}%
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="task-list-root">
+          {/* Guest Banner */}
+          {isGuest && (
+            <div
+              className="mb-6 rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 px-5 py-4 backdrop-blur-md shadow-lg shadow-amber-500/10 animate-[fadeIn_0.6s_ease-out]"
+              role="note"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex-shrink-0 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                </span>
+                <p className="text-sm font-medium text-amber-100">
+                  これは<strong className="mx-1 text-amber-200">ゲスト環境</strong>です。データは定期的に初期化される場合があります。
+                </p>
+              </div>
             </div>
           )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <section className="space-y-4 relative z-10" data-dnd-surface="1">
-            <NewParentTaskForm />
-            <InlineTaskTree tree={tasks} />
-          </section>
-          <aside className={[
-            "priority-panel self-start border-l pl-4 z-0",
-            "lg:block lg:sticky lg:top-20", // 大画面は常に表示＆sticky
-            showPriorityPanel ? "block" : "hidden" // 小画面は状態で切り替え
-          ].join(" ")}>
-            <PriorityTasksPanel />
-          </aside>
+          {/* Header Section */}
+          <div className="mb-8 animate-[fadeIn_0.8s_ease-out]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-white via-sky-100 to-emerald-100 bg-clip-text text-transparent tracking-tight">
+                  タスク管理
+                </h1>
+                <p className="mt-2 text-sm text-slate-400 font-medium">
+                  全 <span className="text-sky-400 font-bold">{tasksFlat.length}</span> 件 ・ {orderLabel} / {dirLabel}
+                </p>
+              </div>
+
+              {/* 優先パネル表示切替ボタン（小画面のみ） */}
+              <button
+                onClick={togglePriorityPanel}
+                className="lg:hidden group relative inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:border-white/30 hover:scale-105 active:scale-100 backdrop-blur-sm"
+                aria-label={showPriorityPanel ? "優先タスクを非表示" : "優先タスクを表示"}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+                {showPriorityPanel ? "優先タスクを隠す" : "優先タスク"}
+              </button>
+            </div>
+
+            <TaskFilterBar summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`} />
+
+            {/* Active Filter Badge */}
+            {filters.progress_min != null &&
+              filters.progress_max != null &&
+              filters.progress_min === filters.progress_max && (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/15 px-4 py-2 text-xs font-semibold text-sky-100 backdrop-blur-sm shadow-lg shadow-sky-500/10">
+                  <span className="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+                  進捗: {filters.progress_min}%
+                </div>
+              )}
+          </div>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            {/* Task List Section */}
+            <section className="space-y-4 relative z-10 animate-[fadeIn_1s_ease-out_0.2s_both]" data-dnd-surface="1">
+              <NewParentTaskForm />
+              <InlineTaskTree tree={tasks} />
+            </section>
+
+            {/* Priority Panel Aside */}
+            <aside
+              className={[
+                "priority-panel self-start z-0",
+                "lg:block lg:sticky lg:top-24",
+                showPriorityPanel ? "block" : "hidden",
+              ].join(" ")}
+            >
+              <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-xl shadow-2xl overflow-hidden animate-[fadeIn_1.2s_ease-out_0.4s_both]">
+                <PriorityTasksPanel />
+              </div>
+            </aside>
+          </div>
         </div>
       </div>
     </InlineDndProvider>
