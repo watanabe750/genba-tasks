@@ -111,17 +111,15 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
     });
   };
 
-  // === ドロワー開閉 ===
+  // === インライン編集（全タスク対応） ===
   const handleTitleClick = () => {
-    if (isParent) openDrawer(task.id, titleRef.current || undefined);
-    else setEditing(true);
+    setEditing(true);
   };
 
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isParent) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      openDrawer(task.id, titleRef.current || undefined);
+      setEditing(true);
     }
   };
 

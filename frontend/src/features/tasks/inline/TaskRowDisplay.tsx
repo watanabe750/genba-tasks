@@ -43,16 +43,14 @@ export function TaskRowDisplay({ task, isParent, titleRef, onTitleClick, onTitle
         <span
           ref={titleRef}
           data-testid={`task-title-${task.id}`}
-          role={isParent ? "button" : undefined}
-          tabIndex={isParent ? 0 : undefined}
-          aria-haspopup={isParent ? "dialog" : undefined}
-          title={isParent ? "詳細を開く" : undefined}
+          role="button"
+          tabIndex={0}
+          title="クリックして編集"
           className={[
-            "truncate hover:underline decoration-dotted",
+            "truncate hover:underline decoration-dotted cursor-pointer",
             isParent
               ? "text-[18px] md:text-[20px] font-semibold leading-tight"
               : "text-[15px] font-medium",
-            isParent ? "cursor-pointer" : "cursor-text",
             task.status === "completed" ? "text-gray-400 dark:text-gray-500 line-through" : "text-gray-900 dark:text-gray-100",
           ].join(" ")}
         >
