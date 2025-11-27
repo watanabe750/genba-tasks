@@ -1,0 +1,294 @@
+// src/features/tasks/workflowy/WorkflowyTaskRow.tsx
+import { useState, useCallback, useRef, useEffect, type DragEvent } from "react";
+import type { TaskNode } from "../../../types";
+import { useUpdateTask } from "../useUpdateTask";
+import { useDeleteTask } from "../useDeleteTask";
+import { useCreateTask } from "../useCreateTask";
+
+type Props = {
+  task: TaskNode;
+  depth: number;
+  prevId?: number | null;
+  onDragStart?: (task: TaskNode) => void;
+  onDragEnd?: () => void;
+  onDrop?: (targetId: number, prevId: number | null) => void;
+};
+
+const fromISOtoDateInput = (iso: string | null): string => {
+  if (!iso) return "";
+  return iso.split("T")[0];
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  not_started: "未着手",
+  in_progress: "進行中",
+  completed: "完了",
+};
+
+export default function WorkflowyTaskRow({
+  task,
+  depth,
+  prevId = null,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+}: Props) {
+  const children = task.children ?? [];
+  const isLeaf = children.length === 0;
+  const isParent = depth === 1;
+
+  const [expanded, setExpanded] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [dragging, setDragging] = useState(false);
+
+  const { mutate: updateTask } = useUpdateTask();
+  const { mutate: deleteTask } = useDeleteTask();
+  const { mutate: createTask } = useCreateTask();
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  // クリックで編集開始
+  const handleClick = () => {
+    if (!editing) {
+      setEditing(true);
+    }
+  };
+
+  // 保存処理
+  const handleSave = useCallback(() => {
+    const trimmed = editTitle.trim();
+
+    // 空欄なら削除
+    if (!trimmed) {
+      deleteTask(task.id);
+      return;
+    }
+
+    // 変更があれば更新
+    if (trimmed !== task.title) {
+      updateTask({
+        id: task.id,
+        data: { title: trimmed },
+      });
+    }
+
+    setEditing(false);
+  }, [editTitle, task.id, task.title, updateTask, deleteTask]);
+
+  // キャンセル
+  const handleCancel = useCallback(() => {
+    setEditTitle(task.title);
+    setEditing(false);
+  }, [task.title]);
+
+  // キーボード操作
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+
+      // 親タスクの場合、Enterで子タスク作成
+      if (isParent && !e.metaKey && !e.ctrlKey) {
+        handleSave();
+        // 子タスク作成
+        createTask(
+          { title: "", parentId: task.id },
+          {
+            onSuccess: () => {
+              setExpanded(true);
+            },
+          }
+        );
+        return;
+      }
+
+      handleSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
+  // 完了チェック toggle
+  const toggleCompleted = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isLeaf) return;
+
+    const nextStatus = task.status === "completed" ? "not_started" : "completed";
+    updateTask({
+      id: task.id,
+      data: {
+        status: nextStatus,
+        progress: nextStatus === "completed" ? 100 : 0,
+      },
+    });
+  };
+
+  // 折りたたみトグル
+  const toggleExpanded = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded((v) => !v);
+  };
+
+  // ドラッグ&ドロップ
+  const handleDragStart = (e: DragEvent) => {
+    if (!isParent) return;
+
+    setDragging(true);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(task.id));
+    onDragStart?.(task);
+  };
+
+  const handleDragEndLocal = () => {
+    setDragging(false);
+    onDragEnd?.();
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    if (!isParent) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDropLocal = (e: DragEvent) => {
+    if (!isParent) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onDrop?.(task.id, prevId);
+  };
+
+  // インデント（12px刻み）
+  const indentPx = depth * 12;
+
+  // 進捗バーの背景グラデーション（親タスクのみ）
+  const progressGradient = isParent && task.progress
+    ? `linear-gradient(90deg, rgba(14, 165, 233, 0.1) 0%, rgba(14, 165, 233, 0.1) ${task.progress}%, transparent ${task.progress}%)`
+    : undefined;
+
+  return (
+    <>
+      <div
+        className={[
+          "relative group flex items-center gap-2 py-1 px-2 hover:bg-white/5 transition-colors",
+          "min-h-[26px]", // 24-28px
+          dragging ? "opacity-50" : "",
+        ].join(" ")}
+        style={{
+          paddingLeft: `${indentPx + 8}px`,
+          background: progressGradient,
+        }}
+        draggable={isParent}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEndLocal}
+        onDragOver={handleDragOver}
+        onDrop={handleDropLocal}
+      >
+        {/* 折りたたみアイコン */}
+        {children.length > 0 ? (
+          <button
+            type="button"
+            onClick={toggleExpanded}
+            className="flex-shrink-0 w-4 h-4 flex items-center justify-center hover:bg-white/10 rounded text-xs text-slate-400"
+          >
+            {expanded ? "▾" : "▸"}
+          </button>
+        ) : (
+          <span className="flex-shrink-0 w-4" />
+        )}
+
+        {/* 完了チェックボックス（葉タスクのみ） */}
+        {isLeaf && (
+          <input
+            type="checkbox"
+            checked={task.status === "completed"}
+            onChange={(e) => {
+              e.stopPropagation();
+              toggleCompleted(e as unknown as React.MouseEvent);
+            }}
+            className="flex-shrink-0 w-3.5 h-3.5 rounded border-slate-600"
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
+
+        {/* タスク情報 */}
+        {editing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            className="flex-1 bg-slate-800 border border-sky-500 rounded px-2 py-0.5 text-sm text-white outline-none"
+          />
+        ) : (
+          <div
+            className="flex-1 flex items-center gap-2 min-w-0 cursor-text"
+            onClick={handleClick}
+          >
+            {/* タスク名 */}
+            <span
+              className={[
+                "text-sm truncate",
+                task.status === "completed" ? "line-through text-slate-500" : "text-slate-200",
+              ].join(" ")}
+            >
+              {task.title}
+            </span>
+
+            {/* 現場名（親タスクのみ） */}
+            {isParent && task.site && (
+              <span className="flex-shrink-0 text-xs text-slate-400 px-1.5 py-0.5 bg-emerald-500/10 rounded">
+                {task.site}
+              </span>
+            )}
+
+            {/* 期限 */}
+            {task.deadline && (
+              <span className="flex-shrink-0 text-xs text-slate-400">
+                {fromISOtoDateInput(task.deadline)}
+              </span>
+            )}
+
+            {/* ステータス */}
+            <span className="flex-shrink-0 text-xs text-slate-500">
+              {STATUS_LABEL[task.status]}
+            </span>
+
+            {/* 進捗%（親タスクのみ） */}
+            {isParent && (
+              <span className="flex-shrink-0 text-xs text-sky-400 font-mono">
+                {task.progress || 0}%
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 子タスク */}
+      {expanded && children.length > 0 && (
+        <div>
+          {children.map((child, idx) => (
+            <WorkflowyTaskRow
+              key={child.id}
+              task={child}
+              depth={depth + 1}
+              prevId={idx === 0 ? null : children[idx - 1].id}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onDrop={onDrop}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
