@@ -42,6 +42,8 @@ export default function WorkflowyTaskRow({
   const [editTitle, setEditTitle] = useState(task.title);
   const [editSite, setEditSite] = useState(task.site || "");
   const [dragging, setDragging] = useState(false);
+  const [creatingChild, setCreatingChild] = useState(false);
+  const [childTitle, setChildTitle] = useState("");
 
   const { mutate: updateTask } = useUpdateTask();
   const { mutate: deleteTask } = useDeleteTask();
@@ -49,6 +51,7 @@ export default function WorkflowyTaskRow({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const siteInputRef = useRef<HTMLInputElement>(null);
+  const childInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editing) {
@@ -56,6 +59,12 @@ export default function WorkflowyTaskRow({
       inputRef.current?.select();
     }
   }, [editing]);
+
+  useEffect(() => {
+    if (creatingChild) {
+      childInputRef.current?.focus();
+    }
+  }, [creatingChild]);
 
   // クリックで編集開始
   const handleClick = () => {
@@ -105,18 +114,12 @@ export default function WorkflowyTaskRow({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
 
-      // 親タスクの場合、Enterで子タスク作成
+      // 親タスクの場合、Enterで子タスク作成フォーム表示
       if (isParent && !e.metaKey && !e.ctrlKey) {
         handleSave();
-        // 子タスク作成
-        createTask(
-          { title: "", parentId: task.id },
-          {
-            onSuccess: () => {
-              setExpanded(true);
-            },
-          }
-        );
+        setCreatingChild(true);
+        setChildTitle("");
+        setExpanded(true);
         return;
       }
 
@@ -124,6 +127,36 @@ export default function WorkflowyTaskRow({
     } else if (e.key === "Escape") {
       e.preventDefault();
       handleCancel();
+    }
+  };
+
+  // 子タスク作成保存
+  const handleSaveChild = useCallback(() => {
+    const trimmed = childTitle.trim();
+    if (trimmed) {
+      createTask({
+        title: trimmed,
+        parentId: task.id,
+      });
+    }
+    setCreatingChild(false);
+    setChildTitle("");
+  }, [childTitle, task.id, createTask]);
+
+  // 子タスク作成キャンセル
+  const handleCancelChild = useCallback(() => {
+    setCreatingChild(false);
+    setChildTitle("");
+  }, []);
+
+  // 子タスク入力のキーボード操作
+  const handleChildKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveChild();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelChild();
     }
   };
 
@@ -298,6 +331,28 @@ export default function WorkflowyTaskRow({
           </div>
         )}
       </div>
+
+      {/* 子タスク作成フォーム */}
+      {expanded && creatingChild && (
+        <div
+          className="flex items-center gap-2 py-1 px-2 bg-white/5 min-h-[26px]"
+          style={{ paddingLeft: `${(depth + 1) * 12 + 8}px` }}
+        >
+          <span className="flex-shrink-0 w-4" />
+          <div className="flex-1 flex items-center gap-2">
+            <input
+              ref={childInputRef}
+              type="text"
+              value={childTitle}
+              onChange={(e) => setChildTitle(e.target.value)}
+              onKeyDown={handleChildKeyDown}
+              onBlur={handleSaveChild}
+              placeholder="子タスク名"
+              className="flex-1 bg-slate-800 border border-sky-500 rounded px-2 py-0.5 text-sm text-white outline-none"
+            />
+          </div>
+        </div>
+      )}
 
       {/* 子タスク */}
       {expanded && children.length > 0 && (
