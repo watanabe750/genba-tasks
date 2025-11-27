@@ -8,7 +8,7 @@ import { useToast } from "../../components/ToastProvider";
 type UpdateInput = {
   id: number;
   data: Partial<
-    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">
+    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id" | "site">
   > & {
     after_id?: number | null;
   };
@@ -19,13 +19,17 @@ const clamp = (n: number, min = 0, max = 100) => Math.min(Math.max(n, min), max)
 // ★ 渡されたフィールドだけを送る（after_id はトップレベルで送る）
 function normalize(data: UpdateInput["data"]) {
   const out: Partial<
-    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id">
+    Pick<Task, "status" | "progress" | "title" | "deadline" | "parent_id" | "site">
   > = {};
 
   if (typeof data.title === "string") out.title = data.title.trim();
 
   if (data.deadline === null || typeof data.deadline === "string") {
     out.deadline = data.deadline ?? null;
+  }
+
+  if (data.site === null || typeof data.site === "string") {
+    out.site = data.site ?? null;
   }
 
   if (data.status) {

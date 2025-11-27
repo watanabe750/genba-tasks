@@ -2,11 +2,9 @@ import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { OrderBy, SortDir, Status } from "../../types";
 
-type Props = { summary?: string };
-
 const allStatuses: Status[] = ["not_started", "in_progress", "completed"];
 
-export function TaskFilterBar({ summary }: Props) {
+export function TaskFilterBar() {
   const [sp, setSp] = useSearchParams();
 
   const site = sp.get("site") ?? "";

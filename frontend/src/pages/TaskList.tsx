@@ -146,7 +146,7 @@ const TaskList: PageComponent = () => {
               </button>
             </div>
 
-            <TaskFilterBar summary={`全 ${tasksFlat.length} 件・${orderLabel}/${dirLabel}`} />
+            <TaskFilterBar />
 
             {/* Active Filter Badge */}
             {filters.progress_min != null &&

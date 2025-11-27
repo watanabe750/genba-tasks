@@ -12,7 +12,6 @@ import { useUpdateTask } from "../../tasks/useUpdateTask";
 import { useDeleteTask } from "../../tasks/useDeleteTask";
 import { useCreateTask } from "../../tasks/useCreateTask";
 import { useInlineDnd } from "./dndContext";
-import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 import TaskImagePanel from "../image/TaskImagePanel";
 import { brandIso } from "../../../lib/brandIso";
 import { demoImageStore } from "../../../lib/demoImageStore";
@@ -72,7 +71,6 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
   const [childDue, setChildDue] = useState<string>("");
   const [showImagePanel, setShowImagePanel] = useState(false);
 
-  const { open: openDrawer } = useTaskDrawer();
   const titleRef = useRef<HTMLSpanElement | null>(null);
 
   const thumbSrc = isParent ? demoImageStore.get(task.id) : undefined;

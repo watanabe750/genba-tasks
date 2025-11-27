@@ -2,7 +2,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { TaskNode } from "../../../types";
 import { useUpdateTask } from "../useUpdateTask";
-import { useDeleteTask } from "../useDeleteTask";
 import { brandIso } from "../../../lib/brandIso";
 
 type Props = {
@@ -43,7 +42,6 @@ export default function CompactTaskRow({ task, depth, isLast = false, parentPath
   const [editSite, setEditSite] = useState(task.site || "");
 
   const { mutate: updateTask } = useUpdateTask();
-  const { mutate: deleteTask } = useDeleteTask();
 
   const rowRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -76,7 +74,7 @@ export default function CompactTaskRow({ task, depth, isLast = false, parentPath
     updateTask(
       {
         id: task.id,
-        updates: {
+        data: {
           title: editTitle.trim(),
           deadline: brandIso(toISOorNull(editDeadline)),
           site: editSite.trim() || null,
@@ -121,7 +119,7 @@ export default function CompactTaskRow({ task, depth, isLast = false, parentPath
     const newStatus = task.status === "completed" ? "not_started" : "completed";
     updateTask({
       id: task.id,
-      updates: { status: newStatus },
+      data: { status: newStatus },
     });
   };
 
@@ -301,7 +299,6 @@ export default function CompactTaskRow({ task, depth, isLast = false, parentPath
                 {task.deadline && <div><span className="text-slate-400">期限:</span> {new Date(task.deadline).toLocaleDateString("ja-JP")}</div>}
                 <div><span className="text-slate-400">進捗:</span> {task.progress || 0}%</div>
                 <div><span className="text-slate-400">ステータス:</span> {getStatusLabel(task.status)}</div>
-                {task.created_at && <div className="text-slate-500 text-[10px] pt-1 border-t border-white/10">作成: {new Date(task.created_at).toLocaleDateString("ja-JP")}</div>}
               </div>
             </div>
           </div>
