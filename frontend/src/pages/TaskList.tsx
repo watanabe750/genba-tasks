@@ -11,9 +11,7 @@ import { TaskFilterBar } from "../features/tasks/TaskFilterBar";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { parseTaskFilters } from "../features/tasks/parseTaskFilters";
 import type { PageComponent } from "../types";
-import InlineTaskTree from "../features/tasks/inline/InlineTaskTree";
-import NewParentTaskForm from "../components/NewParentTaskForm";
-import { InlineDndProvider } from "../features/tasks/inline/dndContext";
+import WorkflowyTaskTree from "../features/tasks/workflowy/WorkflowyTaskTree";
 
 const TaskList: PageComponent = () => {
   const { authed } = useAuth();
@@ -86,7 +84,6 @@ const TaskList: PageComponent = () => {
   const dirLabel = dir === "desc" ? "降順" : "昇順";
 
   return (
-    <InlineDndProvider>
       <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
         {/* Enhanced Background Layers */}
         <div
@@ -161,10 +158,11 @@ const TaskList: PageComponent = () => {
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
-            {/* Task List Section */}
-            <section className="space-y-4 relative z-10 animate-[fadeIn_1s_ease-out_0.2s_both]" data-dnd-surface="1">
-              <NewParentTaskForm />
-              <InlineTaskTree tree={tasks} />
+            {/* Task List Section - Workflowy Style */}
+            <section className="relative z-10 animate-[fadeIn_1s_ease-out_0.2s_both]">
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent backdrop-blur-sm shadow-xl overflow-hidden">
+                <WorkflowyTaskTree tree={tasks} />
+              </div>
             </section>
 
             {/* Priority Panel Aside */}
@@ -182,7 +180,6 @@ const TaskList: PageComponent = () => {
           </div>
         </div>
       </div>
-    </InlineDndProvider>
   );
 };
 
