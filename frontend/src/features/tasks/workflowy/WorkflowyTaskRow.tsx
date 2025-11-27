@@ -40,6 +40,7 @@ export default function WorkflowyTaskRow({
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
+  const [editSite, setEditSite] = useState(task.site || "");
   const [dragging, setDragging] = useState(false);
 
   const { mutate: updateTask } = useUpdateTask();
@@ -47,6 +48,7 @@ export default function WorkflowyTaskRow({
   const { mutate: createTask } = useCreateTask();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const siteInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editing) {
@@ -65,6 +67,7 @@ export default function WorkflowyTaskRow({
   // 保存処理
   const handleSave = useCallback(() => {
     const trimmed = editTitle.trim();
+    const trimmedSite = editSite.trim();
 
     // 空欄なら削除
     if (!trimmed) {
@@ -73,21 +76,29 @@ export default function WorkflowyTaskRow({
     }
 
     // 変更があれば更新
-    if (trimmed !== task.title) {
+    const hasChanges =
+      trimmed !== task.title ||
+      trimmedSite !== (task.site || "");
+
+    if (hasChanges) {
       updateTask({
         id: task.id,
-        data: { title: trimmed },
+        data: {
+          title: trimmed,
+          site: trimmedSite || null,
+        },
       });
     }
 
     setEditing(false);
-  }, [editTitle, task.id, task.title, updateTask, deleteTask]);
+  }, [editTitle, editSite, task.id, task.title, task.site, updateTask, deleteTask]);
 
   // キャンセル
   const handleCancel = useCallback(() => {
     setEditTitle(task.title);
+    setEditSite(task.site || "");
     setEditing(false);
-  }, [task.title]);
+  }, [task.title, task.site]);
 
   // キーボード操作
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -220,15 +231,30 @@ export default function WorkflowyTaskRow({
 
         {/* タスク情報 */}
         {editing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            className="flex-1 bg-slate-800 border border-sky-500 rounded px-2 py-0.5 text-sm text-white outline-none"
-          />
+          <div className="flex-1 flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleSave}
+              placeholder="タスク名"
+              className="flex-1 bg-slate-800 border border-sky-500 rounded px-2 py-0.5 text-sm text-white outline-none"
+            />
+            {isParent && (
+              <input
+                ref={siteInputRef}
+                type="text"
+                value={editSite}
+                onChange={(e) => setEditSite(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleSave}
+                placeholder="現場名（任意）"
+                className="w-32 bg-slate-800 border border-emerald-500/50 rounded px-2 py-0.5 text-xs text-white outline-none"
+              />
+            )}
+          </div>
         ) : (
           <div
             className="flex-1 flex items-center gap-2 min-w-0 cursor-text"

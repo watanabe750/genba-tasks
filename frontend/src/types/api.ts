@@ -10,7 +10,7 @@ export type CreateTaskPayload = {
     progress?: number;
     deadline?: ISODateString | null;
     parent_id?: number | null;
-    site?: string; // 親タスクでは必須
+    site?: string | null; // 親タスクでは任意
   };
 };
 

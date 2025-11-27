@@ -8,7 +8,7 @@ export type CreateTaskInput = {
   title: string;
   deadline?: ISODateString | null;
   parentId?: number | null;
-  site?: string | null; // 親タスクでは必須
+  site?: string | null; // 親タスクでは任意
 };
 
 async function createTaskApi(input: CreateTaskInput): Promise<Task> {
@@ -16,9 +16,6 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
   if (!title) throw new Error("タイトルは必須です");
 
   const isParent = input.parentId == null;
-  if (isParent && !input.site?.trim()) {
-    throw new Error("親タスクには現場名が必須です");
-  }
 
   const payloadNested: CreateTaskPayload = {
     task: {
@@ -27,7 +24,7 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
       progress: 0,
       deadline: (input.deadline ?? null) as ISODateString | null,
       parent_id: input.parentId ?? null,
-      ...(isParent ? { site: (input.site ?? "").trim() } : {}),
+      ...(isParent ? { site: input.site?.trim() || null } : {}),
     },
   };
 
