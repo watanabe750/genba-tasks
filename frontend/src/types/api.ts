@@ -16,7 +16,7 @@ export type CreateTaskPayload = {
 
 /** タスク更新時のペイロード */
 export type UpdateTaskPayload = {
-  task: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "description">>;
+  task: Partial<Pick<Task, "status" | "progress" | "title" | "deadline" | "description" | "site">>;
 };
 
 /** ユーザー情報レスポンス */
