@@ -42,6 +42,7 @@ export default function WorkflowyTaskRow({
   const [editTitle, setEditTitle] = useState(task.title);
   const [editSite, setEditSite] = useState(task.site || "");
   const [dragging, setDragging] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [creatingChild, setCreatingChild] = useState(false);
   const [childTitle, setChildTitle] = useState("");
 
@@ -200,12 +201,18 @@ export default function WorkflowyTaskRow({
     if (!isParent) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
   };
 
   const handleDropLocal = (e: DragEvent) => {
     if (!isParent) return;
     e.preventDefault();
     e.stopPropagation();
+    setDragOver(false);
     onDrop?.(task.id, prevId);
   };
 
@@ -224,6 +231,7 @@ export default function WorkflowyTaskRow({
           "relative group flex items-center gap-2 py-1 px-2 hover:bg-white/5 transition-colors",
           "min-h-[26px]", // 24-28px
           dragging ? "opacity-50" : "",
+          dragOver ? "before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-sky-400 before:shadow-lg before:shadow-sky-400/50" : "",
         ].join(" ")}
         style={{
           paddingLeft: `${indentPx + 8}px`,
@@ -233,6 +241,7 @@ export default function WorkflowyTaskRow({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEndLocal}
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDropLocal}
       >
         {/* 折りたたみアイコン */}
