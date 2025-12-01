@@ -105,16 +105,16 @@ const TaskList: PageComponent = () => {
           {/* Guest Banner */}
           {isGuest && (
             <div
-              className="mb-6 rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 px-5 py-4 backdrop-blur-md shadow-lg shadow-amber-500/10 animate-[fadeIn_0.6s_ease-out]"
+              className="mb-6 rounded-2xl border border-amber-300 dark:border-amber-400/30 bg-gradient-to-r from-amber-100 via-orange-50 to-amber-100 dark:from-amber-500/15 dark:via-orange-500/10 dark:to-amber-500/15 px-5 py-4 backdrop-blur-md shadow-lg shadow-amber-200/50 dark:shadow-amber-500/10 animate-[fadeIn_0.6s_ease-out]"
               role="note"
             >
               <div className="flex items-center gap-3">
                 <span className="flex-shrink-0 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-500 dark:bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 dark:bg-amber-400"></span>
                 </span>
-                <p className="text-sm font-medium text-amber-100">
-                  これは<strong className="mx-1 text-amber-200">ゲスト環境</strong>です。データは定期的に初期化される場合があります。
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-100">
+                  これは<strong className="mx-1 text-amber-900 dark:text-amber-200">ゲスト環境</strong>です。データは定期的に初期化される場合があります。
                 </p>
               </div>
             </div>
@@ -160,7 +160,7 @@ const TaskList: PageComponent = () => {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
             {/* Task List Section - Workflowy Style */}
             <section className="relative z-10 animate-[fadeIn_1s_ease-out_0.2s_both]">
-              <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gradient-to-br dark:from-white/5 dark:via-white/[0.02] dark:to-transparent backdrop-blur-sm shadow-xl overflow-hidden">
+              <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900/80 backdrop-blur-sm shadow-xl overflow-hidden">
                 <WorkflowyTaskTree tree={tasks} />
               </div>
             </section>
@@ -173,7 +173,7 @@ const TaskList: PageComponent = () => {
                 showPriorityPanel ? "block" : "hidden",
               ].join(" ")}
             >
-              <div className="rounded-2xl border border-gray-200 dark:border-white/15 bg-white dark:bg-gradient-to-br dark:from-white/10 dark:via-white/5 dark:to-transparent backdrop-blur-xl shadow-2xl overflow-hidden animate-[fadeIn_1.2s_ease-out_0.4s_both]">
+              <div className="rounded-2xl border border-gray-200 dark:border-white/15 bg-white dark:bg-slate-900/80 backdrop-blur-xl shadow-2xl overflow-hidden animate-[fadeIn_1.2s_ease-out_0.4s_both]">
                 <PriorityTasksPanel />
               </div>
             </aside>
