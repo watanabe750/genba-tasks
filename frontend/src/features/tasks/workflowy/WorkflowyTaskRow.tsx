@@ -228,10 +228,10 @@ export default function WorkflowyTaskRow({
     <>
       <div
         className={[
-          "relative group flex items-center gap-2 py-1 px-2 hover:bg-white/5 transition-colors",
+          "relative group flex items-center gap-2 py-1 px-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors",
           "min-h-[26px]", // 24-28px
           dragging ? "opacity-50" : "",
-          dragOver ? "before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-sky-400 before:shadow-lg before:shadow-sky-400/50" : "",
+          dragOver ? "before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-sky-500 dark:before:bg-sky-400 before:shadow-lg before:shadow-sky-400/50" : "",
         ].join(" ")}
         style={{
           paddingLeft: `${indentPx + 8}px`,
@@ -249,7 +249,7 @@ export default function WorkflowyTaskRow({
           <button
             type="button"
             onClick={toggleExpanded}
-            className="flex-shrink-0 w-4 h-4 flex items-center justify-center hover:bg-white/10 rounded text-xs text-slate-400"
+            className="flex-shrink-0 w-4 h-4 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/10 rounded text-xs text-gray-500 dark:text-slate-400"
           >
             {expanded ? "▾" : "▸"}
           </button>
@@ -266,7 +266,7 @@ export default function WorkflowyTaskRow({
               e.stopPropagation();
               toggleCompleted(e as unknown as React.MouseEvent);
             }}
-            className="flex-shrink-0 w-3.5 h-3.5 rounded border-slate-600"
+            className="flex-shrink-0 w-3.5 h-3.5 rounded border-gray-400 dark:border-slate-600"
             onClick={(e) => e.stopPropagation()}
           />
         )}
@@ -282,7 +282,7 @@ export default function WorkflowyTaskRow({
               onKeyDown={handleKeyDown}
               onBlur={handleSave}
               placeholder="タスク名"
-              className="flex-1 bg-slate-800 border border-sky-500 rounded px-2 py-0.5 text-sm text-white outline-none"
+              className="flex-1 bg-gray-50 dark:bg-slate-800 border border-sky-400 dark:border-sky-500 rounded px-2 py-0.5 text-sm text-gray-900 dark:text-white outline-none"
             />
             {isParent && (
               <input
@@ -293,7 +293,7 @@ export default function WorkflowyTaskRow({
                 onKeyDown={handleKeyDown}
                 onBlur={handleSave}
                 placeholder="現場名（任意）"
-                className="w-32 bg-slate-800 border border-emerald-500/50 rounded px-2 py-0.5 text-xs text-white outline-none"
+                className="w-32 bg-gray-50 dark:bg-slate-800 border border-emerald-400 dark:border-emerald-500/50 rounded px-2 py-0.5 text-xs text-gray-900 dark:text-white outline-none"
               />
             )}
           </div>
@@ -306,7 +306,7 @@ export default function WorkflowyTaskRow({
             <span
               className={[
                 "text-sm truncate",
-                task.status === "completed" ? "line-through text-slate-500" : "text-slate-200",
+                task.status === "completed" ? "line-through text-gray-400 dark:text-slate-500" : "text-gray-900 dark:text-slate-200",
               ].join(" ")}
             >
               {task.title}
@@ -314,26 +314,26 @@ export default function WorkflowyTaskRow({
 
             {/* 現場名（親タスクのみ） */}
             {isParent && task.site && (
-              <span className="flex-shrink-0 text-xs text-slate-400 px-1.5 py-0.5 bg-emerald-500/10 rounded">
+              <span className="flex-shrink-0 text-xs text-emerald-700 dark:text-slate-400 px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-500/10 rounded">
                 {task.site}
               </span>
             )}
 
             {/* 期限 */}
             {task.deadline && (
-              <span className="flex-shrink-0 text-xs text-slate-400">
+              <span className="flex-shrink-0 text-xs text-gray-500 dark:text-slate-400">
                 {fromISOtoDateInput(task.deadline)}
               </span>
             )}
 
             {/* ステータス */}
-            <span className="flex-shrink-0 text-xs text-slate-500">
+            <span className="flex-shrink-0 text-xs text-gray-400 dark:text-slate-500">
               {STATUS_LABEL[task.status]}
             </span>
 
             {/* 進捗%（親タスクのみ） */}
             {isParent && (
-              <span className="flex-shrink-0 text-xs text-sky-400 font-mono">
+              <span className="flex-shrink-0 text-xs text-sky-600 dark:text-sky-400 font-mono">
                 {task.progress || 0}%
               </span>
             )}
@@ -344,7 +344,7 @@ export default function WorkflowyTaskRow({
       {/* 子タスク作成フォーム */}
       {expanded && creatingChild && (
         <div
-          className="flex items-center gap-2 py-1 px-2 bg-white/5 min-h-[26px]"
+          className="flex items-center gap-2 py-1 px-2 bg-gray-50 dark:bg-white/5 min-h-[26px]"
           style={{ paddingLeft: `${(depth + 1) * 12 + 8}px` }}
         >
           <span className="flex-shrink-0 w-4" />
@@ -357,7 +357,7 @@ export default function WorkflowyTaskRow({
               onKeyDown={handleChildKeyDown}
               onBlur={handleSaveChild}
               placeholder="子タスク名"
-              className="flex-1 bg-slate-800 border border-sky-500 rounded px-2 py-0.5 text-sm text-white outline-none"
+              className="flex-1 bg-gray-50 dark:bg-slate-800 border border-sky-400 dark:border-sky-500 rounded px-2 py-0.5 text-sm text-gray-900 dark:text-white outline-none"
             />
           </div>
         </div>

@@ -90,7 +90,7 @@ export default function WorkflowyTaskTree({ tree }: Props) {
   return (
     <div className="relative">
       {/* タスクリスト */}
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-gray-100 dark:divide-white/5">
         {tree.map((task, idx) => (
           <WorkflowyTaskRow
             key={task.id}
@@ -106,7 +106,7 @@ export default function WorkflowyTaskTree({ tree }: Props) {
 
       {/* 新規タスク作成フォーム */}
       {creatingNew && (
-        <div className="flex items-center gap-2 py-1 px-2 bg-white/5 min-h-[26px]" style={{ paddingLeft: "20px" }}>
+        <div className="flex items-center gap-2 py-1 px-2 bg-gray-50 dark:bg-white/5 min-h-[26px]" style={{ paddingLeft: "20px" }}>
           <span className="flex-shrink-0 w-4" />
           <div className="flex-1 flex items-center gap-2">
             <input
@@ -117,7 +117,7 @@ export default function WorkflowyTaskTree({ tree }: Props) {
               onKeyDown={handleKeyDown}
               onBlur={handleSaveNew}
               placeholder="タスク名"
-              className="flex-1 bg-slate-800 border border-sky-500 rounded px-2 py-0.5 text-sm text-white outline-none"
+              className="flex-1 bg-gray-50 dark:bg-slate-800 border border-sky-400 dark:border-sky-500 rounded px-2 py-0.5 text-sm text-gray-900 dark:text-white outline-none"
             />
             <input
               type="text"
@@ -126,7 +126,7 @@ export default function WorkflowyTaskTree({ tree }: Props) {
               onKeyDown={handleKeyDown}
               onBlur={handleSaveNew}
               placeholder="現場名（任意）"
-              className="w-32 bg-slate-800 border border-emerald-500/50 rounded px-2 py-0.5 text-xs text-white outline-none"
+              className="w-32 bg-gray-50 dark:bg-slate-800 border border-emerald-400 dark:border-emerald-500/50 rounded px-2 py-0.5 text-xs text-gray-900 dark:text-white outline-none"
             />
           </div>
         </div>
@@ -136,10 +136,10 @@ export default function WorkflowyTaskTree({ tree }: Props) {
       {!creatingNew && (
         <div
           ref={emptyAreaRef}
-          className="min-h-[100px] hover:bg-white/[0.02] cursor-pointer transition-colors group"
+          className="min-h-[100px] hover:bg-gray-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors group"
           onClick={handleEmptyAreaClick}
         >
-          <div className="flex items-center justify-center h-full text-slate-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-center h-full text-gray-400 dark:text-slate-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity">
             クリックして新規タスクを作成
           </div>
         </div>
