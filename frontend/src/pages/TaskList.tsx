@@ -84,14 +84,14 @@ const TaskList: PageComponent = () => {
   const dirLabel = dir === "desc" ? "降順" : "昇順";
 
   return (
-      <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white relative overflow-hidden">
         {/* Enhanced Background Layers */}
         <div
           aria-hidden
-          className="fixed inset-0 opacity-40 pointer-events-none"
+          className="fixed inset-0 opacity-40 dark:opacity-40 opacity-20 pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 20% 10%, rgba(56,189,248,0.15), transparent 40%), radial-gradient(circle at 80% 20%, rgba(16,185,129,0.12), transparent 35%), radial-gradient(circle at 40% 90%, rgba(99,102,241,0.1), transparent 40%), linear-gradient(180deg, #020617 0%, #0f172a 100%)",
+              "radial-gradient(circle at 20% 10%, rgba(56,189,248,0.15), transparent 40%), radial-gradient(circle at 80% 20%, rgba(16,185,129,0.12), transparent 35%), radial-gradient(circle at 40% 90%, rgba(99,102,241,0.1), transparent 40%), linear-gradient(180deg, var(--tw-gradient-from) 0%, var(--tw-gradient-to) 100%)",
           }}
         />
 
@@ -124,21 +124,21 @@ const TaskList: PageComponent = () => {
           <div className="mb-8 animate-[fadeIn_0.8s_ease-out]">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-white via-sky-100 to-emerald-100 bg-clip-text text-transparent tracking-tight">
+                <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-gray-900 via-sky-700 to-emerald-700 dark:from-white dark:via-sky-100 dark:to-emerald-100 bg-clip-text text-transparent tracking-tight">
                   タスク管理
                 </h1>
-                <p className="mt-2 text-sm text-slate-400 font-medium">
-                  全 <span className="text-sky-400 font-bold">{tasksFlat.length}</span> 件 ・ {orderLabel} / {dirLabel}
+                <p className="mt-2 text-sm text-gray-600 dark:text-slate-400 font-medium">
+                  全 <span className="text-sky-600 dark:text-sky-400 font-bold">{tasksFlat.length}</span> 件 ・ {orderLabel} / {dirLabel}
                 </p>
               </div>
 
               {/* 優先パネル表示切替ボタン（小画面のみ） */}
               <button
                 onClick={togglePriorityPanel}
-                className="lg:hidden group relative inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:border-white/30 hover:scale-105 active:scale-100 backdrop-blur-sm"
+                className="lg:hidden group relative inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white transition-all duration-300 hover:border-gray-400 dark:hover:border-white/30 hover:scale-105 active:scale-100 backdrop-blur-sm"
                 aria-label={showPriorityPanel ? "優先タスクを非表示" : "優先タスクを表示"}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-500 dark:bg-sky-400"></span>
                 {showPriorityPanel ? "優先タスクを隠す" : "優先タスク"}
               </button>
             </div>
@@ -149,8 +149,8 @@ const TaskList: PageComponent = () => {
             {filters.progress_min != null &&
               filters.progress_max != null &&
               filters.progress_min === filters.progress_max && (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/15 px-4 py-2 text-xs font-semibold text-sky-100 backdrop-blur-sm shadow-lg shadow-sky-500/10">
-                  <span className="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-300 dark:border-sky-400/30 bg-sky-100 dark:bg-sky-500/15 px-4 py-2 text-xs font-semibold text-sky-700 dark:text-sky-100 backdrop-blur-sm shadow-lg shadow-sky-200/50 dark:shadow-sky-500/10">
+                  <span className="h-1.5 w-1.5 rounded-full bg-sky-500 dark:bg-sky-400"></span>
                   進捗: {filters.progress_min}%
                 </div>
               )}
@@ -160,7 +160,7 @@ const TaskList: PageComponent = () => {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
             {/* Task List Section - Workflowy Style */}
             <section className="relative z-10 animate-[fadeIn_1s_ease-out_0.2s_both]">
-              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent backdrop-blur-sm shadow-xl overflow-hidden">
+              <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gradient-to-br dark:from-white/5 dark:via-white/[0.02] dark:to-transparent backdrop-blur-sm shadow-xl overflow-hidden">
                 <WorkflowyTaskTree tree={tasks} />
               </div>
             </section>
@@ -173,7 +173,7 @@ const TaskList: PageComponent = () => {
                 showPriorityPanel ? "block" : "hidden",
               ].join(" ")}
             >
-              <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-xl shadow-2xl overflow-hidden animate-[fadeIn_1.2s_ease-out_0.4s_both]">
+              <div className="rounded-2xl border border-gray-200 dark:border-white/15 bg-white dark:bg-gradient-to-br dark:from-white/10 dark:via-white/5 dark:to-transparent backdrop-blur-xl shadow-2xl overflow-hidden animate-[fadeIn_1.2s_ease-out_0.4s_both]">
                 <PriorityTasksPanel />
               </div>
             </aside>
