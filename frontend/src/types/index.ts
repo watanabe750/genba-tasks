@@ -6,3 +6,4 @@ export * from "./task";
 export * from "./filter";
 export * from "./api";
 export * from "./react";
+export * from "./attachment";
