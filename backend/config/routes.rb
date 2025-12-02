@@ -20,6 +20,7 @@ Rails.application.routes.draw do
         post   :image, to: "task_images#create"
         delete :image, to: "task_images#destroy"
       end
+      resources :attachments, only: [:index, :show, :create, :destroy]
     end
   end
 end

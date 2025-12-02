@@ -14,6 +14,7 @@ import ImagePreview from "./ImagePreviewList";
 import { useToast } from "../../components/ToastProvider";
 import { useCreateTask } from "../tasks/useCreateTask";
 import { brandIso } from "../../lib/brandIso";
+import { PhotoUploader, PhotoGallery, useAttachments, useUploadPhoto, useDeletePhoto } from "../attachments";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -64,6 +65,12 @@ function TaskDrawerInner({
   const [childTitle, setChildTitle] = useState("");
   const [childDue, setChildDue] = useState<string>(""); // YYYY-MM-DD
   const { mutateAsync: createTask, isPending: creating } = useCreateTask();
+
+  // 写真管理用
+  const [showPhotoUploader, setShowPhotoUploader] = useState(false);
+  const { data: photos = [], isLoading: photosLoading } = useAttachments(taskId);
+  const { mutateAsync: uploadPhoto, isPending: uploading } = useUploadPhoto();
+  const { mutateAsync: deletePhoto, isPending: deleting } = useDeletePhoto();
 
   // Escで閉じる
   useEffect(() => {
@@ -328,6 +335,54 @@ function TaskDrawerInner({
                   />
                 </div>
               )}
+
+              {/* 写真管理セクション */}
+              <div className="mt-6 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    写真 ({photos.length})
+                  </h3>
+                  <button
+                    onClick={() => setShowPhotoUploader(!showPhotoUploader)}
+                    className="text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                  >
+                    {showPhotoUploader ? "閉じる" : "写真を追加"}
+                  </button>
+                </div>
+
+                {/* アップローダー */}
+                {showPhotoUploader && (
+                  <div className="mb-4">
+                    <PhotoUploader
+                      onUpload={async (file, metadata) => {
+                        await uploadPhoto({
+                          taskId,
+                          file,
+                          title: metadata.title,
+                          description: metadata.description,
+                          category: metadata.category,
+                        });
+                        setShowPhotoUploader(false);
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* ギャラリー */}
+                {photosLoading ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p className="text-sm">読み込み中...</p>
+                  </div>
+                ) : (
+                  <PhotoGallery
+                    photos={photos}
+                    onDelete={async (attachmentId) => {
+                      await deletePhoto({ taskId, attachmentId });
+                    }}
+                    isDeleting={deleting}
+                  />
+                )}
+              </div>
 
               {/* 監査情報 */}
               <div className="mt-4 grid grid-cols-1 gap-3 text-[12px] text-gray-600 dark:text-gray-400 sm:grid-cols-2">

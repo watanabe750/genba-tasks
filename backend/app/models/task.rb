@@ -3,6 +3,7 @@ class Task < ApplicationRecord
   belongs_to :user
   belongs_to :parent, class_name: "Task", optional: true
   has_many   :children, class_name: "Task", foreign_key: "parent_id", dependent: :destroy
+  has_many   :attachments, dependent: :destroy
   has_one_attached :image
 
   # 子タスク上限
