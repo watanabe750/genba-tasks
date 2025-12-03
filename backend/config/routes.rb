@@ -9,6 +9,7 @@ Rails.application.routes.draw do
     mount_devise_token_auth_for 'User', at: 'auth'
 
     get "me", to: "users#me"
+    get "gallery", to: "gallery#index"
 
     resources :tasks do
       collection do
