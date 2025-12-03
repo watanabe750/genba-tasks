@@ -111,6 +111,14 @@ const Sidebar = () => {
                 カレンダー
               </NavLink>
               <NavLink
+                to="/gallery"
+                className={({ isActive }) =>
+                  isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"
+                }
+              >
+                ギャラリー
+              </NavLink>
+              <NavLink
                 to="/account"
                 className={({ isActive }) =>
                   isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"

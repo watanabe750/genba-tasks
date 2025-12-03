@@ -9,6 +9,7 @@ import Account from "../pages/Account";
 import Help from "../pages/Help";
 import Home from "../pages/Home";
 import CalendarPage from "../pages/CalendarPage";
+import GalleryPage from "../pages/GalleryPage";
 
 export const AppRouter = () => {
   return (
@@ -26,6 +27,7 @@ export const AppRouter = () => {
           <Route element={<Layout />}>
             <Route path="/tasks" element={<TaskList />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/account" element={<Account />} />
             <Route path="/help" element={<Help />} />
             {/* 保護領域内のフォールバックは /tasks */}
