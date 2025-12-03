@@ -3,3 +3,4 @@ export { PhotoGallery } from "./PhotoGallery";
 export { useAttachments } from "./useAttachments";
 export { useUploadPhoto } from "./useUploadPhoto";
 export { useDeletePhoto } from "./useDeletePhoto";
+export { useGallery } from "./useGallery";
