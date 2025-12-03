@@ -2,6 +2,8 @@
 export interface Attachment {
   id: number;
   task_id: number;
+  task_title?: string | null;  // ギャラリーAPIで追加
+  task_site?: string | null;   // ギャラリーAPIで追加
   file_type: 'photo' | 'document';
   title: string | null;
   description: string | null;
@@ -22,4 +24,22 @@ export interface CreateAttachmentPayload {
   description?: string;
   category?: string;
   display_order?: number;
+}
+
+export interface GalleryFilters {
+  site?: string;
+  category?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  per_page?: number;
+}
+
+export interface GalleryResponse {
+  attachments: Attachment[];
+  pagination: {
+    current_page: number;
+    per_page: number;
+    total_count: number;
+  };
 }
