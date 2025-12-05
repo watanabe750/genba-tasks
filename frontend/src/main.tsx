@@ -8,6 +8,7 @@ import AuthProvider from "./providers/AuthContext";
 import { TaskDrawerProvider } from "./features/drawer/useTaskDrawer";
 import { ToastProvider } from "./components/ToastProvider";
 import { SidebarProvider } from "./contexts/SidebarContext";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -25,18 +26,33 @@ const onAuthRefresh = () => {
 };
 window.addEventListener("auth:refresh", onAuthRefresh);
 
+// グローバルエラーハンドリング
+window.addEventListener("error", (event) => {
+  console.error("Global error caught:", event.error);
+  // 本番環境ではエラートラッキングサービスに送信
+  // 例: Sentry.captureException(event.error);
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("Unhandled promise rejection:", event.reason);
+  // 本番環境ではエラートラッキングサービスに送信
+  // 例: Sentry.captureException(event.reason);
+});
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SidebarProvider>
-          <TaskDrawerProvider>
-            <ToastProvider>
-              <AppRouter />
-            </ToastProvider>
-          </TaskDrawerProvider>
-        </SidebarProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SidebarProvider>
+            <TaskDrawerProvider>
+              <ToastProvider>
+                <AppRouter />
+              </ToastProvider>
+            </TaskDrawerProvider>
+          </SidebarProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
