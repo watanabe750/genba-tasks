@@ -4,7 +4,6 @@ import type { TaskNode } from "../../../types";
 import { useUpdateTask } from "../useUpdateTask";
 import { useDeleteTask } from "../useDeleteTask";
 import { useCreateTask } from "../useCreateTask";
-import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 
 type Props = {
   task: TaskNode;
@@ -50,7 +49,6 @@ export default function WorkflowyTaskRow({
   const { mutate: updateTask } = useUpdateTask();
   const { mutate: deleteTask } = useDeleteTask();
   const { mutate: createTask } = useCreateTask();
-  const { open: openDrawer } = useTaskDrawer();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const siteInputRef = useRef<HTMLInputElement>(null);
@@ -74,12 +72,6 @@ export default function WorkflowyTaskRow({
     if (!editing) {
       setEditing(true);
     }
-  };
-
-  // 詳細ドロワーを開く
-  const handleOpenDetail = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    openDrawer(task.id);
   };
 
   // 保存処理
@@ -345,18 +337,6 @@ export default function WorkflowyTaskRow({
                 {task.progress || 0}%
               </span>
             )}
-
-            {/* 詳細ボタン */}
-            <button
-              type="button"
-              onClick={handleOpenDetail}
-              className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded"
-              title="詳細を表示"
-            >
-              <svg className="w-4 h-4 text-gray-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
           </div>
         )}
       </div>
