@@ -160,6 +160,7 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
       render json: {
         id: t.id,
         title: t.title,
+        description: t.description,
         status: t.status,
         site: t.site,
         deadline: t.deadline&.iso8601,
