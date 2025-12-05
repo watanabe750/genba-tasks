@@ -375,7 +375,7 @@ function TaskDrawerInner({
                   </div>
                 ) : (
                   <PhotoGallery
-                    photos={photos}
+                    photos={Array.isArray(photos) ? photos : []}
                     onDelete={async (attachmentId) => {
                       await deletePhoto({ taskId, attachmentId });
                     }}
