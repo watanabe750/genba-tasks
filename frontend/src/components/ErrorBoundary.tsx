@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import * as Sentry from '@sentry/react';
 
 interface Props {
   children: ReactNode;
@@ -31,8 +32,11 @@ export class ErrorBoundary extends Component<Props, State> {
     // エラーログを記録
     console.error('React Error Boundary caught an error:', error, errorInfo);
 
-    // 本番環境ではエラートラッキングサービスに送信
-    // 例: Sentry.captureException(error, { extra: errorInfo });
+    // Sentryにエラーを送信
+    Sentry.withScope((scope) => {
+      scope.setContext('errorInfo', errorInfo);
+      Sentry.captureException(error);
+    });
 
     this.setState({ errorInfo });
   }

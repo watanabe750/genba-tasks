@@ -20,6 +20,7 @@
     "@fullcalendar/interaction": "^6.1.19",
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
+    "@sentry/react": "^8.47.0",
     "@tanstack/react-query": "^5.84.1",
     "axios": "^1.11.0",
     "react": "^18.3.1",
