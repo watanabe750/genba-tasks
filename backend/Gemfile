@@ -40,6 +40,10 @@ gem 'rack-cors', require: 'rack/cors'
 # Use Rack Attack for rate limiting and request throttling
 gem 'rack-attack', require: 'rack/attack'
 
+# Sentry for error monitoring
+gem 'sentry-ruby'
+gem 'sentry-rails'
+
 group :development, :test do
   # Rails 8系ではdebug gemが必須。Docker環境ではplatform指定を外す！
   gem "debug"
