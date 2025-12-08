@@ -2,6 +2,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 import TaskList from "../pages/TaskList";
 import Layout from "../components/Layout";
 import RequireAuth from "../components/RequireAuth";
@@ -21,6 +23,8 @@ export const AppRouter = () => {
         <Route path="/signin" element={<Navigate to="/login" replace />} />
         <Route path="/register" element={<Register />} />
         <Route path="/signup" element={<Navigate to="/register" replace />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* 認証ガード配下（レイアウトも保護下に置く） */}
         <Route element={<RequireAuth />}>
