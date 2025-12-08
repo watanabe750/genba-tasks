@@ -207,12 +207,19 @@ export default function Login() {
             </div>
           </form>
 
-          <p className="mt-4 text-center text-xs text-gray-600 dark:text-gray-400">
-            アカウントをお持ちでない方は{" "}
-            <a href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
-              新規登録
-            </a>
-          </p>
+          <div className="mt-4 space-y-2">
+            <p className="text-center text-xs text-gray-600 dark:text-gray-400">
+              <a href="/forgot-password" className="text-blue-600 dark:text-blue-400 hover:underline">
+                パスワードをお忘れの方
+              </a>
+            </p>
+            <p className="text-center text-xs text-gray-600 dark:text-gray-400">
+              アカウントをお持ちでない方は{" "}
+              <a href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
+                新規登録
+              </a>
+            </p>
+          </div>
         </div>
 
         <p className="mt-3 text-center text-xs text-gray-500 dark:text-gray-400">

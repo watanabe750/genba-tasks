@@ -51,12 +51,28 @@ Rails.application.configure do
   # ===============================================================
 
   # Mailer設定
-  # config.action_mailer.raise_delivery_errors = false
+  config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.delivery_method = :smtp
   config.action_mailer.default_url_options = {
     host: ENV.fetch("APP_HOST", "app.genba-tasks.com"),
     protocol: 'https'
   }
-  # config.action_mailer.smtp_settings = { ... }
+
+  # SMTP設定（Amazon SES推奨）
+  config.action_mailer.smtp_settings = {
+    address: ENV.fetch("SMTP_ADDRESS", "email-smtp.ap-northeast-1.amazonaws.com"),
+    port: ENV.fetch("SMTP_PORT", 587).to_i,
+    domain: ENV.fetch("SMTP_DOMAIN", "genba-tasks.com"),
+    user_name: ENV["SMTP_USERNAME"],
+    password: ENV["SMTP_PASSWORD"],
+    authentication: :login,
+    enable_starttls_auto: true
+  }
+
+  # メール送信元
+  config.action_mailer.default_options = {
+    from: ENV.fetch("MAIL_FROM", "noreply@genba-tasks.com")
+  }
 
   # I18n fallbacks
   config.i18n.fallbacks = true
