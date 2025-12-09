@@ -7,13 +7,14 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type {
   Notification,
   NotificationSettings,
   Task,
 } from "../../types";
 import { defaultNotificationSettings } from "../../types";
-import { useTasksFromUrl } from "../tasks/useTasks";
+import api from "../../lib/apiClient";
 import { generateNotifications, deduplicateNotifications } from "./notificationUtils";
 import { sendBrowserNotification, requestNotificationPermission } from "./browserNotification";
 
@@ -39,7 +40,18 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [settings, setSettings] = useState<NotificationSettings>(defaultNotificationSettings);
-  const { data: tasksData } = useTasksFromUrl(true);
+
+  // 通知用にフィルタなしで全タスクを取得
+  const { data: tasksData } = useQuery<Task[]>({
+    queryKey: ["tasks-for-notifications"],
+    queryFn: async () => {
+      const { data } = await api.get<Task[]>("/tasks");
+      return data;
+    },
+    enabled: settings.enabled,
+    refetchInterval: CHECK_INTERVAL,
+    staleTime: CHECK_INTERVAL,
+  });
 
   // localStorageから通知を読み込み
   useEffect(() => {
