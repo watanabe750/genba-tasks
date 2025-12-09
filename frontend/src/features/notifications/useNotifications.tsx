@@ -13,7 +13,7 @@ import type {
   Task,
 } from "../../types";
 import { defaultNotificationSettings } from "../../types";
-import { useTasks } from "../tasks/useTasks";
+import { useTasksFromUrl } from "../tasks/useTasks";
 import { generateNotifications, deduplicateNotifications } from "./notificationUtils";
 import { sendBrowserNotification, requestNotificationPermission } from "./browserNotification";
 
@@ -39,7 +39,7 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [settings, setSettings] = useState<NotificationSettings>(defaultNotificationSettings);
-  const { data: tasksData } = useTasks({});
+  const { data: tasksData } = useTasksFromUrl(true);
 
   // localStorageから通知を読み込み
   useEffect(() => {
@@ -82,7 +82,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const tasks: Task[] = tasksData.tasks || [];
+    const tasks: Task[] = tasksData || [];
     const newNotifications = generateNotifications(tasks);
 
     // 設定に基づいてフィルタリング
