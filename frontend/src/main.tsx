@@ -10,6 +10,7 @@ import { TaskDrawerProvider } from "./features/drawer/useTaskDrawer";
 import { ToastProvider } from "./components/ToastProvider";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { NotificationProvider } from "./features/notifications/useNotifications";
 
 // Sentry初期化
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -68,13 +69,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <SidebarProvider>
-            <TaskDrawerProvider>
-              <ToastProvider>
-                <AppRouter />
-              </ToastProvider>
-            </TaskDrawerProvider>
-          </SidebarProvider>
+          <NotificationProvider>
+            <SidebarProvider>
+              <TaskDrawerProvider>
+                <ToastProvider>
+                  <AppRouter />
+                </ToastProvider>
+              </TaskDrawerProvider>
+            </SidebarProvider>
+          </NotificationProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
