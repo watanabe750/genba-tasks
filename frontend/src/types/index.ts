@@ -7,3 +7,4 @@ export * from "./filter";
 export * from "./api";
 export * from "./react";
 export * from "./attachment";
+export * from "./notification";

@@ -127,6 +127,14 @@ const Sidebar = () => {
                 アカウント
               </NavLink>
               <NavLink
+                to="/notifications"
+                className={({ isActive }) =>
+                  isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"
+                }
+              >
+                通知設定
+              </NavLink>
+              <NavLink
                 to="/help"
                 className={({ isActive }) =>
                   isActive ? "font-semibold text-blue-700 dark:text-blue-400" : "hover:underline"
