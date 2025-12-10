@@ -96,6 +96,21 @@ class Task < ApplicationRecord
     flag.to_s == "1" ? where(parent_id: nil) : all
   }
 
+  # 検索（タイトル・説明文での部分一致）
+  scope :by_search, ->(query) {
+    return all if query.blank?
+
+    # スペース区切りで複数キーワードをAND検索
+    keywords = query.to_s.strip.split(/\s+/).reject(&:blank?)
+    return all if keywords.empty?
+
+    # 各キーワードでタイトルまたは説明文に含まれるものを検索
+    keywords.inject(all) do |scope, keyword|
+      pattern = "%#{sanitize_sql_like(keyword)}%"
+      scope.where("LOWER(title) LIKE LOWER(?) OR LOWER(COALESCE(description, '')) LIKE LOWER(?)", pattern, pattern)
+    end
+  }
+
   ORDERABLE_COLUMNS = %w[deadline progress created_at].freeze
 
   # エントリポイント
@@ -106,6 +121,7 @@ class Task < ApplicationRecord
             .by_status(p[:status])
             .by_progress_min(p[:progress_min])
             .by_progress_max(p[:progress_max])
+            .by_search(p[:search])
 
     order_by = ORDERABLE_COLUMNS.include?(p[:order_by].to_s) ? p[:order_by].to_s : "deadline"
     dir      = %w[asc desc].include?(p[:dir].to_s.downcase) ? p[:dir].to_s.upcase : "ASC"
