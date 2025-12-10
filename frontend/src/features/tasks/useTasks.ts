@@ -25,6 +25,7 @@ export function useTasksFromUrl(enabled: boolean = true) {
     statusRaw.length ? Array.from(new Set(statusRaw)).sort() : undefined;
 
   const siteValue = sp.get("site");
+  const searchValue = sp.get("search");
 
   // useMemo で params を安定化させて、React Query が確実に変更を検知するようにする
   const params = useMemo(() => clean({
@@ -35,7 +36,8 @@ export function useTasksFromUrl(enabled: boolean = true) {
     order_by: sp.get("order_by") ?? undefined,
     dir: sp.get("dir") ?? undefined,
     parents_only: sp.get("parents_only") === "1" ? "1" : undefined,
-  }), [siteValue, status, sp]);
+    search: searchValue && searchValue.trim() !== "" ? searchValue : undefined,
+  }), [siteValue, status, sp, searchValue]);
 
   return useQuery<Task[]>({
     queryKey: ["tasks", params],

@@ -1,10 +1,12 @@
 // src/features/tasks/workflowy/WorkflowyTaskRow.tsx
 import { useState, useCallback, useRef, useEffect, type DragEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { TaskNode } from "../../../types";
 import { useUpdateTask } from "../useUpdateTask";
 import { useDeleteTask } from "../useDeleteTask";
 import { useCreateTask } from "../useCreateTask";
 import { useTaskDrawer } from "../../drawer/useTaskDrawer";
+import { highlightText } from "../../../utils/highlightText";
 
 type Props = {
   task: TaskNode;
@@ -34,6 +36,9 @@ export default function WorkflowyTaskRow({
   onDragEnd,
   onDrop,
 }: Props) {
+  const [sp] = useSearchParams();
+  const searchQuery = sp.get("search") || "";
+
   const children = task.children ?? [];
   const isLeaf = children.length === 0;
   const isParent = depth === 1;
@@ -317,7 +322,7 @@ export default function WorkflowyTaskRow({
                 task.status === "completed" ? "line-through text-gray-400 dark:text-slate-500" : "text-gray-900 dark:text-slate-200",
               ].join(" ")}
             >
-              {task.title}
+              {highlightText(task.title, searchQuery)}
             </span>
 
             {/* 現場名（親タスクのみ） */}
