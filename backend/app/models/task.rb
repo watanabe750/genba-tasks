@@ -96,16 +96,34 @@ class Task < ApplicationRecord
     flag.to_s == "1" ? where(parent_id: nil) : all
   }
 
+  # 検索（タイトル・説明文・現場名での部分一致）
+  scope :by_search, ->(query) {
+    return all if query.blank?
+
+    # スペース区切りで複数キーワードをAND検索
+    keywords = query.to_s.strip.split(/\s+/).reject(&:blank?)
+    return all if keywords.empty?
+
+    # 各キーワードでタイトル、説明文、現場名のいずれかに含まれるものを検索
+    keywords.inject(all) do |scope, keyword|
+      pattern = "%#{sanitize_sql_like(keyword)}%"
+      scope.where(
+        "LOWER(title) LIKE LOWER(?) OR LOWER(COALESCE(description, '')) LIKE LOWER(?) OR LOWER(COALESCE(site, '')) LIKE LOWER(?)",
+        pattern, pattern, pattern
+      )
+    end
+  }
+
   ORDERABLE_COLUMNS = %w[deadline progress created_at].freeze
 
   # エントリポイント
   def self.filter_sort(p, user:)
     rel = for_user(user)
             .parents_only(p[:parents_only])
-            .by_site(p[:site])
             .by_status(p[:status])
             .by_progress_min(p[:progress_min])
             .by_progress_max(p[:progress_max])
+            .by_search(p[:search])
 
     order_by = ORDERABLE_COLUMNS.include?(p[:order_by].to_s) ? p[:order_by].to_s : "deadline"
     dir      = %w[asc desc].include?(p[:dir].to_s.downcase) ? p[:dir].to_s.upcase : "ASC"

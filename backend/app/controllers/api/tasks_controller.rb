@@ -9,7 +9,7 @@ module Api
     # GET /api/tasks
     def index
       raw_filters  = filter_params
-      allowed_keys = %i[site status progress_min progress_max order_by dir parents_only]
+      allowed_keys = %i[status progress_min progress_max order_by dir parents_only search]
       filters      = raw_filters.slice(*allowed_keys).compact
 
       Rails.logger.info("[Tasks#index] filters(normalized)=#{filters.inspect}")
@@ -278,13 +278,13 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
       parents_only_specified = params.key?(:parents_only) || params.key?(:only_parent)
 
       {
-        site:         params[:site],
         status:       (params[:status].is_a?(String) ? params[:status].split(",") : Array(params[:status])).presence,
         progress_min: (params[:progress_min].presence || params[:min].presence),
         progress_max: (params[:progress_max].presence || params[:max].presence),
         order_by:     (params[:order_by].presence   || params[:sort].presence),
         dir:          (params[:dir].presence        || params[:order].presence),
-        parents_only: (parents_only_specified ? cast_bool.call(params[:parents_only].presence || params[:only_parent].presence) : nil)
+        parents_only: (parents_only_specified ? cast_bool.call(params[:parents_only].presence || params[:only_parent].presence) : nil),
+        search:       params[:search].presence
       }
     end
 
