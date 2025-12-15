@@ -4,7 +4,7 @@ module Api
     before_action :set_task, only: %i[show update destroy reorder]
     before_action :_debug_params, only: %i[create update reorder], if: -> { ENV["E2E_DEBUG_PARAMS"] == "1" }
 
-    SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
+    SELECT_FIELDS = %i[id title status progress deadline start_date parent_id depth description site].freeze
 
     # GET /api/tasks
     def index
@@ -312,7 +312,7 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
         end
 
       ActionController::Parameters.new(src)
-        .permit(:title, :status, :progress, :deadline, :parent_id, :description, :site)
+        .permit(:title, :status, :progress, :deadline, :start_date, :parent_id, :description, :site)
     end
 
     # 同一 parent 内で position を付け替える
