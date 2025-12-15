@@ -12,6 +12,7 @@ export type Task = {
   status: Status;
   progress: number; // 0..100
   deadline: ISODateString | null;
+  start_date?: ISODateString | null; // 開始日（複数日タスク用）
   site: string | null; // 子タスクでは null が許容される
   parent_id: number | null; // 親タスクの場合は null
 };
