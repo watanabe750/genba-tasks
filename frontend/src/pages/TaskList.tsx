@@ -1,23 +1,119 @@
 // src/pages/TaskList.tsx
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import PriorityTasksPanel from "../features/priority/PriorityTasksPanel";
 import { useTasksFromUrl } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
 import { usePriorityTasks } from "../features/priority/usePriorityTasks";
 import { nestTasks, sortRootNodes } from "../features/tasks/nest";
-import type { Task, TaskNode } from "../types";
+import type { Task, TaskNode, Status } from "../types";
 import { TaskFilterBar } from "../features/tasks/TaskFilterBar";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { parseTaskFilters } from "../features/tasks/parseTaskFilters";
 import type { PageComponent } from "../types";
 import WorkflowyTaskTree from "../features/tasks/workflowy/WorkflowyTaskTree";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 
 const TaskList: PageComponent = () => {
   const { authed } = useAuth();
   const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
   const enabled = authed || DEMO;
   usePriorityTasks(enabled);
+
+  const [sp, setSp] = useSearchParams();
+
+  // Keyboard shortcuts for TaskList page
+  useKeyboardShortcuts([
+    // Search focus (F or /)
+    {
+      key: "f",
+      description: "検索ボックスにフォーカス",
+      action: () => {
+        const searchInput = document.querySelector('[data-testid="search-input"]') as HTMLInputElement;
+        searchInput?.focus();
+      },
+    },
+    {
+      key: "/",
+      description: "検索ボックスにフォーカス",
+      action: () => {
+        const searchInput = document.querySelector('[data-testid="search-input"]') as HTMLInputElement;
+        searchInput?.focus();
+      },
+    },
+    // Filter by status
+    {
+      key: "1",
+      description: "未着手のみ表示",
+      action: () => {
+        const currentStatus = sp.getAll("status") as Status[];
+        const next = new URLSearchParams(sp);
+        const statusSet = new Set(currentStatus);
+
+        if (statusSet.has("not_started")) {
+          statusSet.delete("not_started");
+        } else {
+          statusSet.clear();
+          statusSet.add("not_started");
+        }
+
+        next.delete("status");
+        for (const s of statusSet) {
+          next.append("status", s);
+        }
+        setSp(next, { replace: true });
+      },
+    },
+    {
+      key: "2",
+      description: "進行中のみ表示",
+      action: () => {
+        const currentStatus = sp.getAll("status") as Status[];
+        const next = new URLSearchParams(sp);
+        const statusSet = new Set(currentStatus);
+
+        if (statusSet.has("in_progress")) {
+          statusSet.delete("in_progress");
+        } else {
+          statusSet.clear();
+          statusSet.add("in_progress");
+        }
+
+        next.delete("status");
+        for (const s of statusSet) {
+          next.append("status", s);
+        }
+        setSp(next, { replace: true });
+      },
+    },
+    {
+      key: "3",
+      description: "完了のみ表示",
+      action: () => {
+        const currentStatus = sp.getAll("status") as Status[];
+        const next = new URLSearchParams(sp);
+        const statusSet = new Set(currentStatus);
+
+        if (statusSet.has("completed")) {
+          statusSet.delete("completed");
+        } else {
+          statusSet.clear();
+          statusSet.add("completed");
+        }
+
+        next.delete("status");
+        for (const s of statusSet) {
+          next.append("status", s);
+        }
+        setSp(next, { replace: true });
+      },
+    },
+    {
+      key: "0",
+      description: "フィルターをすべて解除",
+      action: () => setSp({}, { replace: true }),
+    },
+  ]);
 
   const [isGuest, setIsGuest] = useState(false);
   useEffect(() => {
@@ -53,7 +149,6 @@ const TaskList: PageComponent = () => {
     });
   };
 
-  const [sp] = useSearchParams();
   const rawFilters = parseTaskFilters(sp);
   const filters = useDebouncedValue(rawFilters, 300);
 
