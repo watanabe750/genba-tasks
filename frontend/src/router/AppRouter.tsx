@@ -12,6 +12,7 @@ import Help from "../pages/Help";
 import Home from "../pages/Home";
 import CalendarPage from "../pages/CalendarPage";
 import GalleryPage from "../pages/GalleryPage";
+import GanttPage from "../pages/GanttPage";
 import NotificationSettings from "../pages/NotificationSettings";
 
 export const AppRouter = () => {
@@ -32,6 +33,7 @@ export const AppRouter = () => {
           <Route element={<Layout />}>
             <Route path="/tasks" element={<TaskList />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/gantt" element={<GanttPage />} />
             <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/account" element={<Account />} />
             <Route path="/notifications" element={<NotificationSettings />} />
