@@ -6,6 +6,12 @@ class Task < ApplicationRecord
   has_many   :attachments, dependent: :destroy
   has_one_attached :image
 
+  # 依存関係（工程表用）
+  has_many :predecessor_dependencies, class_name: "TaskDependency", foreign_key: "successor_id", dependent: :destroy
+  has_many :successor_dependencies, class_name: "TaskDependency", foreign_key: "predecessor_id", dependent: :destroy
+  has_many :predecessors, through: :predecessor_dependencies, source: :predecessor
+  has_many :successors, through: :successor_dependencies, source: :successor
+
   # 子タスク上限
   MAX_CHILDREN_PER_NODE = 4
 

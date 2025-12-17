@@ -23,5 +23,7 @@ Rails.application.routes.draw do
       end
       resources :attachments, only: [:index, :show, :create, :destroy]
     end
+
+    resources :task_dependencies, only: [:index, :create, :destroy]
   end
 end
