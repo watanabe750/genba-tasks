@@ -5,9 +5,15 @@ import type { TaskDependency } from "../../types";
 
 // 依存関係一覧を取得
 export function useTaskDependencies() {
+  const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
+
   return useQuery({
     queryKey: ["task_dependencies"],
     queryFn: async () => {
+      // DEMOモードでは空配列を返す
+      if (DEMO) {
+        return [];
+      }
       const response = await api.get<TaskDependency[]>("/api/task_dependencies");
       return response.data;
     },

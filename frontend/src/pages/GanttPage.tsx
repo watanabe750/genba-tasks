@@ -16,6 +16,9 @@ export default function GanttPage() {
   const { data: dependencies = [] } = useTaskDependencies();
   const { sites } = useSiteList(tasks);
 
+  // DEMOモードではdependenciesが取得できないので空配列をデフォルトに
+  const safeDependencies = dependencies || [];
+
   const [selectedSite, setSelectedSite] = useState<string>("all");
   const [zoom, setZoom] = useState<"week" | "month" | "quarter">("month");
 
@@ -25,8 +28,8 @@ export default function GanttPage() {
       ? tasks
       : tasks.filter(t => t.site === selectedSite);
 
-    return calculateCriticalPath(filtered, dependencies);
-  }, [tasks, dependencies, selectedSite]);
+    return calculateCriticalPath(filtered, safeDependencies);
+  }, [tasks, safeDependencies, selectedSite]);
 
   // 表示期間を計算
   const { minDate, maxDate, dateRange } = useMemo(() => {
