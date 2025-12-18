@@ -9,6 +9,9 @@ export interface UploadPhotoInput {
   title?: string;
   description?: string;
   category?: string;
+  photo_tag?: 'before' | 'during' | 'after' | 'other';
+  note?: string;
+  captured_at?: string;
 }
 
 async function uploadPhotoApi(input: UploadPhotoInput): Promise<Attachment> {
@@ -24,6 +27,15 @@ async function uploadPhotoApi(input: UploadPhotoInput): Promise<Attachment> {
   }
   if (input.category) {
     formData.append("attachment[category]", input.category);
+  }
+  if (input.photo_tag) {
+    formData.append("attachment[photo_tag]", input.photo_tag);
+  }
+  if (input.note) {
+    formData.append("attachment[note]", input.note);
+  }
+  if (input.captured_at) {
+    formData.append("attachment[captured_at]", input.captured_at);
   }
 
   const { data } = await api.post<Attachment>(

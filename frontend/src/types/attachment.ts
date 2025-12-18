@@ -9,6 +9,9 @@ export interface Attachment {
   description: string | null;
   category: string | null;
   display_order: number;
+  photo_tag?: 'before' | 'during' | 'after' | 'other' | null;
+  captured_at?: string | null;
+  note?: string | null;
   url: string | null;
   thumbnail_url: string | null;
   content_type: string | null;
@@ -24,6 +27,9 @@ export interface CreateAttachmentPayload {
   description?: string;
   category?: string;
   display_order?: number;
+  photo_tag?: 'before' | 'during' | 'after' | 'other';
+  captured_at?: string;
+  note?: string;
 }
 
 export interface GalleryFilters {
