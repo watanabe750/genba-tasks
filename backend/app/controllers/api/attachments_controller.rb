@@ -39,7 +39,7 @@ class Api::AttachmentsController < ApplicationController
   end
 
   def attachment_params
-    params.require(:attachment).permit(:file, :file_type, :title, :description, :category, :display_order)
+    params.require(:attachment).permit(:file, :file_type, :title, :description, :category, :display_order, :photo_tag, :captured_at, :note)
   end
 
   def attachment_json(attachment)
@@ -51,6 +51,9 @@ class Api::AttachmentsController < ApplicationController
       description: attachment.description,
       category: attachment.category,
       display_order: attachment.display_order,
+      photo_tag: attachment.photo_tag,
+      captured_at: attachment.captured_at,
+      note: attachment.note,
       url: attachment.file.attached? ? url_for(attachment.file) : nil,
       thumbnail_url: attachment.image? && attachment.file.attached? ?
         url_for(attachment.file.variant(resize_to_limit: [400, 400])) : nil,

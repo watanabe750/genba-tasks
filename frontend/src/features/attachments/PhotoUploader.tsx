@@ -2,7 +2,14 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 
 interface PhotoUploaderProps {
-  onUpload: (file: File, metadata: { title?: string; description?: string; category?: string }) => Promise<void>;
+  onUpload: (file: File, metadata: {
+    title?: string;
+    description?: string;
+    category?: string;
+    photo_tag?: 'before' | 'during' | 'after' | 'other';
+    note?: string;
+    captured_at?: string;
+  }) => Promise<void>;
   maxSize?: number; // バイト単位 (デフォルト: 10MB)
 }
 
@@ -10,6 +17,9 @@ export function PhotoUploader({ onUpload, maxSize = 10 * 1024 * 1024 }: PhotoUpl
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [photoTag, setPhotoTag] = useState<'before' | 'during' | 'after' | 'other'>('before');
+  const [note, setNote] = useState("");
+  const [capturedAt, setCapturedAt] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,19 +36,25 @@ export function PhotoUploader({ onUpload, maxSize = 10 * 1024 * 1024 }: PhotoUpl
           title: title || undefined,
           description: description || undefined,
           category: category || undefined,
+          photo_tag: photoTag,
+          note: note || undefined,
+          captured_at: capturedAt || undefined,
         });
 
         // アップロード成功後にフォームをリセット
         setTitle("");
         setDescription("");
         setCategory("");
+        setPhotoTag('before');
+        setNote("");
+        setCapturedAt("");
       } catch (err) {
         setError(err instanceof Error ? err.message : "アップロードに失敗しました");
       } finally {
         setUploading(false);
       }
     },
-    [onUpload, title, description, category]
+    [onUpload, title, description, category, photoTag, note, capturedAt]
   );
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
@@ -129,6 +145,69 @@ export function PhotoUploader({ onUpload, maxSize = 10 * 1024 * 1024 }: PhotoUpl
 
       {/* メタデータ入力フォーム */}
       <div className="space-y-3">
+        {/* 写真タグ */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            工程区分
+          </label>
+          <div className="flex gap-2">
+            {[
+              { value: 'before', label: '施工前' },
+              { value: 'during', label: '施工中' },
+              { value: 'after', label: '施工後' },
+              { value: 'other', label: 'その他' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setPhotoTag(option.value as typeof photoTag)}
+                disabled={uploading}
+                className={`
+                  flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                  ${photoTag === option.value
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }
+                  ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 撮影日時 */}
+        <div>
+          <label htmlFor="captured-at" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            撮影日時 (任意)
+          </label>
+          <input
+            type="datetime-local"
+            id="captured-at"
+            value={capturedAt}
+            onChange={(e) => setCapturedAt(e.target.value)}
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            disabled={uploading}
+          />
+        </div>
+
+        {/* メモ */}
+        <div>
+          <label htmlFor="photo-note" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            メモ (任意)
+          </label>
+          <textarea
+            id="photo-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="写真に関するメモを入力..."
+            disabled={uploading}
+          />
+        </div>
+
         <div>
           <label htmlFor="photo-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             タイトル (任意)
