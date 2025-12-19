@@ -4,12 +4,12 @@ module Api
     before_action :set_task, only: %i[show update destroy reorder]
     before_action :_debug_params, only: %i[create update reorder], if: -> { ENV["E2E_DEBUG_PARAMS"] == "1" }
 
-    SELECT_FIELDS = %i[id title status progress deadline parent_id depth description site].freeze
+    SELECT_FIELDS = %i[id title status progress deadline start_date parent_id depth description site].freeze
 
     # GET /api/tasks
     def index
       raw_filters  = filter_params
-      allowed_keys = %i[site status progress_min progress_max order_by dir parents_only search]
+      allowed_keys = %i[status progress_min progress_max order_by dir parents_only search]
       filters      = raw_filters.slice(*allowed_keys).compact
 
       Rails.logger.info("[Tasks#index] filters(normalized)=#{filters.inspect}")
@@ -278,7 +278,6 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
       parents_only_specified = params.key?(:parents_only) || params.key?(:only_parent)
 
       {
-        site:         params[:site],
         status:       (params[:status].is_a?(String) ? params[:status].split(",") : Array(params[:status])).presence,
         progress_min: (params[:progress_min].presence || params[:min].presence),
         progress_max: (params[:progress_max].presence || params[:max].presence),
@@ -313,7 +312,7 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
         end
 
       ActionController::Parameters.new(src)
-        .permit(:title, :status, :progress, :deadline, :parent_id, :description, :site)
+        .permit(:title, :status, :progress, :deadline, :start_date, :parent_id, :description, :site)
     end
 
     # 同一 parent 内で position を付け替える

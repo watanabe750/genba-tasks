@@ -24,12 +24,10 @@ export function useTasksFromUrl(enabled: boolean = true) {
   const status =
     statusRaw.length ? Array.from(new Set(statusRaw)).sort() : undefined;
 
-  const siteValue = sp.get("site");
   const searchValue = sp.get("search");
 
   // useMemo で params を安定化させて、React Query が確実に変更を検知するようにする
   const params = useMemo(() => clean({
-    site: siteValue && siteValue.trim() !== "" ? siteValue : undefined,
     status,
     progress_min: toNum(sp.get("progress_min")),
     progress_max: toNum(sp.get("progress_max")),
@@ -37,7 +35,7 @@ export function useTasksFromUrl(enabled: boolean = true) {
     dir: sp.get("dir") ?? undefined,
     parents_only: sp.get("parents_only") === "1" ? "1" : undefined,
     search: searchValue && searchValue.trim() !== "" ? searchValue : undefined,
-  }), [siteValue, status, sp, searchValue]);
+  }), [status, sp, searchValue]);
 
   return useQuery<Task[]>({
     queryKey: ["tasks", params],

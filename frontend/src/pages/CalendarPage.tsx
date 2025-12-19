@@ -46,19 +46,22 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [selectedSite, setSelectedSite] = useState<string>("all");
-  const [calendarView, setCalendarView] = useState<"month" | "week">("month");
+  const [calendarView, setCalendarView] = useState<"month" | "week" | "day">("month");
 
   // ビューの切り替え
   useEffect(() => {
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
-      calendarApi.changeView(
-        calendarView === "month" ? "dayGridMonth" : "timeGridWeek"
-      );
+      const viewMap = {
+        month: "dayGridMonth",
+        week: "timeGridWeek",
+        day: "timeGridDay",
+      };
+      calendarApi.changeView(viewMap[calendarView]);
     }
   }, [calendarView]);
 
-  // 期限ありタスクをカレンダーイベント形式に変換（現場フィルター適用）
+  // 期限ありタスクをカレンダーイベント形式に変換（現場フィルター適用・複数日対応）
   const events = useMemo(() => {
     const filteredTasks =
       selectedSite === "all"
@@ -69,14 +72,21 @@ export default function CalendarPage() {
       .filter((task): task is typeof task & { deadline: string } =>
         task.deadline !== null && task.deadline !== undefined
       )
-      .map((task) => ({
-        id: String(task.id),
-        title: task.title,
-        date: task.deadline,
-        backgroundColor: getColorByDeadline(task.deadline, task.status),
-        borderColor: getColorByDeadline(task.deadline, task.status),
-        extendedProps: { task },
-      }));
+      .map((task) => {
+        const hasStartDate = task.start_date && task.start_date !== null;
+
+        // 複数日タスク（開始日〜期限日）または単日タスク（期限日のみ）
+        return {
+          id: String(task.id),
+          title: task.title,
+          start: hasStartDate ? task.start_date : task.deadline,
+          end: hasStartDate ? task.deadline : undefined,
+          allDay: true,
+          backgroundColor: getColorByDeadline(task.deadline, task.status),
+          borderColor: getColorByDeadline(task.deadline, task.status),
+          extendedProps: { task },
+        };
+      });
   }, [tasks, selectedSite]);
 
   // 選択日のタスク一覧
@@ -215,6 +225,17 @@ export default function CalendarPage() {
             onClick={() => setCalendarView("week")}
           >
             週表示
+          </button>
+          <button
+            className={[
+              "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+              calendarView === "day"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600",
+            ].join(" ")}
+            onClick={() => setCalendarView("day")}
+          >
+            日表示
           </button>
         </div>
       </div>

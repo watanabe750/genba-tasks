@@ -6,6 +6,12 @@ class Task < ApplicationRecord
   has_many   :attachments, dependent: :destroy
   has_one_attached :image
 
+  # 依存関係（工程表用）
+  has_many :predecessor_dependencies, class_name: "TaskDependency", foreign_key: "successor_id", dependent: :destroy
+  has_many :successor_dependencies, class_name: "TaskDependency", foreign_key: "predecessor_id", dependent: :destroy
+  has_many :predecessors, through: :predecessor_dependencies, source: :predecessor
+  has_many :successors, through: :successor_dependencies, source: :successor
+
   # 子タスク上限
   MAX_CHILDREN_PER_NODE = 4
 
@@ -96,7 +102,7 @@ class Task < ApplicationRecord
     flag.to_s == "1" ? where(parent_id: nil) : all
   }
 
-  # 検索（タイトル・説明文での部分一致）
+  # 検索（タイトル・説明文・現場名での部分一致）
   scope :by_search, ->(query) {
     return all if query.blank?
 
@@ -104,10 +110,13 @@ class Task < ApplicationRecord
     keywords = query.to_s.strip.split(/\s+/).reject(&:blank?)
     return all if keywords.empty?
 
-    # 各キーワードでタイトルまたは説明文に含まれるものを検索
+    # 各キーワードでタイトル、説明文、現場名のいずれかに含まれるものを検索
     keywords.inject(all) do |scope, keyword|
       pattern = "%#{sanitize_sql_like(keyword)}%"
-      scope.where("LOWER(title) LIKE LOWER(?) OR LOWER(COALESCE(description, '')) LIKE LOWER(?)", pattern, pattern)
+      scope.where(
+        "LOWER(title) LIKE LOWER(?) OR LOWER(COALESCE(description, '')) LIKE LOWER(?) OR LOWER(COALESCE(site, '')) LIKE LOWER(?)",
+        pattern, pattern, pattern
+      )
     end
   }
 
@@ -117,7 +126,6 @@ class Task < ApplicationRecord
   def self.filter_sort(p, user:)
     rel = for_user(user)
             .parents_only(p[:parents_only])
-            .by_site(p[:site])
             .by_status(p[:status])
             .by_progress_min(p[:progress_min])
             .by_progress_max(p[:progress_max])
