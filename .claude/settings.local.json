@@ -39,8 +39,7 @@
       "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task push -u origin feat/task-notifications)",
       "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task diff main...HEAD --stat)",
       "Bash(/opt/homebrew/bin/gh pr merge 249 --squash --auto)",
-      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task push)",
-      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task checkout -b feat/unified-search)"
+      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task push)"
     ],
     "deny": [],
     "ask": []
