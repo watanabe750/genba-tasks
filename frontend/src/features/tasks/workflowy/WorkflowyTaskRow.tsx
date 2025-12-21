@@ -241,7 +241,7 @@ export default function WorkflowyTaskRow({
     <>
       <div
         className={[
-          "relative group flex items-center gap-2 py-1 px-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors",
+          "relative group flex items-center gap-2 py-1 px-2 hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors",
           "min-h-[26px]", // 24-28px
           dragging ? "opacity-50" : "",
           dragOver ? "before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-sky-500 dark:before:bg-sky-400 before:shadow-lg before:shadow-sky-400/50" : "",

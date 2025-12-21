@@ -223,10 +223,10 @@ export default function PriorityTasksPanel() {
                   <span
                     className={[
                       "text-xs px-1.5 py-0.5 rounded font-semibold",
-                      getDeadlineUrgency(t.deadline) === "overdue" && "bg-red-500 dark:bg-red-600 text-white",
-                      getDeadlineUrgency(t.deadline) === "urgent" && "bg-orange-500 dark:bg-orange-600 text-white",
-                      getDeadlineUrgency(t.deadline) === "warning" && "bg-yellow-500 dark:bg-yellow-600 text-white",
-                      getDeadlineUrgency(t.deadline) === "normal" && "bg-blue-500 dark:bg-slate-600 text-white",
+                      getDeadlineUrgency(t.deadline) === "overdue" && "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
+                      getDeadlineUrgency(t.deadline) === "urgent" && "bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300",
+                      getDeadlineUrgency(t.deadline) === "warning" && "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
+                      getDeadlineUrgency(t.deadline) === "normal" && "bg-blue-100 dark:bg-slate-500/20 text-blue-800 dark:text-slate-300",
                     ]
                       .filter(Boolean)
                       .join(" ")}
