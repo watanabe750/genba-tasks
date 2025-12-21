@@ -39,7 +39,13 @@
       "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task push -u origin feat/task-notifications)",
       "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task diff main...HEAD --stat)",
       "Bash(/opt/homebrew/bin/gh pr merge 249 --squash --auto)",
-      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task push)"
+      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task push)",
+      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task checkout -b feat/unified-search)",
+      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task push -u origin feat/gantt-chart)",
+      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task checkout -b feat/progress-photos)",
+      "Bash(/Applications/Docker.app/Contents/Resources/bin/docker compose -f /Users/watanabe/Desktop/Projects/genba-task/docker-compose.yml exec api bundle exec rails db:migrate)",
+      "Bash(/Applications/Docker.app/Contents/Resources/bin/docker compose:*)",
+      "Bash(git -C /Users/watanabe/Desktop/Projects/genba-task add backend/db/migrate/20251218175736_add_photo_fields_to_attachments.rb backend/app/models/attachment.rb backend/app/controllers/api/attachments_controller.rb frontend/src/types/attachment.ts frontend/src/features/attachments/PhotoUploader.tsx frontend/src/features/attachments/useUploadPhoto.ts frontend/src/features/attachments/PhotoGallery.tsx)"
     ],
     "deny": [],
     "ask": []
