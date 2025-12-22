@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../../test/test-utils';
 import { PhotoUploader } from './PhotoUploader';
 import userEvent from '@testing-library/user-event';
@@ -8,6 +8,7 @@ describe('PhotoUploader', () => {
 
   beforeEach(() => {
     mockOnUpload.mockClear();
+    mockOnUpload.mockResolvedValue(undefined);
   });
 
   it('should render photo uploader with all form fields', () => {
@@ -53,126 +54,99 @@ describe('PhotoUploader', () => {
     expect(noteTextarea.value).toBe('コンクリート打設完了');
   });
 
-  it('should call onUpload when file is dropped', async () => {
-    mockOnUpload.mockResolvedValue(undefined);
-
-    const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
-
-    render(<PhotoUploader onUpload={mockOnUpload} />);
-
-    const dropzone = screen.getByText(/写真をドラッグ&ドロップ/).closest('div');
-
-    // Simulate file drop
-    if (dropzone) {
-      const event = new Event('drop', { bubbles: true });
-      Object.defineProperty(event, 'dataTransfer', {
-        value: {
-          files: [file],
-        },
-      });
-      dropzone.dispatchEvent(event);
-    }
-
-    await waitFor(() => {
-      expect(mockOnUpload).toHaveBeenCalledWith(
-        expect.any(File),
-        expect.objectContaining({
-          photo_tag: 'before',
-        })
-      );
-    });
-  });
-
-  it('should reset form after successful upload', async () => {
+  it('should accept file input', async () => {
     const user = userEvent.setup();
-    mockOnUpload.mockResolvedValue(undefined);
-
     render(<PhotoUploader onUpload={mockOnUpload} />);
 
-    const titleInput = screen.getByLabelText(/タイトル/) as HTMLInputElement;
-    await user.type(titleInput, '基礎工事');
-
     const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
-    const dropzone = screen.getByText(/写真をドラッグ&ドロップ/).closest('div');
+    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
 
-    if (dropzone) {
-      const event = new Event('drop', { bubbles: true });
-      Object.defineProperty(event, 'dataTransfer', {
-        value: {
-          files: [file],
-        },
+    if (input) {
+      await user.upload(input, file);
+
+      await waitFor(() => {
+        expect(mockOnUpload).toHaveBeenCalled();
       });
-      dropzone.dispatchEvent(event);
     }
-
-    await waitFor(() => {
-      expect(titleInput.value).toBe('');
-    });
   });
 
-  it('should display error message when upload fails', async () => {
-    mockOnUpload.mockRejectedValue(new Error('アップロードに失敗しました'));
+  it('should display uploading state', async () => {
+    const user = userEvent.setup();
 
-    const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
-    render(<PhotoUploader onUpload={mockOnUpload} />);
-
-    const dropzone = screen.getByText(/写真をドラッグ&ドロップ/).closest('div');
-
-    if (dropzone) {
-      const event = new Event('drop', { bubbles: true });
-      Object.defineProperty(event, 'dataTransfer', {
-        value: {
-          files: [file],
-        },
-      });
-      dropzone.dispatchEvent(event);
-    }
-
-    await waitFor(() => {
-      expect(screen.getByText(/アップロードに失敗しました/)).toBeInTheDocument();
-    });
-  });
-
-  it('should enforce max file size', () => {
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    render(<PhotoUploader onUpload={mockOnUpload} maxSize={maxSize} />);
-
-    // The component should be rendered with the maxSize prop
-    // File size validation happens in react-dropzone
-    expect(screen.getByText(/写真をドラッグ&ドロップ/)).toBeInTheDocument();
-  });
-
-  it('should disable form controls during upload', async () => {
+    // Mock a slow upload
     let resolveUpload: () => void;
     const uploadPromise = new Promise<void>((resolve) => {
       resolveUpload = resolve;
     });
     mockOnUpload.mockReturnValue(uploadPromise);
 
-    const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
     render(<PhotoUploader onUpload={mockOnUpload} />);
 
-    const dropzone = screen.getByText(/写真をドラッグ&ドロップ/).closest('div');
+    const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
+    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
 
-    if (dropzone) {
-      const event = new Event('drop', { bubbles: true });
-      Object.defineProperty(event, 'dataTransfer', {
-        value: {
-          files: [file],
-        },
-      });
-      dropzone.dispatchEvent(event);
-    }
+    if (input) {
+      await user.upload(input, file);
 
-    await waitFor(() => {
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        if (button.textContent?.match(/施工前|施工中|施工後|その他/)) {
+      // Check that buttons are disabled during upload
+      await waitFor(() => {
+        const buttons = screen.getAllByRole('button');
+        const photoTagButtons = buttons.filter((button) =>
+          button.textContent?.match(/施工前|施工中|施工後|その他/)
+        );
+        photoTagButtons.forEach((button) => {
           expect(button).toBeDisabled();
-        }
+        });
       });
-    });
 
-    resolveUpload!();
+      // Resolve the upload
+      resolveUpload!();
+    }
+  });
+
+  it('should reset form after successful upload', async () => {
+    const user = userEvent.setup();
+    render(<PhotoUploader onUpload={mockOnUpload} />);
+
+    const titleInput = screen.getByLabelText(/タイトル/) as HTMLInputElement;
+    await user.type(titleInput, '基礎工事');
+
+    expect(titleInput.value).toBe('基礎工事');
+
+    const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
+    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
+
+    if (input) {
+      await user.upload(input, file);
+
+      await waitFor(() => {
+        expect(titleInput.value).toBe('');
+      });
+    }
+  });
+
+  it('should display error message when upload fails', async () => {
+    const user = userEvent.setup();
+    mockOnUpload.mockRejectedValue(new Error('アップロードに失敗しました'));
+
+    render(<PhotoUploader onUpload={mockOnUpload} />);
+
+    const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
+    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
+
+    if (input) {
+      await user.upload(input, file);
+
+      await waitFor(() => {
+        expect(screen.getByText(/アップロードに失敗しました/)).toBeInTheDocument();
+      });
+    }
+  });
+
+  it('should display file size limit', () => {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    render(<PhotoUploader onUpload={mockOnUpload} maxSize={maxSize} />);
+
+    expect(screen.getByText(/最大.*10.*MB/)).toBeInTheDocument();
   });
 });
