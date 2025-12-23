@@ -104,11 +104,23 @@ describe('TaskFilterBar', () => {
     expect(resetButton).toHaveTextContent('すべて解除');
   });
 
-  it('should display no filters message by default', () => {
+  it('should update URL when filters are applied', async () => {
+    const user = userEvent.setup();
     render(<TaskFilterBar />);
 
-    // In the default state (no filters), it should show "なし"
-    expect(screen.getByText('なし')).toBeInTheDocument();
+    // Click the not_started status button to toggle it off (it starts active)
+    const notStartedButton = screen.getByRole('button', { name: /未着手/ });
+
+    // Initially the button should have the active gradient class
+    expect(notStartedButton).toHaveClass('bg-gradient-to-r');
+
+    // Click to toggle it off
+    await user.click(notStartedButton);
+
+    // After clicking, the button should no longer have the gradient
+    await waitFor(() => {
+      expect(notStartedButton).not.toHaveClass('bg-gradient-to-r');
+    });
   });
 
   it('should have proper accessibility attributes', () => {

@@ -59,7 +59,8 @@ describe('PhotoUploader', () => {
     render(<PhotoUploader onUpload={mockOnUpload} />);
 
     const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
-    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
+    // react-dropzone hides the input element, so we need to find it differently
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     if (input) {
       await user.upload(input, file);
@@ -83,7 +84,7 @@ describe('PhotoUploader', () => {
     render(<PhotoUploader onUpload={mockOnUpload} />);
 
     const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
-    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     if (input) {
       await user.upload(input, file);
@@ -114,7 +115,7 @@ describe('PhotoUploader', () => {
     expect(titleInput.value).toBe('基礎工事');
 
     const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
-    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     if (input) {
       await user.upload(input, file);
@@ -132,7 +133,7 @@ describe('PhotoUploader', () => {
     render(<PhotoUploader onUpload={mockOnUpload} />);
 
     const file = new File(['dummy content'], 'test.png', { type: 'image/png' });
-    const input = screen.getByLabelText(/クリックして写真を選択/i).querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     if (input) {
       await user.upload(input, file);
