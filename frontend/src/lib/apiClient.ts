@@ -1,10 +1,5 @@
 // frontend/src/lib/apiClient.ts
-import axios, {
-  AxiosHeaders,
-  isCancel,
-  type AxiosResponseHeaders,
-  type RawAxiosResponseHeaders,
-} from "axios";
+import axios, { AxiosHeaders, isCancel } from "axios";
 import type { InternalAxiosRequestConfig, AxiosResponse } from "axios";
 import { demoStore } from "./demoStore";
 import { tokenStorage } from "./tokenStorage";
@@ -19,7 +14,7 @@ const base = import.meta.env.VITE_API_BASE_URL
 
 const api = axios.create({
   baseURL: base,
-  withCredentials: false,
+  withCredentials: true,  // Cookie送信を有効化（httpOnly Cookie認証に必須）
   headers: { Accept: "application/json", "Content-Type": "application/json" },
 });
 
@@ -34,60 +29,21 @@ const AUTH_WHITELIST = [
   /\/guest\/login$/, // ← 末尾が /guest/login なら許可（/prod/guest/login も通る）
 ];
 
-/** ===== Header helpers ===== */
-function getHeader(h: unknown, key: string): string | undefined {
-  if (h instanceof AxiosHeaders) {
-    const v = h.get(key) ?? h.get(key.toLowerCase());
-    return typeof v === "string" ? v : undefined;
-  }
-  const rec = h as Record<string, unknown> | undefined;
-  const v = rec?.[key] ?? rec?.[key.toLowerCase()];
-  return typeof v === "string" ? v : undefined;
-}
-
-/** 任意の Headers/AxiosResponseHeaders からトークン保存 */
-export function saveAuthFromHeaders(headers: AxiosResponseHeaders | RawAxiosResponseHeaders | Headers) {
-  const getter =
-    headers instanceof Headers
-      ? (k: string) =>
-          headers.get(k) ?? headers.get(k.toLowerCase()) ?? undefined
-      : (k: string) => getHeader(headers as AxiosResponseHeaders | RawAxiosResponseHeaders, k);
-
-  const at = getter("access-token");
-  const client = getter("client");
-  const uid = getter("uid");
-  const tokenType = getter("token-type");
-  const expiry = getter("expiry");
-
-  if (at && client && uid) {
-    tokenStorage.save({ at, client, uid, tokenType, expiry });
-  }
-}
+/**
+ * httpOnly Cookie認証では、トークンはサーバー側でCookieに自動設定されるため、
+ * フロントエンドでのヘッダー処理は不要
+ */
 
 /** ===== Request interceptor ===== */
 api.interceptors.request.use((config) => {
   const headers = AxiosHeaders.from(config.headers);
-  const urlObj = new URL(config.url!, config.baseURL || window.location.origin);
-  // 以前のバックエンド互換のための /api 削除。API Gateway ではそのまま残る（/prod/...）
-  const path = urlObj.pathname.replace(/^\/api(\/|$)/, "/");
 
-  const tokens = tokenStorage.load();
-  const { at, client, uid, tokenType = "Bearer" } = tokens;
-  const authed = tokenStorage.isValid(tokens);
-  const isWhitelisted = AUTH_WHITELIST.some((re) => re.test(path));
-
-  if (!DEMO && !authed && !isWhitelisted) {
-    return Promise.reject(
-      new axios.Cancel("unauthenticated: blocked by apiClient"),
-    );
-  }
-
-  if (!DEMO && authed) {
-    headers.set("access-token", at!);
-    headers.set("client", client!);
-    headers.set("uid", uid!);
-    headers.set("token-type", tokenType);
-    headers.set("Authorization", `${tokenType} ${at}`);
+  // CSRF トークンをヘッダーに追加（Cookie認証時のCSRF対策）
+  if (!DEMO) {
+    const csrfToken = tokenStorage.getCsrfToken();
+    if (csrfToken) {
+      headers.set("X-XSRF-TOKEN", csrfToken);
+    }
   }
 
   headers.set("x-auth-start", String(Date.now()));
@@ -103,11 +59,20 @@ api.interceptors.request.use((config) => {
 /** ===== Response interceptor ===== */
 api.interceptors.response.use(
   (res) => {
-    if (!DEMO) saveAuthFromHeaders(res.headers as AxiosResponseHeaders | RawAxiosResponseHeaders);
+    // httpOnly Cookie認証では、サーバーが自動でCookieを設定するため特別な処理は不要
     return res;
   },
   (error) => {
     if (isCancel(error)) return Promise.reject(error);
+
+    // 401エラーの場合は認証エラーとしてログインページへ誘導
+    if (error.response?.status === 401 && !DEMO) {
+      // 既にログインページにいる場合はリダイレクトしない
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
     return Promise.reject(error);
   },
 );
