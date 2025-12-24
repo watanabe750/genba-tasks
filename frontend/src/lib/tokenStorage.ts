@@ -1,5 +1,5 @@
 /**
- * トークンバンドル型定義
+ * トークンバンドル型定義（後方互換性のために残す）
  */
 export type TokenBundle = {
   at?: string;
@@ -10,9 +10,21 @@ export type TokenBundle = {
 };
 
 /**
- * localStorage のキー定数
+ * Cookie から値を取得するヘルパー
  */
-const STORAGE_KEYS = {
+function getCookie(name: string): string | undefined {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift();
+  }
+  return undefined;
+}
+
+/**
+ * localStorage のキー定数（旧バージョン互換用）
+ */
+const LEGACY_STORAGE_KEYS = {
   accessToken: "access-token",
   client: "client",
   uid: "uid",
@@ -21,46 +33,18 @@ const STORAGE_KEYS = {
 } as const;
 
 /**
- * TokenStorage - 認証トークンの永続化を一元管理
+ * TokenStorage - httpOnly Cookie ベース認証に対応
  *
- * localStorage操作を抽象化し、エラーハンドリングと型安全性を提供します。
+ * XSS攻撃対策として、認証トークンはhttpOnly Cookieで管理されます。
+ * JavaScriptからは直接アクセスできませんが、CSRF対策のためのトークン取得機能を提供します。
  */
 class TokenStorage {
   /**
-   * すべての認証トークンを読み込み
+   * 旧バージョンからの移行: localStorage のトークンを削除
    */
-  load(): TokenBundle {
+  private clearLegacyTokens(): void {
     try {
-      return {
-        at: this.get("accessToken"),
-        client: this.get("client"),
-        uid: this.get("uid"),
-        tokenType: this.get("tokenType"),
-        expiry: this.get("expiry"),
-      };
-    } catch {
-      return {};
-    }
-  }
-
-  /**
-   * 認証トークンを保存
-   * 値が undefined の場合は該当キーを削除
-   */
-  save(tokens: TokenBundle): void {
-    this.set("accessToken", tokens.at);
-    this.set("client", tokens.client);
-    this.set("uid", tokens.uid);
-    this.set("tokenType", tokens.tokenType);
-    this.set("expiry", tokens.expiry);
-  }
-
-  /**
-   * すべての認証トークンを削除
-   */
-  clear(): void {
-    try {
-      Object.values(STORAGE_KEYS).forEach((key) => {
+      Object.values(LEGACY_STORAGE_KEYS).forEach((key) => {
         localStorage.removeItem(key);
       });
     } catch {
@@ -69,46 +53,60 @@ class TokenStorage {
   }
 
   /**
-   * トークンが有効かチェック（必須項目が揃っているか）
+   * CSRF トークンを取得（リクエストヘッダーに含めるため）
    */
-  isValid(tokens: TokenBundle = this.load()): boolean {
-    return !!(tokens.at && tokens.client && tokens.uid);
+  getCsrfToken(): string | undefined {
+    return getCookie('XSRF-TOKEN');
   }
 
   /**
-   * 個別のトークン値を取得（内部用）
+   * 認証Cookieの存在確認（実際の認証状態はサーバーが判断）
    */
-  private get(key: keyof typeof STORAGE_KEYS): string | undefined {
-    try {
-      const value = localStorage.getItem(STORAGE_KEYS[key]);
-      return value ?? undefined;
-    } catch {
-      return undefined;
-    }
+  hasAuthCookie(): boolean {
+    // httpOnly Cookie は JavaScript から読み取れないため、
+    // サーバーレスポンスで認証状態を判断する必要がある
+    return getCookie('genba_auth_token') !== undefined;
   }
 
   /**
-   * 個別のトークン値を設定（内部用）
-   * 値が undefined または空文字の場合は削除
+   * 後方互換性: load() - 空のオブジェクトを返す
+   * httpOnly Cookie ではJavaScriptから読み取れないため
    */
-  private set(key: keyof typeof STORAGE_KEYS, value?: string): void {
-    try {
-      if (value) {
-        localStorage.setItem(STORAGE_KEYS[key], value);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS[key]);
-      }
-    } catch {
-      // localStorage が使用不可能な環境でもエラーを投げない
-    }
+  load(): TokenBundle {
+    return {};
   }
 
   /**
-   * ストレージキー名を取得（外部からの直接アクセス用）
-   * インターセプタなどで使用
+   * 後方互換性: save() - 何もしない
+   * トークンはサーバー側でCookieに設定される
    */
-  getKey(key: keyof typeof STORAGE_KEYS): string {
-    return STORAGE_KEYS[key];
+  save(_tokens: TokenBundle): void {
+    // httpOnly Cookie はサーバー側で自動設定されるため何もしない
+  }
+
+  /**
+   * ログアウト時の処理
+   */
+  clear(): void {
+    // httpOnly Cookie はサーバー側で削除されるため、
+    // クライアント側では旧トークンのみクリア
+    this.clearLegacyTokens();
+  }
+
+  /**
+   * 後方互換性: isValid() - 常にtrueを返す
+   * 実際の認証状態はAPIレスポンスで判断
+   */
+  isValid(_tokens?: TokenBundle): boolean {
+    // 認証状態はサーバーレスポンス（401など）で判断
+    return true;
+  }
+
+  /**
+   * 後方互換性: getKey()
+   */
+  getKey(key: keyof typeof LEGACY_STORAGE_KEYS): string {
+    return LEGACY_STORAGE_KEYS[key];
   }
 }
 
@@ -116,3 +114,8 @@ class TokenStorage {
  * シングルトンインスタンスをエクスポート
  */
 export const tokenStorage = new TokenStorage();
+
+// アプリケーション起動時に旧トークンを削除
+if (typeof window !== 'undefined') {
+  tokenStorage.clear();
+}

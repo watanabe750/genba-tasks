@@ -25,6 +25,6 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       methods: %i[get post put patch delete options head],
       expose: %w[access-token client uid expiry token-type authorization],
       max_age: 86400,
-      credentials: false
+      credentials: true  # Cookie送信を許可（httpOnly Cookie認証に必要）
   end
 end
