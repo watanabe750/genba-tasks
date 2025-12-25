@@ -140,12 +140,8 @@ if (DEMO) {
     // ---- 3) タスク一覧／作成 ----
     if (path === "/tasks" && method === "get") {
       // クエリパラメータを取得（axiosのparamsオブジェクトから直接取得）
-      console.log("[DEMO] cfg.params:", cfg.params);
-      console.log("[DEMO] u.searchParams site:", u.searchParams.get("site"));
       const site = cfg.params?.site || u.searchParams.get("site") || undefined;
-      console.log("[DEMO] Fetching tasks with site filter:", site);
       const tasks = demoStore.list({ site });
-      console.log("[DEMO] Filtered tasks count:", tasks.length);
       return ok(tasks);
     }
     if (path === "/tasks" && method === "post") {
