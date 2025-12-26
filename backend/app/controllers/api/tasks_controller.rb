@@ -38,84 +38,107 @@ module Api
 
       # ---- 手動順（DnD）のときだけ position を主キーにする ----
       if ob == "position"
+        t = Task.arel_table
+        direction = dir.downcase.to_sym
+
         parts =
           if adapter =~ /postgre/i
             [
-              "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC", # 親→子
-              "parent_id ASC",                                       # 親で固める
-              "position #{dir} NULLS LAST",                          # 親内の手動順
-              "id ASC"
+              Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC"), # 親→子
+              t[:parent_id].asc,                                                # 親で固める
+              t[:position].send(direction).nulls_last,                          # 親内の手動順
+              t[:id].asc
             ]
           else
             [
-              "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-              "parent_id ASC",
-              "CASE WHEN position IS NULL THEN 1 ELSE 0 END ASC",
-              "position #{dir}",
-              "id ASC"
+              Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC"),
+              t[:parent_id].asc,
+              Arel.sql("CASE WHEN position IS NULL THEN 1 ELSE 0 END ASC"),
+              t[:position].send(direction),
+              t[:id].asc
             ]
           end
-        scope = scope.reorder(Arel.sql(parts.join(", ")))
+        scope = scope.reorder(*parts)
         return render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
       end
 
       # ---- site 指定：親→position を優先しつつ site をキーに ----
-if ob == "site"
-  sql =
-    if adapter =~ /postgre/i
-      <<~SQL.squish
-        (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-        parent_id ASC,
-        LOWER(site) #{dir} NULLS LAST,
-        position ASC,
-        CASE WHEN deadline IS NULL THEN NULL ELSE deadline END ASC,
-        id ASC
-      SQL
-    else
-      <<~SQL.squish
-        (CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC,
-        parent_id ASC,
-        CASE WHEN LOWER(site) IS NULL THEN 1 ELSE 0 END ASC, LOWER(site) #{dir},
-        position ASC,
-        deadline ASC,
-        id ASC
-      SQL
-    end
-  scope = scope.reorder(Arel.sql(sql))
-  return render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
-end
+      if ob == "site"
+        t = Task.arel_table
+        direction = dir.downcase.to_sym
+        site_lower = Arel::Nodes::NamedFunction.new('LOWER', [t[:site]])
+
+        parts =
+          if adapter =~ /postgre/i
+            [
+              Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC"),
+              t[:parent_id].asc,
+              site_lower.send(direction).nulls_last,
+              t[:position].asc,
+              Arel.sql("CASE WHEN deadline IS NULL THEN NULL ELSE deadline END ASC"),
+              t[:id].asc
+            ]
+          else
+            [
+              Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC"),
+              t[:parent_id].asc,
+              Arel.sql("CASE WHEN LOWER(site) IS NULL THEN 1 ELSE 0 END ASC"),
+              site_lower.send(direction),
+              t[:position].asc,
+              t[:deadline].asc,
+              t[:id].asc
+            ]
+          end
+        scope = scope.reorder(*parts)
+        return render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
+      end
 
 
-# ---- それ以外（deadline/progress/created_at/title） ----
-primary =
-  case ob
-  when "progress"   then "progress"
-  when "created_at" then "created_at"
-  when "title"      then "LOWER(title)"
-  else                    "deadline"
-  end
+      # ---- それ以外（deadline/progress/created_at/title） ----
+      t = Task.arel_table
+      direction = dir.downcase.to_sym
 
-parts =
-  if adapter =~ /postgre/i
-    [
-      "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-      "parent_id ASC",
-      "#{primary} #{dir} NULLS LAST",   # ← primary を先に
-      "position ASC",                    # ← position はタイブレーク用に後ろ
-      "id ASC"
-    ]
-  else
-    [
-      "(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC",
-      "parent_id ASC",
-      "CASE WHEN #{primary} IS NULL THEN 1 ELSE 0 END ASC",
-      "#{primary} #{dir}",               # ← primary を先に
-      "position ASC",                    # ← position は後ろ
-      "id ASC"
-    ]
-  end
+      primary_node =
+        case ob
+        when "progress"   then t[:progress]
+        when "created_at" then t[:created_at]
+        when "title"      then Arel::Nodes::NamedFunction.new('LOWER', [t[:title]])
+        else                   t[:deadline]
+        end
 
-scope = scope.reorder(Arel.sql(parts.join(", ")))
+      parts =
+        if adapter =~ /postgre/i
+          [
+            Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC"),
+            t[:parent_id].asc,
+            primary_node.send(direction).nulls_last,   # ← primary を先に
+            t[:position].asc,                           # ← position はタイブレーク用に後ろ
+            t[:id].asc
+          ]
+        else
+          null_check =
+            case ob
+            when "title"
+              Arel.sql("CASE WHEN LOWER(title) IS NULL THEN 1 ELSE 0 END ASC")
+            when "progress"
+              Arel.sql("CASE WHEN progress IS NULL THEN 1 ELSE 0 END ASC")
+            when "created_at"
+              Arel.sql("CASE WHEN created_at IS NULL THEN 1 ELSE 0 END ASC")
+            else
+              Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC")
+            end
+
+          [
+            Arel.sql("(CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END) ASC"),
+            t[:parent_id].asc,
+            null_check,
+            primary_node.send(direction),               # ← primary を先に
+            t[:position].asc,                           # ← position は後ろ
+            t[:id].asc
+          ]
+        end
+
+      scope = scope.reorder(*parts)
 
 render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:image_url])
 
