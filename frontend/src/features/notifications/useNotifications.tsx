@@ -61,7 +61,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setNotifications(JSON.parse(stored));
       }
     } catch (error) {
-      console.error("通知の読み込みに失敗しました:", error);
+      if (import.meta.env.DEV) {
+        console.error("通知の読み込みに失敗しました:", error);
+      }
     }
   }, []);
 
@@ -73,7 +75,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setSettings({ ...defaultNotificationSettings, ...JSON.parse(stored) });
       }
     } catch (error) {
-      console.error("通知設定の読み込みに失敗しました:", error);
+      if (import.meta.env.DEV) {
+        console.error("通知設定の読み込みに失敗しました:", error);
+      }
     }
   }, []);
 
@@ -84,7 +88,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const toSave = notifications.slice(0, 20);
       localStorage.setItem(STORAGE_KEY_NOTIFICATIONS, JSON.stringify(toSave));
     } catch (error) {
-      console.error("通知の保存に失敗しました:", error);
+      if (import.meta.env.DEV) {
+        console.error("通知の保存に失敗しました:", error);
+      }
     }
   }, [notifications]);
 
@@ -175,7 +181,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         try {
           localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
         } catch (error) {
-          console.error("通知設定の保存に失敗しました:", error);
+          if (import.meta.env.DEV) {
+            console.error("通知設定の保存に失敗しました:", error);
+          }
         }
         return updated;
       });

@@ -4,9 +4,7 @@ import { useCreateTask } from "../features/tasks/useCreateTask";
 import { brandIso } from "../lib/brandIso";
 import { useTasksFromUrl } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
-
-const toISOorNull = (v: string): string | null =>
-  v ? new Date(`${v}T00:00:00`).toISOString() : null;
+import { toISOorNull } from "../utils/dateFormat";
 
 const LAST_SITE_KEY = "genba-tasks:last-site";
 
