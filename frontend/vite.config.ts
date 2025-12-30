@@ -31,5 +31,26 @@ export default defineConfig({
       },
     },
   },
-  build: { outDir: "dist", emptyOutDir: true },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React関連を1つのチャンクに
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // 大きなライブラリを個別チャンクに
+          'fullcalendar': [
+            '@fullcalendar/core',
+            '@fullcalendar/react',
+            '@fullcalendar/daygrid',
+            '@fullcalendar/timegrid',
+            '@fullcalendar/interaction',
+          ],
+          // その他のベンダーライブラリ
+          'vendor': ['axios', '@tanstack/react-query'],
+        },
+      },
+    },
+  },
 });
