@@ -3,6 +3,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import type { TaskNode } from "../../../types";
 import { useUpdateTask } from "../useUpdateTask";
 import { brandIso } from "../../../lib/brandIso";
+import { toISOorNull, fromISOtoDateInput } from "../../../utils/dateFormat";
+import { getStatusLabel } from "../../../constants/taskStatus";
 
 type Props = {
   task: TaskNode;
@@ -11,24 +13,10 @@ type Props = {
   parentPath?: boolean[];
 };
 
-const toISOorNull = (v: string): string | null =>
-  v ? new Date(`${v}T00:00:00`).toISOString() : null;
-
-const fromISOtoDateInput = (iso: string | null): string => {
-  if (!iso) return "";
-  return iso.split("T")[0];
-};
-
 const getStatusColor = (status: string) => {
   if (status === "completed") return "text-emerald-400";
   if (status === "in_progress") return "text-sky-400";
   return "text-slate-500";
-};
-
-const getStatusLabel = (status: string) => {
-  if (status === "completed") return "完了";
-  if (status === "in_progress") return "進行中";
-  return "未着手";
 };
 
 export default function CompactTaskRow({ task, depth, isLast = false, parentPath = [] }: Props) {

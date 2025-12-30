@@ -7,6 +7,8 @@ import { useDeleteTask } from "../useDeleteTask";
 import { useCreateTask } from "../useCreateTask";
 import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 import { highlightText } from "../../../utils/highlightText";
+import { fromISOtoDateInput } from "../../../utils/dateFormat";
+import { getStatusLabel, TASK_STATUS_LABELS } from "../../../constants/taskStatus";
 
 type Props = {
   task: TaskNode;
@@ -17,16 +19,8 @@ type Props = {
   onDrop?: (targetId: number, prevId: number | null) => void;
 };
 
-const fromISOtoDateInput = (iso: string | null): string => {
-  if (!iso) return "";
-  return iso.split("T")[0];
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  not_started: "未着手",
-  in_progress: "進行中",
-  completed: "完了",
-};
+// 後方互換性のため STATUS_LABEL を維持
+const STATUS_LABEL = TASK_STATUS_LABELS;
 
 export default function WorkflowyTaskRow({
   task,
