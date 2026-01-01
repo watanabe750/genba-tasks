@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../lib/apiClient";
+import { getUserMessage, logError } from "../lib/errorHandler";
 
 type FieldErr = string | null;
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,12 +37,9 @@ export default function ForgotPassword() {
 
       setSuccess(true);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { errors?: { full_messages?: string[] } } }; message?: string };
-      const msg =
-        error?.response?.data?.errors?.full_messages?.[0] ??
-        error?.message ??
-        "パスワードリセットメールの送信に失敗しました。";
-      setErrTop(String(msg));
+      logError(err, 'ForgotPassword');
+      const msg = getUserMessage(err);
+      setErrTop(msg || "パスワードリセットメールの送信に失敗しました。");
     } finally {
       setSubmitting(false);
     }

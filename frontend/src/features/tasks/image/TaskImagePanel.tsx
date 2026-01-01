@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import api from "../../../lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
+import { getUserMessage, logError } from "../../../lib/errorHandler";
 
 type Props = { taskId: number };
 type ShowResponse = {
@@ -48,8 +49,9 @@ export default function TaskImagePanel({ taskId }: Props) {
       });
       return json;
     } catch (e: unknown) {
-      const error = e as { message?: string };
-      setErr(error?.message || "読み込みに失敗しました");
+      logError(e, 'TaskImagePanel - Fetch');
+      const msg = getUserMessage(e);
+      setErr(msg || "読み込みに失敗しました");
     } finally {
       setLoading(false);
     }
@@ -89,12 +91,9 @@ export default function TaskImagePanel({ taskId }: Props) {
       await api.post(`/tasks/${taskId}/image`, fd);
       await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: unknown) {
-      const error = e as { response?: { data?: { errors?: string[] } }; message?: string };
-      const msg =
-        error?.response?.data?.errors?.join?.("、") ||
-        error?.message ||
-        "アップロードに失敗しました";
-      setErr(msg);
+      logError(e, 'TaskImagePanel - Upload');
+      const msg = getUserMessage(e);
+      setErr(msg || "アップロードに失敗しました");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -109,12 +108,9 @@ export default function TaskImagePanel({ taskId }: Props) {
       await api.delete(`/tasks/${taskId}/image`);
       await Promise.all([fetchShow(), invalidateDetail()]);
     } catch (e: unknown) {
-      const error = e as { response?: { data?: { errors?: string[] } }; message?: string };
-      const msg =
-        error?.response?.data?.errors?.join?.("、") ||
-        error?.message ||
-        "削除に失敗しました";
-      setErr(msg);
+      logError(e, 'TaskImagePanel - Delete');
+      const msg = getUserMessage(e);
+      setErr(msg || "削除に失敗しました");
     } finally {
       setUploading(false);
     }
