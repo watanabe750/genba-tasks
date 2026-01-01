@@ -15,6 +15,7 @@ import { useToast } from "../../components/ToastProvider";
 import { useCreateTask } from "../tasks/useCreateTask";
 import { brandIso } from "../../lib/brandIso";
 import { PhotoUploader, PhotoGallery, useAttachments, useUploadPhoto, useDeletePhoto } from "../attachments";
+import { getUserMessage, logError } from "../../lib/errorHandler";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -282,8 +283,9 @@ function TaskDrawerInner({
                           // ドロワー内の情報を更新（子プレビュー/カウント）
                           refetch();
                         } catch (err: unknown) {
-                          const error = err as { message?: string };
-                          toast(error?.message ?? "作成に失敗しました", "error");
+                          logError(err, 'TaskDrawer - Create Child (Enter)');
+                          const msg = getUserMessage(err);
+                          toast(msg || "作成に失敗しました", "error");
                         }
                       }
                     }}
@@ -310,8 +312,9 @@ function TaskDrawerInner({
                         setChildDue("");
                         refetch();
                       } catch (err: unknown) {
-                        const error = err as { message?: string };
-                        toast(error?.message ?? "作成に失敗しました", "error");
+                        logError(err, 'TaskDrawer - Create Child (Button)');
+                        const msg = getUserMessage(err);
+                        toast(msg || "作成に失敗しました", "error");
                       }
                     }}
                     disabled={!childTitle.trim() || creating}

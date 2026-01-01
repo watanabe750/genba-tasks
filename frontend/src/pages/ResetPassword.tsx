@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../lib/apiClient";
+import { getUserMessage, logError } from "../lib/errorHandler";
 
 type FieldErr = string | null;
 
@@ -69,12 +70,9 @@ export default function ResetPassword() {
         state: { message: "パスワードを再設定しました。新しいパスワードでログインしてください。" },
       });
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { errors?: { full_messages?: string[] } } }; message?: string };
-      const msg =
-        error?.response?.data?.errors?.full_messages?.[0] ??
-        error?.message ??
-        "パスワードの再設定に失敗しました。リンクの有効期限が切れている可能性があります。";
-      setErrTop(String(msg));
+      logError(err, 'ResetPassword');
+      const msg = getUserMessage(err);
+      setErrTop(msg || "パスワードの再設定に失敗しました。リンクの有効期限が切れている可能性があります。");
     } finally {
       setSubmitting(false);
     }
