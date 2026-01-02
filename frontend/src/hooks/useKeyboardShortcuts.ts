@@ -1,6 +1,9 @@
 // hooks/useKeyboardShortcuts.ts - キーボードショートカット管理フック
 import { useEffect, useCallback, useRef } from "react";
 
+/** キーシーケンス入力のリセットまでの時間（ミリ秒） */
+const SEQUENCE_RESET_TIMEOUT_MS = 1000;
+
 export type ShortcutKey = string;
 
 export type Shortcut = {
@@ -55,10 +58,10 @@ export function useKeyboardShortcuts(
       // 現在のシーケンスに追加
       sequenceRef.current.push(key);
 
-      // 1秒後にシーケンスをリセット
+      // シーケンス入力をリセット（連続入力の判定時間経過後）
       sequenceTimeoutRef.current = setTimeout(() => {
         sequenceRef.current = [];
-      }, 1000);
+      }, SEQUENCE_RESET_TIMEOUT_MS);
 
       // ショートカットをチェック
       for (const shortcut of shortcuts) {
