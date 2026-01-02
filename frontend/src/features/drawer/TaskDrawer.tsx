@@ -12,10 +12,8 @@ import { toYmd } from "../../utils/date";
 import ChildPreviewList from "./ChildPreviewList";
 import ImagePreview from "./ImagePreviewList";
 import { useToast } from "../../components/ToastProvider";
-import { useCreateTask } from "../tasks/useCreateTask";
-import { brandIso } from "../../lib/brandIso";
 import { PhotoUploader, PhotoGallery, useAttachments, useUploadPhoto, useDeletePhoto } from "../attachments";
-import { getUserMessage, logError } from "../../lib/errorHandler";
+import TaskChildForm from "./TaskChildForm";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -62,10 +60,6 @@ function TaskDrawerInner({
 
   const { data, isLoading, isError, error, refetch } = useTaskDetail(taskId);
   const { push: toast } = useToast();
-  // 子タスク作成用のローカル状態
-  const [childTitle, setChildTitle] = useState("");
-  const [childDue, setChildDue] = useState<string>(""); // YYYY-MM-DD
-  const { mutateAsync: createTask, isPending: creating } = useCreateTask();
 
   // 写真管理用
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
@@ -259,70 +253,8 @@ function TaskDrawerInner({
                 grandchildrenCount={grandkids}
               />
 
-              {/* 子タスク作成（タイトル＋期限） */}
-              <div className="mt-3 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-3">
-                <div className="mb-2 text-[13px] text-gray-500 dark:text-gray-400">
-                  子タスクを作成
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <input
-                    className="input input-bordered flex-1"
-                    placeholder="子タスク名（必須）"
-                    value={childTitle}
-                    onChange={(e) => setChildTitle(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && childTitle.trim()) {
-                        try {
-                          await createTask({
-                            title: childTitle.trim(),
-                            parentId: taskId,
-                            deadline: brandIso(childDue || undefined), // APIは deadline を受け付ける
-                          });
-                          setChildTitle("");
-                          setChildDue("");
-                          // ドロワー内の情報を更新（子プレビュー/カウント）
-                          refetch();
-                        } catch (err: unknown) {
-                          logError(err, 'TaskDrawer - Create Child (Enter)');
-                          const msg = getUserMessage(err);
-                          toast(msg || "作成に失敗しました", "error");
-                        }
-                      }
-                    }}
-                    aria-label="子タスク名"
-                  />
-                  <input
-                    type="date"
-                    className="input input-bordered w-full sm:w-40"
-                    value={childDue}
-                    onChange={(e) => setChildDue(e.target.value)}
-                    aria-label="期限"
-                  />
-                  <button
-                    className="btn btn-primary w-full sm:w-auto"
-                    onClick={async () => {
-                      if (!childTitle.trim()) return;
-                      try {
-                        await createTask({
-                          title: childTitle.trim(),
-                          parentId: taskId,
-                          deadline: brandIso(childDue || undefined),
-                        });
-                        setChildTitle("");
-                        setChildDue("");
-                        refetch();
-                      } catch (err: unknown) {
-                        logError(err, 'TaskDrawer - Create Child (Button)');
-                        const msg = getUserMessage(err);
-                        toast(msg || "作成に失敗しました", "error");
-                      }
-                    }}
-                    disabled={!childTitle.trim() || creating}
-                  >
-                    作成
-                  </button>
-                </div>
-              </div>
+              {/* 子タスク作成フォーム */}
+              <TaskChildForm taskId={taskId} onSuccess={refetch} />
 
               {/* 画像（存在時のみ / サムネ優先表示） */}
               {imageUrl && (
