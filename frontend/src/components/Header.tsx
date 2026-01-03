@@ -140,6 +140,7 @@ export default function Header({ showDemoBadge = true }: HeaderProps) {
             aria-label={
               isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"
             }
+            aria-pressed={isDark}
             title={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
           >
             {isDark ? (

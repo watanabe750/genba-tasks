@@ -217,6 +217,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
             type="button"
             aria-label={expanded ? "子タスクを隠す" : "子タスクを表示"}
             aria-expanded={expanded}
+            aria-controls={`task-children-${task.id}`}
             className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-gray-200 mt-0.5"
             onClick={() => setExpanded((v) => !v)}
           >
@@ -230,10 +231,20 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
         {!isChild && (
           <div
             role="button"
-            tabIndex={0}
-            aria-label="並び替え"
+            tabIndex={isParent ? 0 : -1}
+            aria-label={isParent ? "タスクをドラッグして並び替え" : "子タスクは並び替えできません"}
+            aria-disabled={!isParent}
+            aria-describedby={`drag-help-${task.id}`}
             data-testid={`task-drag-${task.id}`}
             draggable={isParent}
+            onKeyDown={(e) => {
+              if (!isParent) return;
+              // キーボードでのドラッグ操作はサポートしないが、説明は提供
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                // TODO: 将来的にキーボードによる並び替えをサポート
+              }
+            }}
             onDragStart={(e) => {
               const dt = e.dataTransfer!;
               dt.effectAllowed = "move";
@@ -385,7 +396,13 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
   );
 
   const Children = expanded ? (
-    <div className="mt-1" data-testid={`children-of-${task.id}`}>
+    <div
+      id={`task-children-${task.id}`}
+      className="mt-1"
+      data-testid={`children-of-${task.id}`}
+      role="group"
+      aria-label={`${task.title}の子タスク`}
+    >
       {orderedChildren.map((c, i) => (
         <InlineTaskRow
           key={c.id}
