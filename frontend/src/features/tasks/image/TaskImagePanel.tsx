@@ -9,6 +9,11 @@ type ShowResponse = {
   image_url: string | null;
   image_thumb_url: string | null;
 };
+type TaskDetailData = {
+  image_url?: string | null;
+  image_thumb_url?: string | null;
+  [key: string]: unknown;
+};
 
 const MAX_MB = 5;
 const ACCEPT = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -37,15 +42,14 @@ export default function TaskImagePanel({ taskId }: Props) {
         image_thumb_url: json.image_thumb_url ?? null,
       });
       // ✨ 取得結果をその場でキャッシュに反映（一覧のサムネが即時更新される）
-      qc.setQueryData(qk as unknown as readonly unknown[], (old: unknown) => {
-        const oldData = old as { image_url?: string | null; image_thumb_url?: string | null } | undefined;
-        return oldData
+      qc.setQueryData<TaskDetailData>(qk, (old) => {
+        return old
           ? {
-              ...oldData,
+              ...old,
               image_url: json.image_url ?? null,
               image_thumb_url: json.image_thumb_url ?? null,
             }
-          : oldData;
+          : old;
       });
       return json;
     } catch (e: unknown) {
@@ -63,7 +67,7 @@ export default function TaskImagePanel({ taskId }: Props) {
   }, [taskId]);
 
   const invalidateDetail = () =>
-    qc.invalidateQueries({ queryKey: qk as unknown as readonly unknown[] });
+    qc.invalidateQueries({ queryKey: qk });
 
   const onPick = () => fileRef.current?.click();
 

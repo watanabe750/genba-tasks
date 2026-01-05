@@ -16,6 +16,23 @@ type UpdateInput = {
 
 const clamp = (n: number, min = 0, max = 100) => Math.min(Math.max(n, min), max);
 
+/**
+ * クエリキーから order_by と dir パラメータを安全に抽出します
+ */
+function extractQueryParams(key: unknown): { order_by?: string; dir?: "asc" | "desc" } {
+  if (!Array.isArray(key) || key.length < 2) {
+    return {};
+  }
+  const params = key[1];
+  if (!params || typeof params !== 'object') {
+    return {};
+  }
+  const obj = params as Record<string, unknown>;
+  const order_by = typeof obj.order_by === 'string' ? obj.order_by : undefined;
+  const dir = obj.dir === 'asc' || obj.dir === 'desc' ? obj.dir : undefined;
+  return { order_by, dir };
+}
+
 // ★ 渡されたフィールドだけを送る（after_id はトップレベルで送る）
 function normalize(data: UpdateInput["data"]) {
   const out: Partial<
@@ -108,10 +125,9 @@ export function useUpdateTask() {
       prevTasksEntries.forEach(([key, arr]) => {
         if (!arr) return;
         const next = patch(arr) ?? arr;
-        const k = key as readonly unknown[];
-        const params = (k?.[1] ?? {}) as { order_by?: string; dir?: "asc" | "desc" };
+        const params = extractQueryParams(key);
         const order_by = params.order_by ?? "deadline";
-        const dir = (params.dir as "asc" | "desc") ?? "asc";
+        const dir = params.dir ?? "asc";
         qc.setQueryData<Task[]>(key, sortFlatForUI(next, order_by, dir));
       });
 

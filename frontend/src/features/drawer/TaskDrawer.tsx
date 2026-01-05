@@ -14,6 +14,7 @@ import ImagePreview from "./ImagePreviewList";
 import { useToast } from "../../components/ToastProvider";
 import { PhotoUploader, PhotoGallery, useAttachments, useUploadPhoto, useDeletePhoto } from "../attachments";
 import TaskChildForm from "./TaskChildForm";
+import { getErrorStatus } from "../../lib/errorHandler";
 
 const RootPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const el = useMemo(() => document.createElement("div"), []);
@@ -97,8 +98,7 @@ function TaskDrawerInner({
   // エラーUX：404→自動クローズ、401→クローズ、5xx→開いたまま再試行
   useEffect(() => {
     if (!isError) return;
-    const err = error as { response?: { status?: number }; status?: number } | null;
-    const status = err?.response?.status ?? err?.status ?? null;
+    const status = getErrorStatus(error);
 
     if (status === 404) {
       toast("タスクが見つかりません", "error");

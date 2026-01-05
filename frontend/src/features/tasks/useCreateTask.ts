@@ -22,7 +22,7 @@ async function createTaskApi(input: CreateTaskInput): Promise<Task> {
       title,
       status: "in_progress",
       progress: 0,
-      deadline: (input.deadline ?? null) as ISODateString | null,
+      deadline: input.deadline ?? null,
       parent_id: input.parentId ?? null,
       ...(isParent ? { site: input.site?.trim() || null } : {}),
     },
@@ -48,16 +48,18 @@ export function useCreateTask() {
       const tempId = -Date.now();
       const isParent = input.parentId == null;
 
+      const tempTask: Partial<Task> = {
+        id: tempId,
+        title: input.title.trim(),
+        status: "in_progress",
+        progress: 0,
+        deadline: input.deadline ?? null,
+        site: isParent ? (input.site ?? null) : null,
+        parent_id: input.parentId ?? null,
+      };
+
       qc.setQueryData<Task[]>(["tasks"], [
-        {
-          id: tempId,
-          title: input.title.trim(),
-          status: "in_progress",
-          progress: 0,
-          deadline: (input.deadline ?? null) as ISODateString | null,
-          site: isParent ? (input.site ?? null) : null,
-          parent_id: input.parentId ?? null,
-        } as Task,
+        tempTask as Task,
         ...prevTasks,
       ]);
 
