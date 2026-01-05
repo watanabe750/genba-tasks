@@ -137,6 +137,20 @@ export function getUserMessage(error: unknown): string {
 }
 
 /**
+ * エラーからHTTPステータスコードを安全に取得します
+ * @param error - エラーオブジェクト
+ * @returns HTTPステータスコード (存在しない場合は null)
+ */
+export function getErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+
+  const err = error as AxiosErrorResponse;
+  return err.response?.status ?? err.status ?? null;
+}
+
+/**
  * デバッグ用: エラー情報をコンソールに出力します（開発環境のみ）
  * @param error - エラーオブジェクト
  * @param context - エラーが発生したコンテキスト
