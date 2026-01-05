@@ -5,6 +5,7 @@ import { brandIso } from "../lib/brandIso";
 import { useTasksFromUrl } from "../features/tasks/useTasks";
 import useAuth from "../providers/useAuth";
 import { toISOorNull } from "../utils/dateFormat";
+import { validateTaskTitle, validateSiteName, validateDate } from "../lib/validation";
 
 const LAST_SITE_KEY = "genba-tasks:last-site";
 
@@ -23,6 +24,11 @@ export default function NewTaskModal({ isOpen, onClose }: Props) {
   const [deadline, setDeadline] = useState("");
   const [site, setSite] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // エラー状態
+  const [titleError, setTitleError] = useState("");
+  const [siteError, setSiteError] = useState("");
+  const [deadlineError, setDeadlineError] = useState("");
 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const siteInputRef = useRef<HTMLInputElement>(null);
@@ -63,10 +69,53 @@ export default function NewTaskModal({ isOpen, onClose }: Props) {
     );
   }, [site, existingSites]);
 
+  // バリデーション
+  const validateForm = (): boolean => {
+    let isValid = true;
+
+    // タイトルのバリデーション
+    const titleResult = validateTaskTitle(title);
+    if (!titleResult.isValid) {
+      setTitleError(titleResult.error || "");
+      isValid = false;
+    } else {
+      setTitleError("");
+    }
+
+    // 現場名のバリデーション
+    if (site.trim().length === 0) {
+      setSiteError("現場名を入力してください。");
+      isValid = false;
+    } else {
+      const siteResult = validateSiteName(site);
+      if (!siteResult.isValid) {
+        setSiteError(siteResult.error || "");
+        isValid = false;
+      } else {
+        setSiteError("");
+      }
+    }
+
+    // 期限のバリデーション
+    const deadlineResult = validateDate(deadline, {
+      allowPast: true,
+      allowFuture: true,
+      fieldName: "期限",
+    });
+    if (!deadlineResult.isValid) {
+      setDeadlineError(deadlineResult.error || "");
+      isValid = false;
+    } else {
+      setDeadlineError("");
+    }
+
+    return isValid;
+  };
+
   const canSubmit = title.trim().length > 0 && site.trim().length > 0 && !isPending;
 
   const submit = () => {
-    if (!canSubmit) return;
+    if (!validateForm()) return;
 
     // 現場名をlocalStorageに保存
     try {
@@ -105,6 +154,9 @@ export default function NewTaskModal({ isOpen, onClose }: Props) {
     setTitle("");
     setDeadline("");
     setShowSuggestions(false);
+    setTitleError("");
+    setSiteError("");
+    setDeadlineError("");
     onClose();
   };
 
@@ -153,17 +205,25 @@ export default function NewTaskModal({ isOpen, onClose }: Props) {
             }}
           >
             <div>
-              <label htmlFor="task-title" className="block text-sm font-medium text-slate-300 mb-2">
-                タイトル（必須）
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="task-title" className="block text-sm font-medium text-slate-300">
+                  タイトル（必須）
+                </label>
+                <span className={`text-xs ${title.length > 200 ? 'text-red-400' : 'text-slate-400'}`}>
+                  {title.length}/200
+                </span>
+              </div>
               <input
                 id="task-title"
                 ref={titleInputRef}
                 data-testid="modal-task-title"
-                className="w-full rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all backdrop-blur-sm font-medium"
+                className={`w-full rounded-xl border ${titleError ? 'border-red-500/50 bg-red-500/10' : 'border-white/20 bg-white/10'} text-white placeholder:text-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 ${titleError ? 'focus:ring-red-400/50 focus:border-red-400/50' : 'focus:ring-sky-400/50 focus:border-sky-400/50'} transition-all backdrop-blur-sm font-medium`}
                 placeholder="タイトルを入力"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (titleError) setTitleError("");
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
                     e.preventDefault();
@@ -171,7 +231,15 @@ export default function NewTaskModal({ isOpen, onClose }: Props) {
                   }
                 }}
                 autoComplete="off"
+                aria-invalid={!!titleError}
+                aria-describedby={titleError ? "title-error" : undefined}
+                maxLength={200}
               />
+              {titleError && (
+                <p id="title-error" className="mt-1.5 text-xs text-red-400">
+                  {titleError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -182,28 +250,54 @@ export default function NewTaskModal({ isOpen, onClose }: Props) {
                 id="task-deadline"
                 data-testid="modal-task-deadline"
                 type="date"
-                className="w-full rounded-xl border border-white/20 bg-white/10 text-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all backdrop-blur-sm font-medium [color-scheme:dark]"
+                className={`w-full rounded-xl border ${deadlineError ? 'border-red-500/50 bg-red-500/10' : 'border-white/20 bg-white/10'} text-white px-4 py-2.5 focus:outline-none focus:ring-2 ${deadlineError ? 'focus:ring-red-400/50 focus:border-red-400/50' : 'focus:ring-sky-400/50 focus:border-sky-400/50'} transition-all backdrop-blur-sm font-medium [color-scheme:dark]`}
                 value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                onChange={(e) => {
+                  setDeadline(e.target.value);
+                  if (deadlineError) setDeadlineError("");
+                }}
+                aria-invalid={!!deadlineError}
+                aria-describedby={deadlineError ? "deadline-error" : undefined}
               />
+              {deadlineError && (
+                <p id="deadline-error" className="mt-1.5 text-xs text-red-400">
+                  {deadlineError}
+                </p>
+              )}
             </div>
 
             <div className="relative">
-              <label htmlFor="task-site" className="block text-sm font-medium text-slate-300 mb-2">
-                現場名（必須）
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="task-site" className="block text-sm font-medium text-slate-300">
+                  現場名（必須）
+                </label>
+                <span className={`text-xs ${site.length > 100 ? 'text-red-400' : 'text-slate-400'}`}>
+                  {site.length}/100
+                </span>
+              </div>
               <input
                 id="task-site"
                 ref={siteInputRef}
                 data-testid="modal-task-site"
-                className="w-full rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all backdrop-blur-sm font-medium"
+                className={`w-full rounded-xl border ${siteError ? 'border-red-500/50 bg-red-500/10' : 'border-white/20 bg-white/10'} text-white placeholder:text-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 ${siteError ? 'focus:ring-red-400/50 focus:border-red-400/50' : 'focus:ring-sky-400/50 focus:border-sky-400/50'} transition-all backdrop-blur-sm font-medium`}
                 placeholder="現場名を入力"
                 value={site}
-                onChange={(e) => setSite(e.target.value)}
+                onChange={(e) => {
+                  setSite(e.target.value);
+                  if (siteError) setSiteError("");
+                }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 autoComplete="off"
+                aria-invalid={!!siteError}
+                aria-describedby={siteError ? "site-error" : undefined}
+                maxLength={100}
               />
+              {siteError && (
+                <p id="site-error" className="mt-1.5 text-xs text-red-400">
+                  {siteError}
+                </p>
+              )}
               {showSuggestions && suggestions.length > 0 && (
                 <ul className="absolute z-10 mt-2 w-full rounded-xl border border-white/20 bg-slate-900/95 backdrop-blur-xl shadow-2xl max-h-40 overflow-y-auto">
                   {suggestions.slice(0, 5).map((suggestion, idx) => (
