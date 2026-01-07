@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import useAuth from "../providers/useAuth";
@@ -23,10 +23,10 @@ export default function Header({ showDemoBadge = true }: HeaderProps) {
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     qc.clear();
     await signOut();
-  };
+  }, [qc, signOut]);
 
   const display = name?.trim() || (uid ? String(uid).split("@")[0] : "");
 

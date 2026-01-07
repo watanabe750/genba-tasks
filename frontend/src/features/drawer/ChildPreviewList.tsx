@@ -1,4 +1,5 @@
 // src/features/drawer/ChildPreviewList.tsx
+import { memo } from "react";
 import type { ChildPreview } from "../../types";
 import StatusPill from "../../components/StatusPill";
 import { toYmd } from "../../utils/date";
@@ -15,7 +16,7 @@ const ariaLabelFor = (c: ChildPreview) => {
   return `${c.title}、ステータス ${c.status}、期限 ${d}、進捗 ${prog}パーセント`;
 };
 
-export default function ChildPreviewList({ items, grandchildrenCount }: Props) {
+function ChildPreviewList({ items, grandchildrenCount }: Props) {
   const list = items ?? [];
   const hasGrandkids = typeof grandchildrenCount === "number" && grandchildrenCount > 0;
 
@@ -59,3 +60,5 @@ export default function ChildPreviewList({ items, grandchildrenCount }: Props) {
     </div>
   );
 }
+
+export default memo(ChildPreviewList);

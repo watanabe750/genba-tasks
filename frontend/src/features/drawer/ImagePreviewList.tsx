@@ -1,10 +1,10 @@
 // src/features/drawer/ImagePreviewList.tsx
-import { useState } from "react";
+import { memo, useState } from "react";
 
 type Props = { url: string; title?: string; thumbUrl?: string };
 
 /** Drawerの画像プレビュー（hiddenにせず常時描画 / data-testid 付与） */
-export default function ImagePreview({ url, title = "", thumbUrl }: Props) {
+function ImagePreview({ url, title = "", thumbUrl }: Props) {
   const [failed, setFailed] = useState(false);
   const src = thumbUrl || url;
 
@@ -42,3 +42,5 @@ export default function ImagePreview({ url, title = "", thumbUrl }: Props) {
     </figure>
   );
 }
+
+export default memo(ImagePreview);

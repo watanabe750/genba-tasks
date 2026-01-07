@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 
 type Props = {
   url: string;
   title: string;
 };
 
-export default function ImagePreview({ url, title }: Props) {
+function ImagePreview({ url, title }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState<Error | null>(null);
 
@@ -54,3 +54,5 @@ export default function ImagePreview({ url, title }: Props) {
     </figure>
   );
 }
+
+export default memo(ImagePreview);

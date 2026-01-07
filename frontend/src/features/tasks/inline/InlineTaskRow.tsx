@@ -81,7 +81,7 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
   }, []);
 
   // === 子タスク追加ロジック ===
-  const submitChild = () => {
+  const submitChild = useCallback(() => {
     const t = childTitle.trim();
     if (!t) return;
     createTask(
@@ -95,10 +95,10 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
         },
       }
     );
-  };
+  }, [childTitle, childDue, task.id, createTask]);
 
   // === 完了トグル（葉のみ） ===
-  const toggleDone = () => {
+  const toggleDone = useCallback(() => {
     if (!isLeaf) return;
     const nextDone = task.status !== "completed";
     update({
@@ -107,22 +107,22 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
         ? { status: "completed", progress: 100 }
         : { status: "in_progress", progress: 0 },
     });
-  };
+  }, [isLeaf, task.status, task.id, update]);
 
   // === インライン編集（全タスク対応） ===
-  const handleTitleClick = () => {
+  const handleTitleClick = useCallback(() => {
     setEditing(true);
-  };
+  }, []);
 
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+  const handleTitleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       setEditing(true);
     }
-  };
+  }, []);
 
   // === ドラッグ&ドロップ処理 ===
-  const performDropHere = () => {
+  const performDropHere = useCallback(() => {
     const movingId = dnd.state.draggingId;
     log("performDropHere =>", {
       movingId,
@@ -155,25 +155,25 @@ export default function InlineTaskRow({ task, depth, prevId = null }: RowProps) 
     log("call reorderWithinParent", { pid, movingId, afterId });
     dnd.reorderWithinParent(pid, movingId, afterId);
     dnd.onDragEnd();
-  };
+  }, [dnd, task.id, task.parent_id, prevId]);
 
-  const onDragOver = (e: DragEvent) => {
+  const onDragOver = useCallback((e: DragEvent) => {
     if (!isParent) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-  };
+  }, [isParent]);
 
-  const onDragEnter = (e: DragEvent) => {
+  const onDragEnter = useCallback((e: DragEvent) => {
     if (!isParent) return;
     e.preventDefault();
-  };
+  }, [isParent]);
 
-  const onDrop = (e: DragEvent) => {
+  const onDrop = useCallback((e: DragEvent) => {
     if (!isParent) return;
     e.preventDefault();
     log("drop row", { over: task.id });
     performDropHere();
-  };
+  }, [isParent, task.id, performDropHere]);
 
   // 子の表示順は固定
   const childIds = useMemo(() => (task.children ?? []).map((c) => c.id), [task.children]);

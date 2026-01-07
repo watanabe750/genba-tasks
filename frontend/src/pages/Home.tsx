@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../providers/useAuth";
 import Header from "../components/Header";
+import { getUserMessage, logError } from "../lib/errorHandler";
 
 import IllustrationSubtasks from "../components/illustrations/IllustrationSubtasks";
 import IllustrationDnd from "../components/illustrations/IllustrationDnd";
@@ -82,11 +83,9 @@ export default function Home() {
       } catch {}
       nav("/tasks", { replace: true });
     } catch (e: unknown) {
-      const error = e as { response?: { data?: { errors?: string[] } } };
-      setErr(
-        error?.response?.data?.errors?.[0] ??
-          "ゲストログインに失敗しました。/login からお試しください。"
-      );
+      logError(e, 'Home - Guest Login');
+      const msg = getUserMessage(e);
+      setErr(msg || "ゲストログインに失敗しました。/login からお試しください。");
     } finally {
       setBusy(false);
     }
