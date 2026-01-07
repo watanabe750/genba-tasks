@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../providers/useAuth";
+import { getUserMessage, logError } from "../lib/errorHandler";
 
 type FieldErr = string | null;
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -76,12 +77,9 @@ export default function Login() {
       const dest = takeAuthFrom() || "/tasks";
       nav(dest, { replace: true });
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { errors?: string[] } }; message?: string };
-      const msg =
-        error?.response?.data?.errors?.[0] ??
-        error?.message ??
-        "ログインに失敗しました。メールアドレスまたはパスワードをご確認ください。";
-      setErrTop(String(msg));
+      logError(err, 'Login');
+      const msg = getUserMessage(err);
+      setErrTop(msg || "ログインに失敗しました。メールアドレスまたはパスワードをご確認ください。");
     } finally {
       setSubmitting(false);
     }
@@ -111,7 +109,7 @@ export default function Login() {
           {errTop && (
             <div
               role="alert"
-              className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="mt-4 rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 px-3 py-2 text-sm text-red-700 dark:text-red-400"
               data-testid="login-error-banner"
             >
               {errTop}
