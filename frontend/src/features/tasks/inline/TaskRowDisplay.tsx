@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { TaskNode } from "../../../types";
 import { toDateInputValue, getDeadlineUrgency, formatDaysUntilDeadline } from "../../../utils/date";
 
@@ -28,7 +29,7 @@ const URGENCY_STYLES = {
  * タスク表示コンポーネント
  * タイトル、期限、ステータス、現場名を表示
  */
-export function TaskRowDisplay({ task, isParent, titleRef, onTitleClick, onTitleKeyDown }: Props) {
+function TaskRowDisplayComponent({ task, isParent, titleRef, onTitleClick, onTitleKeyDown }: Props) {
   const urgency = getDeadlineUrgency(task.deadline);
   const daysUntilText = formatDaysUntilDeadline(task.deadline);
   const deadlineDate = task.deadline ? toDateInputValue(task.deadline) : null;
@@ -89,3 +90,5 @@ export function TaskRowDisplay({ task, isParent, titleRef, onTitleClick, onTitle
     </>
   );
 }
+
+export const TaskRowDisplay = memo(TaskRowDisplayComponent);

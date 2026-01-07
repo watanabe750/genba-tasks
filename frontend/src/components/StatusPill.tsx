@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Status } from "../types";
 
 const LABEL: Record<Status, string> = {
@@ -12,10 +13,12 @@ const COLOR: Record<Status, string> = {
   completed: "bg-green-100 text-green-700",
 };
 
-export default function StatusPill({ status }: { status: Status }) {
+function StatusPill({ status }: { status: Status }) {
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${COLOR[status]}`}>
       {LABEL[status]}
     </span>
   );
 }
+
+export default memo(StatusPill);

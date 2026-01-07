@@ -1,9 +1,10 @@
+import { memo } from "react";
 import { useTaskDrawer } from "../../drawer/useTaskDrawer";
 import { useTaskDetail } from "../../tasks/useTaskDetail";
 
 type Props = { taskId: number };
 
-export default function CompactThumb({ taskId }: Props) {
+function CompactThumb({ taskId }: Props) {
   const { data } = useTaskDetail(taskId); // react-query キャッシュ共有
   const { open } = useTaskDrawer();
 
@@ -47,3 +48,5 @@ export default function CompactThumb({ taskId }: Props) {
     </button>
   );
 }
+
+export default memo(CompactThumb);

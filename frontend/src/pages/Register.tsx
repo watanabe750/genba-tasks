@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../providers/useAuth";
+import { getUserMessage, logError } from "../lib/errorHandler";
 
 type FieldErr = string | null;
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,12 +72,9 @@ export default function Register() {
       await signUp(name.trim(), email.trim(), password, passwordConfirmation);
       nav("/tasks", { replace: true });
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { errors?: { full_messages?: string[] } } }; message?: string };
-      const msg =
-        error?.response?.data?.errors?.full_messages?.[0] ??
-        error?.message ??
-        "登録に失敗しました。もう一度お試しください。";
-      setErrTop(String(msg));
+      logError(err, 'Register');
+      const msg = getUserMessage(err);
+      setErrTop(msg || "登録に失敗しました。もう一度お試しください。");
     } finally {
       setSubmitting(false);
     }

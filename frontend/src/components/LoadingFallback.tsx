@@ -1,6 +1,7 @@
 // src/components/LoadingFallback.tsx
+import { memo } from "react";
 
-export const LoadingFallback = () => {
+const LoadingFallbackComponent = () => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-4">
@@ -10,3 +11,5 @@ export const LoadingFallback = () => {
     </div>
   );
 };
+
+export const LoadingFallback = memo(LoadingFallbackComponent);
