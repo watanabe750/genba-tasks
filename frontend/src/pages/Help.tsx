@@ -32,7 +32,7 @@ export default function Help() {
       {isDemo && (
         <div
           role="note"
-          className="mb-6 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+          className="mb-6 rounded border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-400"
           data-testid="help-demo-banner"
         >
           これは<strong>ゲスト環境</strong>です。データは定期的に初期化される場合があります。個人情報の入力は避けてください。
@@ -105,7 +105,7 @@ export default function Help() {
       <section id="tips" className="mb-8">
         <h2 className="text-xl font-semibold mb-2">操作TIPS</h2>
         <ul className="list-disc list-inside text-gray-700 space-y-1">
-          <li><kbd className="px-1.5 py-0.5 rounded border bg-white">Enter</kbd> で親タスク作成</li>
+          <li><kbd className="px-1.5 py-0.5 rounded border bg-white dark:bg-gray-700 dark:border-gray-600">Enter</kbd> で親タスク作成</li>
           <li>親タスクはドラッグで並び替え</li>
           <li>検索・絞り込みは画面上部のバーから</li>
         </ul>

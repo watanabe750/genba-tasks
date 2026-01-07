@@ -35,21 +35,21 @@ export default function ConfirmPopover({ text = "このタスクを削除しま�
       ref={ref}
       role="dialog"
       aria-modal="true"
-      className="absolute z-50 mt-2 w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-lg"
+      className="absolute z-50 mt-2 w-72 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 shadow-lg"
     >
-      <p className="text-sm text-gray-800">{text}</p>
+      <p className="text-sm text-gray-800 dark:text-gray-200">{text}</p>
       <div className="mt-3 flex justify-end gap-2">
         <button
           ref={cancelRef}
           type="button"
-          className="px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50"
+          className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200"
           onClick={onCancel}
         >
           キャンセル
         </button>
         <button
           type="button"
-          className="px-3 py-1.5 rounded bg-red-600 text-white text-sm hover:bg-red-700"
+          className="px-3 py-1.5 rounded bg-red-600 text-white text-sm hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
           onClick={onConfirm}
         >
           削除

@@ -107,7 +107,7 @@ export default function ForgotPassword() {
           {errTop && (
             <div
               role="alert"
-              className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="mt-4 rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 px-3 py-2 text-sm text-red-700 dark:text-red-400"
             >
               {errTop}
             </div>
