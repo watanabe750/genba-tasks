@@ -10,7 +10,7 @@ async function fetchPriorityTasks(limit: number): Promise<Task[]> {
   return data;
 }
 
-export function usePriorityTasks(enabled = true, limit = 5) {
+export function usePriorityTasks(enabled = true, limit: number) {
   return useQuery({
     queryKey: ["priorityTasks", limit],
     queryFn: () => fetchPriorityTasks(limit),
