@@ -83,29 +83,33 @@ export default function PriorityTasksPanel() {
     };
   }, [isResizing]);
 
-  // 完了チェック時に即非表示（楽観更新）
+  // 完了チェック時の処理
   const handleToggle = (t: Task) => {
     const next = t.status === "completed" ? "in_progress" : "completed";
 
-    // 1) 先にキャッシュを書き換え（completed は非表示）
+    // 楽観的更新: ステータスを即座に変更（表示はそのまま）
     const prev = (qc.getQueryData<Task[]>(queryKey) ?? []).slice();
-    const nextList = prev
-      .map((it) => (it.id === t.id ? { ...it, status: next } : it))
-      .filter((it) => it.status !== "completed");
+    const nextList = prev.map((it) => (it.id === t.id ? { ...it, status: next } : it));
     qc.setQueryData(queryKey, nextList);
 
-    // 2) サーバ更新。失敗なら復元、最後に正で同期
+    // サーバー更新後、リストを再取得して表示件数を維持
     update(
       { id: t.id, data: { status: next } },
       {
-        onError: () => qc.setQueryData(queryKey, prev),
-        onSettled: () => qc.invalidateQueries({ queryKey }),
+        onError: () => {
+          // エラー時は元に戻す
+          qc.setQueryData(queryKey, prev);
+        },
+        onSuccess: () => {
+          // 成功時は再取得して、完了したタスクの代わりに次のタスクを表示
+          qc.invalidateQueries({ queryKey });
+        },
       }
     );
   };
 
-  // 表示は未完了のみ
-  const visible = tasks.filter((t) => t.status !== "completed");
+  // バックエンドで既に完了済みを除外しているため、フィルター不要
+  const visible = tasks;
 
   return (
     <div
