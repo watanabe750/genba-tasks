@@ -60,7 +60,7 @@ class Task < ApplicationRecord
   # -----------------------------------------------
 
   # 優先タスク（未完了/期限→進捗）
-  scope :priority_order, ->(limit: 5) {
+  scope :priority_order, ->(limit:) {
     where.not(status: :completed)
       .order(Arel.sql("CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC"))
       .order(:deadline, :progress)

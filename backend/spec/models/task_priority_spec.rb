@@ -7,7 +7,7 @@ RSpec.describe Task, type: :model do
       user = create(:user)
       with_deadline = create(:task, :with_deadline, user:) # factory が site 付与
       no_deadline   = create(:task, deadline: nil, user:)  # 同上
-      expect(Task.where(user:).priority_order.pluck(:id)).to eq([with_deadline.id, no_deadline.id])
+      expect(Task.where(user:).priority_order(limit: 10).pluck(:id)).to eq([with_deadline.id, no_deadline.id])
     end
   end
 end
