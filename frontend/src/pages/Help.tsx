@@ -25,8 +25,8 @@ export default function Help() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-2">ヘルプ</h1>
-      <p className="text-gray-600 mb-6">よく使う機能だけを短くまとめました。</p>
+      <h1 className="text-2xl font-semibold mb-2 dark:text-slate-100">ヘルプ</h1>
+      <p className="text-gray-600 dark:text-slate-400 mb-6">よく使う機能だけを短くまとめました。</p>
 
       {/* デモ環境バナー */}
       {isDemo && (
@@ -40,22 +40,22 @@ export default function Help() {
       )}
 
       {/* 目次 */}
-      <nav className="mb-6 text-sm text-gray-600">
+      <nav className="mb-6 text-sm text-gray-600 dark:text-slate-400">
         <ul className="list-disc list-inside space-y-1">
-          <li><a href="#quickstart" className="underline decoration-dotted">クイックスタート</a></li>
-          <li><a href="#features" className="underline decoration-dotted">機能の要点</a></li>
-          <li><a href="#tips" className="underline decoration-dotted">操作TIPS</a></li>
-          <li><a href="#faq" className="underline decoration-dotted">よくある質問</a></li>
-          <li><a href="#contact" className="underline decoration-dotted">問い合わせ</a></li>
+          <li><a href="#quickstart" className="underline decoration-dotted hover:text-blue-600 dark:hover:text-blue-400">クイックスタート</a></li>
+          <li><a href="#features" className="underline decoration-dotted hover:text-blue-600 dark:hover:text-blue-400">機能の要点</a></li>
+          <li><a href="#tips" className="underline decoration-dotted hover:text-blue-600 dark:hover:text-blue-400">操作TIPS</a></li>
+          <li><a href="#faq" className="underline decoration-dotted hover:text-blue-600 dark:hover:text-blue-400">よくある質問</a></li>
+          <li><a href="#contact" className="underline decoration-dotted hover:text-blue-600 dark:hover:text-blue-400">問い合わせ</a></li>
         </ul>
       </nav>
 
       {/* クイックスタート */}
       <section id="quickstart" className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">クイックスタート</h2>
-        <ol className="list-decimal list-inside space-y-2 text-gray-700">
+        <h2 className="text-xl font-semibold mb-2 dark:text-slate-100">クイックスタート</h2>
+        <ol className="list-decimal list-inside space-y-2 text-gray-700 dark:text-slate-300">
           <li>
-            <Link to="/tasks" className="text-blue-600 underline">タスク画面</Link>で
+            <Link to="/tasks" className="text-blue-600 dark:text-blue-400 underline">タスク画面</Link>で
             上部の「上位タスクを作成」から親タスクを追加
           </li>
           <li>必要に応じて子タスクを追加して階層化</li>
@@ -65,9 +65,9 @@ export default function Help() {
 
       {/* 機能の要点 */}
       <section id="features" className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">機能の要点</h2>
+        <h2 className="text-xl font-semibold mb-2 dark:text-slate-100">機能の要点</h2>
 
-        <div className="space-y-4 text-gray-700">
+        <div className="space-y-4 text-gray-700 dark:text-slate-300">
           <div>
             <h3 className="font-medium">優先タスク</h3>
             <p className="mt-1">
@@ -103,9 +103,9 @@ export default function Help() {
 
       {/* 操作TIPS */}
       <section id="tips" className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">操作TIPS</h2>
-        <ul className="list-disc list-inside text-gray-700 space-y-1">
-          <li><kbd className="px-1.5 py-0.5 rounded border bg-white dark:bg-gray-700 dark:border-gray-600">Enter</kbd> で親タスク作成</li>
+        <h2 className="text-xl font-semibold mb-2 dark:text-slate-100">操作TIPS</h2>
+        <ul className="list-disc list-inside text-gray-700 dark:text-slate-300 space-y-1">
+          <li><kbd className="px-1.5 py-0.5 rounded border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Enter</kbd> で親タスク作成</li>
           <li>親タスクはドラッグで並び替え</li>
           <li>検索・絞り込みは画面上部のバーから</li>
         </ul>
@@ -113,8 +113,8 @@ export default function Help() {
 
       {/* FAQ */}
       <section id="faq" className="mb-10">
-        <h2 className="text-xl font-semibold mb-2">よくある質問</h2>
-        <div className="space-y-4 text-gray-700">
+        <h2 className="text-xl font-semibold mb-2 dark:text-slate-100">よくある質問</h2>
+        <div className="space-y-4 text-gray-700 dark:text-slate-300">
           <div>
             <p className="font-medium">Q. ドラッグできません</p>
             <p className="mt-1">A. 子タスクはドラッグ対象外です。親タスク同士のみ並び替えできます。</p>
@@ -146,11 +146,11 @@ export default function Help() {
 
       {/* 問い合わせ */}
       <section id="contact" className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">問い合わせ</h2>
-        <p className="text-gray-700">
+        <h2 className="text-xl font-semibold mb-2 dark:text-slate-100">問い合わせ</h2>
+        <p className="text-gray-700 dark:text-slate-300">
           不具合や要望は GitHub リポジトリへどうぞ：{" "}
           <a
-            className="text-blue-600 underline"
+            className="text-blue-600 dark:text-blue-400 underline"
             href="https://github.com/your-org-or-user/your-repo"
             target="_blank"
             rel="noreferrer"
@@ -162,11 +162,11 @@ export default function Help() {
 
       {/* 開発者向けツール */}
       {showDevTools && (
-        <div className="mt-8 border-t pt-4">
-          <h2 className="text-sm font-semibold text-gray-500 mb-2">Dev only</h2>
+        <div className="mt-8 border-t dark:border-slate-700 pt-4">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-slate-400 mb-2">Dev only</h2>
           <button
             onClick={clearAuthCache}
-            className="rounded border px-3 py-1 text-sm hover:bg-gray-50"
+            className="rounded border dark:border-slate-600 px-3 py-1 text-sm hover:bg-gray-50 dark:hover:bg-slate-700 dark:text-slate-200"
           >
             認証キャッシュをクリア（localStorage / sessionStorage）
           </button>
