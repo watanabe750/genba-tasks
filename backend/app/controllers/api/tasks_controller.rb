@@ -150,7 +150,7 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
 
     # GET /api/tasks/priority
     def priority
-      limit = (params[:limit] || 5).to_i
+      limit = params[:limit].to_i
       limit = [[limit, 1].max, 50].min # 1-50の範囲に制限
       tasks = current_user.tasks.priority_order(limit: limit)
       render json: tasks.as_json(only: SELECT_FIELDS)
