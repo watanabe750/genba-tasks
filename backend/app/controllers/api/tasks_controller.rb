@@ -217,17 +217,17 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
       end
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#create] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
-      render json: { errors: [e.message] }, status: :bad_request
+      render json: { errors: ["必要な情報が不足しています。入力内容をご確認ください。"] }, status: :bad_request
     rescue ArgumentError => e
       Rails.logger.warn("[Task#create] ArgumentError: #{e.message}")
-      render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
+      render json: { errors: ["入力内容に誤りがあります。もう一度ご確認ください。"] }, status: :unprocessable_entity
     end
 
     # PATCH/PUT /api/tasks/:id
     def update
       attrs = task_params
       if attrs.key?(:parent_id) && attrs[:parent_id] != @task.parent_id
-        render json: { errors: ["親をまたぐ移動は不可です"] }, status: :unprocessable_entity and return
+        render json: { errors: ["タスクの階層構造は変更できません。別の親タスクへの移動はできません。"] }, status: :unprocessable_entity and return
       end
 
       if @task.update(attrs)
@@ -238,10 +238,10 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
       end
     rescue ActionController::ParameterMissing => e
       Rails.logger.error("[Task#update] ParameterMissing: #{e.message}; params=#{params.to_unsafe_h.inspect}; request_parameters=#{request.request_parameters.inspect}")
-      render json: { errors: [e.message] }, status: :bad_request
+      render json: { errors: ["必要な情報が不足しています。入力内容をご確認ください。"] }, status: :bad_request
     rescue ArgumentError => e
       Rails.logger.warn("[Task#update] ArgumentError: #{e.message}")
-      render json: { errors: ["Invalid parameter: #{e.message}"] }, status: :unprocessable_entity
+      render json: { errors: ["入力内容に誤りがあります。もう一度ご確認ください。"] }, status: :unprocessable_entity
     end
 
     # DELETE /api/tasks/:id
@@ -268,16 +268,16 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
       if after_id
         sib = current_user.tasks.find_by(id: after_id)
         if sib && sib.parent_id != @task.parent_id
-          return render json: { errors: ["親をまたぐ移動は不可です"] }, status: :unprocessable_entity
+          return render json: { errors: ["タスクの階層構造は変更できません。別の親タスクへの移動はできません。"] }, status: :unprocessable_entity
         end
       end
 
       reorder_within_parent!(@task, after_id)
       head :no_content
     rescue ActiveRecord::RecordNotFound
-      render json: { errors: ["Task not found"] }, status: :not_found
+      render json: { errors: ["タスクが見つかりませんでした。ページを更新してもう一度お試しください。"] }, status: :not_found
     rescue ActiveRecord::RecordInvalid => e
-      render json: { errors: [e.message] }, status: :unprocessable_entity
+      render json: { errors: ["タスクの並び替えに失敗しました。もう一度お試しください。"] }, status: :unprocessable_entity
     end
 
     private
@@ -292,7 +292,7 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
 
     def set_task
       @task = current_user.tasks.with_attached_image.find_by(id: params[:id])
-      render(json: { errors: ["Task not found"] }, status: :not_found) and return unless @task
+      render(json: { errors: ["タスクが見つかりませんでした。ページを更新してもう一度お試しください。"] }, status: :not_found) and return unless @task
     end
 
     # 旧/新どちらのクエリも受ける互換版
