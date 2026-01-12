@@ -33,7 +33,7 @@ export default function Login() {
   useEffect(() => {
     try {
       if (sessionStorage.getItem("auth:expired") === "1") {
-        setErrTop("セッションの有効期限が切れました。もう一度ログインしてください。");
+        setErrTop("ログインセッションの有効期限が切れました。お手数ですが、再度ログインしてください。");
         sessionStorage.removeItem("auth:expired");
       }
     } catch {/* ignore */}
@@ -79,7 +79,7 @@ export default function Login() {
     } catch (err: unknown) {
       logError(err, 'Login');
       const msg = getUserMessage(err);
-      setErrTop(msg || "ログインに失敗しました。メールアドレスまたはパスワードをご確認ください。");
+      setErrTop(msg || "ログインに失敗しました。メールアドレスとパスワードをご確認の上、もう一度お試しください。");
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +93,7 @@ export default function Login() {
       await guestSignIn();
       nav("/tasks", { replace: true });
     } catch {
-      setErrTop("ゲストログインに失敗しました。しばらくしてからお試しください。");
+      setErrTop("ゲストログインに失敗しました。しばらく時間をおいてから再度お試しください。");
     } finally {
       setSubmitting(false);
     }

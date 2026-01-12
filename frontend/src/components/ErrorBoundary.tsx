@@ -80,8 +80,9 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-              申し訳ございません。予期しないエラーが発生しました。
-              ページを再読み込みするか、しばらく時間をおいてから再度お試しください。
+              申し訳ございません。予期しない問題が発生しました。
+              以下のボタンからページを再読み込みするか、しばらく時間をおいてから再度お試しください。
+              問題が解決しない場合は、お手数ですがサポートまでお問い合わせください。
             </p>
 
             {this.state.error && (

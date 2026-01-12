@@ -74,7 +74,7 @@ export default function Register() {
     } catch (err: unknown) {
       logError(err, 'Register');
       const msg = getUserMessage(err);
-      setErrTop(msg || "登録に失敗しました。もう一度お試しください。");
+      setErrTop(msg || "アカウントの登録に失敗しました。入力内容をご確認の上、もう一度お試しください。");
     } finally {
       setSubmitting(false);
     }

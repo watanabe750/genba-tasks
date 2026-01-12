@@ -39,7 +39,7 @@ export default function PriorityTasksPanel() {
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
 
-  const { data: tasks = [], isLoading, error } = usePriorityTasks(authed, limit);
+  const { data: tasks = [], isLoading, error } = usePriorityTasks(limit, authed);
   const { mutate: update } = useUpdateTask();
   const qc = useQueryClient();
   const queryKey = ["priorityTasks", limit];

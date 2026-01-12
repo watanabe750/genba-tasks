@@ -70,17 +70,17 @@ function extractErrorMessage(error: AxiosErrorResponse): string {
 function generateUserMessage(type: ApiErrorType, message: string): string {
   switch (type) {
     case 'auth':
-      return '認証に失敗しました。ログインし直してください。';
+      return 'ログインセッションが切れました。お手数ですが、再度ログインしてください。';
     case 'validation':
       return message; // バリデーションエラーはそのまま表示
     case 'notFound':
-      return '指定されたリソースが見つかりませんでした。';
+      return 'お探しの情報が見つかりませんでした。ページを更新してもう一度お試しください。';
     case 'server':
-      return 'サーバーエラーが発生しました。しばらくしてから再度お試しください。';
+      return 'サーバーで問題が発生しました。お手数ですが、しばらく時間をおいてから再度お試しください。';
     case 'network':
-      return 'ネットワークエラーが発生しました。接続を確認してください。';
+      return 'インターネット接続に問題があります。ネットワーク接続をご確認ください。';
     default:
-      return '予期しないエラーが発生しました。';
+      return '予期しない問題が発生しました。ページを更新してもう一度お試しください。';
   }
 }
 
