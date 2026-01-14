@@ -161,6 +161,19 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
       t = @task
       img_urls = { image_url: t.image_url, image_thumb_url: nil }
 
+      # 最適化: 子タスクの統計情報を1クエリで取得（N+1問題の解決）
+      children_stats = current_user.tasks
+        .where(parent_id: t.id)
+        .select(
+          'COUNT(*) as total_count',
+          "SUM(CASE WHEN status = #{Task.statuses[:completed]} THEN 1 ELSE 0 END) as done_count"
+        )
+        .first
+
+      children_count = children_stats&.total_count&.to_i || 0
+      children_done_count = children_stats&.done_count&.to_i || 0
+
+      # 子タスクのプレビュー（最大4件）
       kids = current_user.tasks
                .where(parent_id: t.id)
                .select(:id, :title, :status, :progress, :deadline, :parent_id)
@@ -168,15 +181,14 @@ render json: scope.with_attached_image.as_json(only: SELECT_FIELDS, methods: [:i
                .limit(4)
                .to_a
 
-      children_count      = current_user.tasks.where(parent_id: t.id).count
-      children_done_count = current_user.tasks.where(parent_id: t.id, status: "completed").count
-      grandkids_count     =
-        if children_count.zero?
-          0
-        else
-          child_ids = current_user.tasks.where(parent_id: t.id).select(:id)
-          current_user.tasks.where(parent_id: child_ids).count
-        end
+      # 孫タスクの総数（子タスクが存在する場合のみカウント）
+      grandkids_count = if children_count > 0
+        current_user.tasks
+          .where(parent_id: current_user.tasks.where(parent_id: t.id).select(:id))
+          .count
+      else
+        0
+      end
 
       progress_percent = (t.respond_to?(:progress_percent) ? t.progress_percent : t.progress).to_i
 
