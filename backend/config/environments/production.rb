@@ -90,4 +90,28 @@ Rails.application.configure do
   ]
   # ヘルスチェックエンドポイントは例外（ロードバランサーからのアクセスを許可）
   config.host_authorization = { exclude: ->(req) { req.path == "/up" } }
+
+  # セキュリティヘッダーの追加
+  config.action_dispatch.default_headers.merge!(
+    # X-Frame-Options: クリックジャッキング攻撃対策
+    # 同じドメインからのみiframeでの埋め込みを許可
+    'X-Frame-Options' => 'SAMEORIGIN',
+
+    # X-Content-Type-Options: MIMEスニッフィング攻撃対策
+    # ブラウザにContent-Typeを厳密に守らせ、推測による実行を防止
+    'X-Content-Type-Options' => 'nosniff',
+
+    # X-XSS-Protection: 旧ブラウザ向けXSS対策
+    # ブラウザのXSSフィルタを有効化（最新ブラウザではCSPが優先される）
+    'X-XSS-Protection' => '1; mode=block',
+
+    # Referrer-Policy: リファラー情報の制御
+    # 同一サイト内ではフルURL、外部サイトにはオリジンのみ送信
+    # URLパラメータの機密情報漏洩を防止
+    'Referrer-Policy' => 'strict-origin-when-cross-origin',
+
+    # Permissions-Policy: 不要なブラウザ機能を無効化
+    # カメラ、マイク、位置情報、決済機能など、アプリで使用しない機能を明示的に無効化
+    'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=()'
+  )
 end
