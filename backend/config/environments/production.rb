@@ -112,6 +112,43 @@ Rails.application.configure do
 
     # Permissions-Policy: 不要なブラウザ機能を無効化
     # カメラ、マイク、位置情報、決済機能など、アプリで使用しない機能を明示的に無効化
-    'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=()'
+    'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=()',
+
+    # Content-Security-Policy: XSS攻撃に対する最強の防御
+    # React + Vite + Tailwind CSS に最適化した設定
+    'Content-Security-Policy' => [
+      # デフォルト: 自サイトのみ
+      "default-src 'self'",
+
+      # スクリプト: Vite + React で必要（'unsafe-inline'はViteの動的インポートで必要）
+      "script-src 'self' 'unsafe-inline'",
+
+      # スタイル: Tailwind CSS のインラインスタイルで必要
+      "style-src 'self' 'unsafe-inline'",
+
+      # 画像: 自サイト + data: + https: + blob:（Active Storage / S3等の外部ストレージ対応）
+      "img-src 'self' data: https: blob:",
+
+      # フォント: 自サイト + data:
+      "font-src 'self' data:",
+
+      # API接続: 自サイトのみ
+      "connect-src 'self'",
+
+      # iframe埋め込み: 自サイトのみ（X-Frame-Optionsの代替）
+      "frame-ancestors 'self'",
+
+      # フォーム送信先: 自サイトのみ
+      "form-action 'self'",
+
+      # base要素の制限
+      "base-uri 'self'",
+
+      # Flash等のプラグインを禁止
+      "object-src 'none'",
+
+      # HTTPをHTTPSに自動アップグレード
+      "upgrade-insecure-requests"
+    ].join('; ')
   )
 end
