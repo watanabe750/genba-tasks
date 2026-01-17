@@ -1,8 +1,8 @@
 class CreateTaskDependencies < ActiveRecord::Migration[8.0]
   def change
     create_table :task_dependencies do |t|
-      t.integer :predecessor_id, null: false
-      t.integer :successor_id, null: false
+      t.bigint :predecessor_id, null: false
+      t.bigint :successor_id, null: false
 
       t.timestamps
     end

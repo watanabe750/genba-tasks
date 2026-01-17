@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_02_190049) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_13_163028) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -54,6 +54,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_02_190049) do
     t.index ["task_id"], name: "index_attachments_on_task_id"
   end
 
+  create_table "task_dependencies", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "predecessor_id", null: false
+    t.bigint "successor_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["predecessor_id", "successor_id"], name: "index_task_deps_on_pred_and_succ", unique: true
+    t.index ["predecessor_id"], name: "index_task_dependencies_on_predecessor_id"
+    t.index ["successor_id"], name: "index_task_dependencies_on_successor_id"
+  end
+
   create_table "tasks", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "title"
     t.text "description"
@@ -68,8 +78,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_02_190049) do
     t.integer "position"
     t.string "site"
     t.date "start_date"
+    t.index ["deadline"], name: "index_tasks_on_deadline"
     t.index ["parent_id"], name: "index_tasks_on_parent_id"
     t.index ["position"], name: "index_tasks_on_position"
+    t.index ["site"], name: "index_tasks_on_site"
+    t.index ["status"], name: "index_tasks_on_status"
+    t.index ["user_id", "deadline"], name: "index_tasks_on_user_id_and_deadline"
     t.index ["user_id", "parent_id"], name: "index_tasks_on_user_id_and_parent_id"
     t.index ["user_id"], name: "index_tasks_on_user_id"
   end
@@ -103,6 +117,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_02_190049) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "attachments", "tasks"
+  add_foreign_key "task_dependencies", "tasks", column: "predecessor_id"
+  add_foreign_key "task_dependencies", "tasks", column: "successor_id"
   add_foreign_key "tasks", "tasks", column: "parent_id"
   add_foreign_key "tasks", "users"
 end
